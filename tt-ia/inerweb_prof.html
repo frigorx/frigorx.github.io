@@ -1793,9 +1793,8 @@ function setSyncState(s){
 async function pushVal(data){
   const entry={...data,evaluateur:cfg.nomProf||'Prof',timestamp:new Date().toISOString(),phase:curPhase};
   if(!validations[cur]) validations[cur]=[];
-  validations[cur].push(entry); saveLocal(); toast('✓ Enregistré','ok');
-  if(online){try{await syncQueueWrapper.smartSend({action:'saveValidation',eleve:cur,data:entry},apiCall,toast);}catch{toast('En attente sync','warn');}}
-  else{syncQueueWrapper.push({action:'saveValidation',eleve:cur,data:entry});toast('Sauvegardé hors-ligne','warn');}
+  validations[cur].push(entry); saveLocal(); updateAll();
+  toast('✓ Enregistré','ok');
 }
 
 /* ═══ [D0] PHASE 13 — NAVIGATION MULTI-CLASSE ═══ */
@@ -3790,7 +3789,7 @@ async function cloture(ep){
   const e=calcNote(cur,ep);
   notes[cur][ep]={...notes[cur][ep],note_finale:e.note,eligible:e.elig,cloture:true,evaluateur:cfg.nomProf};
   saveLocal();toast(`${ep} clôturée`,'ok');
-  if(online){try{await apiCall({action:'cloturerEpreuve',eleve:cur,data:{epreuve:ep,...notes[cur][ep]}});}catch{}}
+  /* sync backend désactivée — mode local */
   renderBilan();renderDash();
 }
 function devrouille(ep){
@@ -3804,7 +3803,7 @@ async function doDevrouille(ep){
   if(!notes[cur])notes[cur]={E31:{},E32:{},E33:{}};
   notes[cur][ep]={...notes[cur][ep],cloture:false};
   saveLocal();closeModal();toast(`${ep} déverrouillée`,'warn');
-  if(online){try{await apiCall({action:'deverrouillerEpreuve',eleve:cur,data:{epreuve:ep,motif:m,evaluateur:cfg.nomProf}});}catch{}}
+  /* sync backend désactivée — mode local */
   renderBilan();renderDash();
 }
 
