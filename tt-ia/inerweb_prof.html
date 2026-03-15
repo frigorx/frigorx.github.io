@@ -1714,6 +1714,7 @@ function showConfigScreen(){
 }
 /* apiCall → js/core/api.js (copie locale conservée pour rétro-compatibilité) */
 async function apiCall(params){
+  if(!cfg.apiUrl){try{var _sc=JSON.parse(localStorage.getItem(SCFG)||'{}');if(_sc.apiUrl){cfg.apiUrl=_sc.apiUrl;cfg.apiKey=_sc.apiKey;}}catch(e){}}
   if(!cfg.apiUrl) throw new Error('no url');
   params.key=cfg.apiKey;
   const WRITE_ACTIONS=['saveValidation','addEleve','deleteEleve','cloturerEpreuve','addJournalEntry','saveConfig','addUser','deleteUser'];
@@ -1751,6 +1752,10 @@ function loadLocal(){
 }
 /* syncAll → js/core/utils.js (copie locale conservée) */
 async function syncAll(){
+  // Protection : relire cfg depuis localStorage si vide en mémoire
+  if(!cfg.apiUrl){
+    try{var _sc=JSON.parse(localStorage.getItem(SCFG)||'{}');if(_sc.apiUrl){cfg.apiUrl=_sc.apiUrl;cfg.apiKey=_sc.apiKey;cfg.nomProf=_sc.nomProf;cfg.baseUrl=_sc.baseUrl;}}catch(e){}
+  }
   if(!cfg.apiUrl){setSyncState('error');return;}
   setSyncState('syncing');
   try{
@@ -4394,6 +4399,10 @@ function handleFusion(file){
 
 /* ═══ [K] CONFIG APP ═══ */
 function showParamModal(){
+  // Re-lire cfg depuis localStorage si vide en mémoire (protection timing state.js)
+  if(!cfg.apiUrl){
+    try{var _sc=JSON.parse(localStorage.getItem(SCFG)||'{}');if(_sc.apiUrl){cfg.apiUrl=_sc.apiUrl;cfg.apiKey=_sc.apiKey;cfg.nomProf=_sc.nomProf;cfg.baseUrl=_sc.baseUrl;}}catch(e){}
+  }
   const pageUrl=cfg.baseUrl||location.href.replace(/[^/]*$/,'');
   showModal('⚙️ Ma session',`
     <div class="card" style="background:var(--bleu3);margin-bottom:.75rem;border-left:4px solid var(--bleu)">
