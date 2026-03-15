@@ -925,7 +925,10 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
           <div class="card" style="border-top:3px solid var(--teal)">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;flex-wrap:wrap;gap:.3rem">
               <div style="font-size:.85rem;font-weight:800;color:var(--teal)">📣 Message aux tuteurs</div>
-              <button class="btn btn-sm" onclick="envoyerCodesTous('tuteurs')" style="min-height:44px;background:#25D366;color:#fff;border:none;font-weight:700">📱 Envoyer les codes à tous les tuteurs</button>
+              <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+                <button class="btn btn-sm" onclick="envoyerCodesTous('tuteurs')" style="min-height:44px;background:#25D366;color:#fff;border:none;font-weight:700">📱 Codes</button>
+                <button class="btn btn-sm" onclick="envoyerQRTous('tuteurs')" style="min-height:44px;background:#1b3a63;color:#fff;border:none;font-weight:700">🔳 QR tuteurs</button>
+              </div>
             </div>
             <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem">
               <button class="btn btn-ghost btn-sm" onclick="prepMsg('bienvenue')">👋 Bienvenue</button>
@@ -967,7 +970,10 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
           <div class="card" style="border-top:3px solid var(--violet)">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;flex-wrap:wrap;gap:.3rem">
               <div style="font-size:.85rem;font-weight:800;color:var(--violet)">📣 Message aux élèves</div>
-              <button class="btn btn-sm" onclick="envoyerCodesTous('eleves')" style="min-height:44px;background:#25D366;color:#fff;border:none;font-weight:700">📱 Envoyer les codes à tous les élèves</button>
+              <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+                <button class="btn btn-sm" onclick="envoyerCodesTous('eleves')" style="min-height:44px;background:#25D366;color:#fff;border:none;font-weight:700">📱 Codes</button>
+                <button class="btn btn-sm" onclick="envoyerQRTous('eleves')" style="min-height:44px;background:#8e44ad;color:#fff;border:none;font-weight:700">🔳 QR élèves</button>
+              </div>
             </div>
             <div class="fr" style="margin-bottom:.5rem"><label>Message</label>
               <textarea id="msgElv" rows="3" style="width:100%;padding:.5rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.85rem" placeholder="Bonjour,&#10;..."></textarea>
@@ -3227,6 +3233,172 @@ function lancerEnvoiCodes(){
     setTimeout(next,800);
   }
   next();
+}
+
+/* ═══ ENVOI QR PAR WHATSAPP ═══ */
+function genererQRImage(url,label,sublabel,couleur){
+  return new Promise(function(resolve){
+    // Créer un canvas badge avec QR intégré
+    var tmp=document.createElement('div');
+    tmp.style.cssText='position:absolute;left:-9999px;top:-9999px';
+    document.body.appendChild(tmp);
+    var qrDiv=document.createElement('div');
+    tmp.appendChild(qrDiv);
+    try{
+      new QRCode(qrDiv,{text:url,width:250,height:250,correctLevel:QRCode.CorrectLevel.M});
+    }catch(e){resolve(null);return;}
+    setTimeout(function(){
+      var qrCanvas=qrDiv.querySelector('canvas');
+      if(!qrCanvas){document.body.removeChild(tmp);resolve(null);return;}
+      // Dessiner le badge complet
+      var cv=document.createElement('canvas');
+      cv.width=400;cv.height=520;
+      var ctx=cv.getContext('2d');
+      // Fond dégradé
+      var grd=ctx.createLinearGradient(0,0,400,520);
+      grd.addColorStop(0,couleur);
+      grd.addColorStop(1,couleur==='#16a085'?'#0d6e5e':'#1b3a63');
+      ctx.fillStyle=grd;
+      ctx.beginPath();ctx.roundRect(0,0,400,520,20);ctx.fill();
+      // Titre
+      ctx.fillStyle='rgba(255,255,255,0.8)';ctx.font='bold 13px sans-serif';ctx.textAlign='center';
+      ctx.fillText(couleur==='#16a085'?'BADGE TUTEUR':'BADGE ÉLÈVE',200,35);
+      // Nom
+      ctx.fillStyle='#fff';ctx.font='bold 22px sans-serif';
+      ctx.fillText(label,200,68);
+      // Sous-titre
+      ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='13px sans-serif';
+      ctx.fillText(sublabel,200,90);
+      // QR sur fond blanc
+      ctx.fillStyle='#fff';
+      ctx.beginPath();ctx.roundRect(60,110,280,280,12);ctx.fill();
+      ctx.drawImage(qrCanvas,75,125,250,250);
+      // URL en petit
+      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='9px sans-serif';
+      var shortUrl=url.length>60?url.substring(0,60)+'...':url;
+      ctx.fillText(shortUrl,200,420);
+      // Logo inerWeb
+      ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='bold 11px sans-serif';
+      ctx.fillText('inerWeb TT — Scannez pour accéder',200,450);
+      // Instruction
+      ctx.fillStyle='#fff';ctx.font='bold 15px sans-serif';
+      ctx.fillText('📱 Scannez ce QR code',200,490);
+
+      document.body.removeChild(tmp);
+      cv.toBlob(function(blob){resolve(blob);},'image/png');
+    },200);
+  });
+}
+
+async function envoyerQRTous(type){
+  var base=cfg.baseUrl||(window.iwConfig?window.iwConfig.getBaseUrl():location.href.replace(/[^/]*$/,''));
+  var liste=students.filter(function(s){return s.statut!=='inactif';});
+  if(!liste.length){toast('Aucun élève','warn');return;}
+
+  showModal('🔳 Génération des QR codes...','<div id="qrProgress" style="text-align:center;padding:1rem"><div style="font-size:2rem;margin-bottom:.5rem">⏳</div><div>Préparation de '+liste.length+' badge(s)...</div></div>','');
+
+  var items=[];
+  var sansTel=[];
+
+  for(var i=0;i<liste.length;i++){
+    var s=liste[i];
+    var tel=s.tel_eleve||'';
+    if(type==='tuteurs') tel=s.tel_tuteur||s.tuteur_tel||'';
+    if(!tel){sansTel.push(s.nom+' '+(s.prenom||''));continue;}
+
+    var url,label,sublabel,couleur;
+    if(type==='tuteurs'){
+      url=base+'inerweb_tuteur.html?eleve='+s.code+'&tuteur='+(s.token_tuteur||'')+'&role=tuteur';
+      label=(s.tuteur_nom||'Tuteur');
+      sublabel='Stagiaire : '+s.nom+' '+(s.prenom||'');
+      couleur='#16a085';
+    }else{
+      url=base+'inerweb_eleve.html?eleve='+s.code+'&token='+(s.token_eleve||'')+'&role=eleve';
+      label=s.nom+' '+(s.prenom||'');
+      sublabel=(s.classe||'')+' · '+(s.entreprise_nom||'');
+      couleur='#2d5a8c';
+    }
+
+    var blob=await genererQRImage(url,label,sublabel,couleur);
+    if(blob){
+      items.push({nom:s.nom+' '+(s.prenom||''),tel:tel,blob:blob,url:url,tuteurNom:s.tuteur_nom||''});
+    }
+
+    // Mise à jour progression
+    var prog=document.getElementById('qrProgress');
+    if(prog)prog.innerHTML='<div style="font-size:1.5rem;margin-bottom:.5rem">🔳</div><div>'+(i+1)+' / '+liste.length+' généré(s)</div>';
+  }
+
+  if(!items.length){closeModal();toast('Aucun destinataire avec numéro','err');return;}
+
+  // Afficher récap
+  var html='<div style="font-size:.82rem;margin-bottom:.75rem">';
+  html+='<div class="alert al-info" style="margin-bottom:.5rem">🔳 <strong>'+items.length+'</strong> QR code(s) prêts à envoyer par WhatsApp</div>';
+  if(sansTel.length){
+    html+='<div class="alert al-warn" style="margin-bottom:.5rem">⚠️ '+sansTel.length+' sans numéro : '+sansTel.join(', ')+'</div>';
+  }
+  // Aperçu du premier QR
+  var previewUrl=URL.createObjectURL(items[0].blob);
+  html+='<div style="text-align:center;margin-bottom:.5rem"><img src="'+previewUrl+'" style="max-width:180px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.15)" alt="Aperçu QR"></div>';
+  html+='<div style="max-height:120px;overflow-y:auto">';
+  items.forEach(function(it,idx){
+    html+='<div style="padding:.25rem .5rem;background:var(--gris2);border-radius:var(--r2);margin-bottom:.2rem;font-size:.75rem"><strong>'+(idx+1)+'.</strong> '+esc(it.nom)+'</div>';
+  });
+  html+='</div></div>';
+  html+='<p style="font-size:.72rem;color:var(--gris);margin-bottom:.5rem">Sur mobile : partage direct dans WhatsApp. Sur PC : téléchargement + envoi manuel.</p>';
+
+  window._qrItems=items;
+  showModal('🔳 Envoyer les QR par WhatsApp',html,'<button class="btn btn-primary btn-sm" onclick="lancerEnvoiQR()" style="min-height:44px;background:#25D366;border-color:#25D366">✅ Envoyer !</button> <button class="btn btn-ghost btn-sm" onclick="lancerDLQR()">💾 Tout télécharger</button> <button class="btn btn-ghost btn-sm" onclick="closeModal()">Annuler</button>');
+}
+
+async function lancerEnvoiQR(){
+  closeModal();
+  var items=window._qrItems||[];
+  if(!items.length)return;
+  var canShare=navigator.share&&navigator.canShare;
+  var i=0;
+
+  async function next(){
+    if(i>=items.length){toast(items.length+' QR envoyé(s)','ok');return;}
+    var it=items[i];
+    var msg='Bonjour, voici votre badge QR code inerWeb TT pour '+it.nom+'. Scannez-le pour accéder à votre espace.';
+
+    if(canShare){
+      // Web Share API (mobile) — partage image directement
+      var file=new File([it.blob],'QR_'+it.nom.replace(/\s+/g,'_')+'.png',{type:'image/png'});
+      try{
+        if(navigator.canShare({files:[file]})){
+          await navigator.share({text:msg,files:[file]});
+          i++;setTimeout(next,300);return;
+        }
+      }catch(e){/* annulé ou non supporté */}
+    }
+
+    // Fallback : télécharger l'image + ouvrir WhatsApp avec le lien texte
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(it.blob);
+    a.download='QR_'+it.nom.replace(/\s+/g,'_')+'.png';
+    a.click();
+    // Ouvrir WhatsApp avec message texte + lien
+    if(it.tel){
+      window.open('https://wa.me/'+formatWA(it.tel)+'?text='+encodeURIComponent(msg+'\n\nLien direct : '+it.url),'_blank');
+    }
+    i++;
+    setTimeout(next,1000);
+  }
+  await next();
+}
+
+function lancerDLQR(){
+  closeModal();
+  var items=window._qrItems||[];
+  items.forEach(function(it){
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(it.blob);
+    a.download='QR_'+it.nom.replace(/\s+/g,'_')+'.png';
+    a.click();
+  });
+  toast(items.length+' QR téléchargé(s)','ok');
 }
 
 /* ═══ [H] BILAN ═══ */
