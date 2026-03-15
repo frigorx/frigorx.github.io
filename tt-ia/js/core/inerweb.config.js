@@ -32,10 +32,10 @@
     // ─── API BACKEND ───
     // URL de votre deploiement Google Apps Script
     // Format : https://script.google.com/macros/s/VOTRE_ID/exec
-    API_URL: '',
+    API_URL: 'https://script.google.com/macros/s/AKfycbybJxLLb3p0h_Jy7rtzRnFAAwCbm_RTMEk7E8T4TxA-Qi49901jUZsipH6ZrLKppuuqaw/exec',
 
     // Cle API (doit correspondre a celle configuree dans le Apps Script)
-    API_KEY: '',
+    API_KEY: 'inerWeb2026fh',
 
     // ─── URLs DE BASE ───
     // URL ou sont heberges les fichiers HTML (pour les QR codes, liens eleves/tuteurs)
