@@ -1022,9 +1022,10 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
           <select id="selRapport" onchange="selectStudent(this.value,'rapport')" aria-label="Sélection élève rapport"></select>
           <div class="nav-arrows"><button onclick="navStudent(-1,'rapport')" aria-label="Élève précédent">◀</button><button onclick="navStudent(1,'rapport')" aria-label="Élève suivant">▶</button></div>
         </div>
-        <select id="selRapportPfmp" aria-label="Sélection période PFMP" style="padding:.4rem .6rem;border:2px solid var(--gris3);border-radius:var(--r2);font-weight:700;font-size:.78rem">
+        <select id="selRapportPfmp" onchange="renderRapport()" aria-label="Sélection période PFMP" style="padding:.4rem .6rem;border:2px solid var(--gris3);border-radius:var(--r2);font-weight:700;font-size:.78rem">
           <option value="pfmp1">PFMP 1</option>
           <option value="pfmp2">PFMP 2</option>
+          <option value="pfmp3">PFMP 3 (Bac Pro)</option>
         </select>
       </div>
       <div id="rapportContent"><div class="empty"><div class="ei">📝</div><p>Sélectionnez un élève</p></div></div>
@@ -3111,7 +3112,7 @@ function toggleCompVal(ep,compCode){
   renderBilan();
 }
 /* ═══ [H-bis] RAPPORT DE STAGE ═══ */
-let rapportData={};// {code: {pfmp1:{...}, pfmp2:{...}}}
+let rapportData={};// {code: {pfmp1:{...}, pfmp2:{...}, pfmp3:{...}}}
 
 const CRIT_RAPPORT_PRO=[
   {key:"activites",    lbl:"Activités décrites",     sub:"Ce qu'il a fait, vu, réalisé en entreprise"},
@@ -3120,6 +3121,8 @@ const CRIT_RAPPORT_PRO=[
   {key:"reflexion",   lbl:"Lien avec la formation",  sub:"Rapport entre les activités et le référentiel"},
   {key:"rendu_compte", lbl:"Rendre compte",           sub:"Régularité du journal de stage, photos quotidiennes, respect des consignes de suivi"},
 ];
+/* Barème pro : conversion niveaux → note /20 */
+const BAREME_PRO={0:0, 1:5, 2:10, 3:15, 4:20};
 const CRIT_RAPPORT_FR={
   total:20,
   categories:[
@@ -3151,6 +3154,124 @@ function popSelectsRapport(){
   if(sel){sel.innerHTML=html;if(cur)sel.value=cur;}
 }
 
+/* ── Activités réalisées en stage (journal + tuteur) ── */
+function buildActivitesStage(code,pfmp){
+  const pf=pfmpData[code]||{journal:[]};
+  const journal=pf.journal||[];
+  // Filtrer les entrées du journal correspondant au pfmp
+  const entries=journal.filter(j=>{
+    const txt=(j.text||j.description||j.activite||'').toLowerCase();
+    return j.type==='activite'||j.type==='observation'||txt.length>5;
+  }).slice(-15);
+  // Évaluation tuteur pour cette PFMP
+  const evalTut=pf.evalTuteur?.[pfmp]||null;
+  let html='';
+  // Section activités du journal
+  if(entries.length){
+    html+=`<div style="margin-bottom:.5rem;font-weight:800;font-size:.8rem;color:var(--teal)">📓 Journal de stage (${entries.length} entrées)</div>`;
+    html+=entries.map(e=>{
+      const day=(e.date||e.timestamp||'').slice(0,10);
+      const hasPhoto=e.photos?.length>0;
+      return `<div style="display:flex;gap:.5rem;align-items:flex-start;padding:.35rem .5rem;background:var(--gris2);border-radius:var(--r2);margin-bottom:.25rem;border-left:3px solid var(--teal)">
+        <span style="font-size:.65rem;color:var(--gris);white-space:nowrap;min-width:5rem">${day?dateFR(day):'—'}</span>
+        <span style="font-size:.78rem;flex:1">${esc(e.text||e.description||e.activite||'—')}</span>
+        ${hasPhoto?'<span style="font-size:.7rem">📷</span>':''}
+      </div>`;
+    }).join('');
+  }else{
+    html+=`<div class="alert al-info" style="padding:.5rem;font-size:.78rem">Aucune activité dans le journal de stage pour cette période.</div>`;
+  }
+  // Section évaluation tuteur
+  if(evalTut&&evalTut.competences){
+    const compEntries=Object.entries(evalTut.competences);
+    if(compEntries.length){
+      html+=`<div style="margin:.6rem 0 .4rem;font-weight:800;font-size:.8rem;color:var(--violet)">🏢 Évaluation tuteur — ${esc(evalTut.tuteurNom||'Tuteur')}</div>`;
+      html+=compEntries.map(([code2,niv])=>`<div style="display:flex;align-items:center;gap:.4rem;padding:.3rem .5rem;background:var(--gris2);border-radius:var(--r2);margin-bottom:.2rem">
+        <span style="font-family:monospace;font-size:.68rem;font-weight:800;color:var(--teal);background:var(--teal2);padding:.1rem .3rem;border-radius:4px">${code2}</span>
+        <span class="lv-badge lv-${niv}">${niv}</span>
+        ${evalTut.observations?.[code2]?`<span style="font-size:.7rem;color:var(--gris);font-style:italic;flex:1">"${esc(evalTut.observations[code2])}"</span>`:''}
+      </div>`).join('');
+    }
+    // Critères globaux tuteur
+    if(evalTut.criteres){
+      const critLabels={assiduite:'Assiduité',initiative:'Initiative',qualite:'Qualité du travail',comportement:'Comportement'};
+      html+=`<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">`;
+      Object.entries(evalTut.criteres).forEach(([k,v])=>{
+        const stars='★'.repeat(v)+'☆'.repeat(5-v);
+        html+=`<div style="background:var(--gris2);border-radius:var(--r2);padding:.25rem .5rem;font-size:.7rem"><span style="font-weight:700">${critLabels[k]||k}</span> <span style="color:#f1c40f">${stars}</span></div>`;
+      });
+      html+=`</div>`;
+    }
+    if(evalTut.appreciation){
+      html+=`<div style="margin-top:.4rem;font-size:.75rem;background:var(--gris2);padding:.4rem .6rem;border-radius:var(--r2);font-style:italic;border-left:3px solid var(--violet)">"${esc(evalTut.appreciation)}"</div>`;
+    }
+  }else{
+    html+=`<div style="margin-top:.4rem;font-size:.75rem;color:var(--gris)">Aucune évaluation tuteur reçue pour cette PFMP.</div>`;
+  }
+  return html;
+}
+
+/* ── Upload rapport de stage PDF ── */
+function buildUploadRapport(code,pfmp){
+  if(!rapportData[code])rapportData[code]={};
+  if(!rapportData[code][pfmp])rapportData[code][pfmp]={pro:{},fr:{},obs_pro:'',obs_fr:'',jury:''};
+  const d=rapportData[code][pfmp];
+  const hasFile=d.rapportFile&&d.rapportFileName;
+  return `<div style="background:var(--gris2);border-radius:var(--r2);padding:.6rem .75rem;margin-bottom:.5rem">
+    <div style="font-weight:800;font-size:.8rem;color:var(--bleu);margin-bottom:.4rem">📎 Rapport de stage de l'élève</div>
+    ${hasFile?`<div style="display:flex;align-items:center;gap:.5rem;background:#fff;padding:.4rem .6rem;border-radius:var(--r2);margin-bottom:.4rem">
+      <span style="font-size:1.2rem">📄</span>
+      <span style="flex:1;font-size:.8rem;font-weight:700">${esc(d.rapportFileName)}</span>
+      <button class="btn btn-ghost btn-xs" onclick="telechargerRapportStage()">📥 Ouvrir</button>
+      <button class="btn btn-ghost btn-xs" style="color:var(--rouge)" onclick="supprimerRapportStage()">🗑️</button>
+    </div>`:'<div style="font-size:.75rem;color:var(--gris);margin-bottom:.4rem">Aucun rapport déposé. L\'élève vous envoie son rapport par mail ? Déposez-le ici.</div>'}
+    <label style="display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .7rem;background:var(--teal2);color:var(--teal);border-radius:var(--r2);cursor:pointer;font-size:.78rem;font-weight:700;border:2px dashed var(--teal)">
+      <input type="file" accept=".pdf,.doc,.docx,.odt" style="display:none" onchange="uploadRapportStage(this.files)">
+      📁 ${hasFile?'Remplacer le fichier':'Déposer le rapport (PDF, Word)'}
+    </label>
+  </div>`;
+}
+function uploadRapportStage(files){
+  if(!files||!files.length||!cur)return;
+  const file=files[0];
+  if(file.size>15*1024*1024){toast('Fichier trop volumineux (max 15 Mo)','err');return;}
+  const pfmp=document.getElementById('selRapportPfmp')?.value||'pfmp1';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    if(!rapportData[cur])rapportData[cur]={};
+    if(!rapportData[cur][pfmp])rapportData[cur][pfmp]={pro:{},fr:{},obs_pro:'',obs_fr:'',jury:''};
+    rapportData[cur][pfmp].rapportFile=e.target.result;
+    rapportData[cur][pfmp].rapportFileName=file.name;
+    rapportData[cur][pfmp].rapportDate=new Date().toISOString().slice(0,10);
+    saveLocal();
+    renderRapport();
+    toast('Rapport déposé : '+file.name,'ok');
+  };
+  reader.readAsDataURL(file);
+}
+function telechargerRapportStage(){
+  if(!cur)return;
+  const pfmp=document.getElementById('selRapportPfmp')?.value||'pfmp1';
+  const d=rapportData[cur]?.[pfmp];
+  if(!d?.rapportFile)return;
+  const a=document.createElement('a');
+  a.href=d.rapportFile;
+  a.download=d.rapportFileName||'rapport.pdf';
+  a.click();
+}
+function supprimerRapportStage(){
+  if(!cur)return;
+  if(!confirm('Supprimer le rapport déposé ?'))return;
+  const pfmp=document.getElementById('selRapportPfmp')?.value||'pfmp1';
+  if(rapportData[cur]?.[pfmp]){
+    delete rapportData[cur][pfmp].rapportFile;
+    delete rapportData[cur][pfmp].rapportFileName;
+    delete rapportData[cur][pfmp].rapportDate;
+  }
+  saveLocal();renderRapport();
+  toast('Rapport supprimé','ok');
+}
+
 function renderRapport(){
   const c=document.getElementById('rapportContent');
   if(!cur){c.innerHTML='<div class="empty"><div class="ei">📝</div><p>Sélectionnez un élève</p></div>';return;}
@@ -3160,12 +3281,20 @@ function renderRapport(){
   if(!rapportData[cur][pfmp])rapportData[cur][pfmp]={pro:{},fr:{},obs_pro:'',obs_fr:'',jury:''};
   const d=rapportData[cur][pfmp];
 
-  /* Grille pro (inchangée — niveaux qualitatifs) */
+  /* ── 1. Activités réalisées en stage + éval tuteur ── */
+  const activitesHtml=buildActivitesStage(cur,pfmp);
+
+  /* ── 2. Upload rapport de stage ── */
+  const uploadHtml=buildUploadRapport(cur,pfmp);
+
+  /* ── 3. Grille pro — niveaux qualitatifs + note /20 ── */
+  let totalPro=0,countPro=0;
   const makeGridPro=(criteres,secteur)=>criteres.map(cr=>{
     const niv=d[secteur][cr.key]??-1;
+    if(niv>=0){totalPro+=BAREME_PRO[niv];countPro++;}
     const btns=NIVEAUX_R.map((n,i)=>`
       <div onclick="setRapportNiv('${cr.key}','${secteur}',${i})"
-        style="padding:.4rem .5rem;border-radius:var(--r2);background:${COULEURS_R[i]};cursor:pointer;border:2px solid ${niv===i?TCOULEURS_R[i]:'transparent'};transition:var(--t)">
+        style="padding:.4rem .5rem;border-radius:var(--r2);background:${COULEURS_R[i]};cursor:pointer;border:2px solid ${niv===i?TCOULEURS_R[i]:'transparent'};transition:var(--t);min-height:44px;display:flex;flex-direction:column;justify-content:center;align-items:center">
         <div style="font-size:.6rem;font-weight:900;color:${TCOULEURS_R[i]}">${i}</div>
         <div style="font-size:.68rem;font-weight:700;line-height:1.2">${n}</div>
       </div>`).join('');
@@ -3175,8 +3304,11 @@ function renderRapport(){
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.25rem">${btns}</div>
     </div>`;
   }).join('');
+  const gridProHtml=makeGridPro(CRIT_RAPPORT_PRO,'pro');
+  const notePro=countPro?Math.round(totalPro/countPro*10)/10:0;
+  const noteProColor=notePro>=15?'#1a7d3e':notePro>=10?'#a06e00':'#c0390f';
 
-  /* Grille français — notation par points /20 */
+  /* ── 4. Grille français — notation par points /20 ── */
   if(!d.fr_pts)d.fr_pts={};
   let totalFr=0,maxFr=CRIT_RAPPORT_FR.total;
   const catColors={COM:'#2d5a8c',ARG:'#8e44ad',LING:'#16a085'};
@@ -3220,9 +3352,27 @@ function renderRapport(){
   const noteColor=pctFr>=80?'#1a7d3e':pctFr>=50?'#a06e00':'#c0390f';
 
   c.innerHTML=`
+    <!-- Activités réalisées en stage -->
+    <div class="card" style="border-top:3px solid var(--teal)">
+      <div class="card-title" style="color:var(--teal)">🏢 Activités réalisées en stage — ${pfmp.toUpperCase()}</div>
+      ${activitesHtml}
+    </div>
+
+    <!-- Upload rapport de stage -->
+    <div class="card" style="border-top:3px solid #8e44ad">
+      <div class="card-title" style="color:#8e44ad">📎 Rapport de stage</div>
+      ${uploadHtml}
+    </div>
+
+    <!-- Évaluation prof de pro -->
     <div class="card" style="border-top:3px solid var(--bleu2)">
       <div class="card-title">🔧 Évaluation prof de pro — ${esc(s.nom)} ${esc(s.prenom||'')}</div>
-      ${makeGridPro(CRIT_RAPPORT_PRO,'pro')}
+      ${gridProHtml}
+      <div style="background:linear-gradient(135deg,${noteProColor}11,${noteProColor}22);border:2px solid ${noteProColor};border-radius:var(--r2);padding:.6rem;text-align:center;margin-top:.5rem">
+        <div style="font-size:.68rem;font-weight:700;color:${noteProColor};text-transform:uppercase;letter-spacing:.5px;margin-bottom:.15rem">Note prof de pro</div>
+        <div style="font-size:1.5rem;font-weight:900;color:${noteProColor}">${countPro?notePro:'—'} <span style="font-size:.9rem;font-weight:700">/ 20</span></div>
+        <div style="font-size:.65rem;color:var(--gris);margin-top:.2rem">Barème : Non rendu=0 · Insuffisant=5 · Correct=10 · Bien=15 · Très bien=20</div>
+      </div>
       <div class="fr" style="margin-top:.5rem;margin-bottom:0">
         <label>Observation prof de pro</label>
         <textarea id="obs_pro" rows="2" style="width:100%;padding:.5rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.85rem"
@@ -3230,6 +3380,8 @@ function renderRapport(){
           oninput="rapportData['${cur}']['${pfmp}'].obs_pro=this.value">${esc(d.obs_pro||'')}</textarea>
       </div>
     </div>
+
+    <!-- Évaluation orale français -->
     <div class="card" style="border-top:3px solid var(--violet)">
       <div class="card-title" style="color:var(--violet)">📖 Évaluation orale — Rapport de stage</div>
       <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.75rem;flex-wrap:wrap">
@@ -3244,7 +3396,7 @@ function renderRapport(){
       </div>
       ${catBlocks}
       <div style="background:linear-gradient(135deg,${noteColor}11,${noteColor}22);border:2px solid ${noteColor};border-radius:var(--r2);padding:.75rem;text-align:center;margin-top:.5rem">
-        <div style="font-size:.72rem;font-weight:700;color:${noteColor};text-transform:uppercase;letter-spacing:.5px;margin-bottom:.2rem">Note finale</div>
+        <div style="font-size:.72rem;font-weight:700;color:${noteColor};text-transform:uppercase;letter-spacing:.5px;margin-bottom:.2rem">Note finale français</div>
         <div style="font-size:1.8rem;font-weight:900;color:${noteColor}">${totalFr} <span style="font-size:1rem;font-weight:700">/ ${maxFr}</span></div>
       </div>
       <div class="fr" style="margin-top:.75rem;margin-bottom:0">
@@ -3254,7 +3406,7 @@ function renderRapport(){
           oninput="rapportData['${cur}']['${pfmp}'].obs_fr=this.value">${esc(d.obs_fr||'')}</textarea>
       </div>
     </div>
-    <button class="btn btn-teal" onclick="sauverRapport()" style="margin-bottom:1rem">💾 Enregistrer l'évaluation rapport</button>`;
+    <button class="btn btn-teal" onclick="sauverRapport()" style="margin-bottom:1rem;min-height:44px">💾 Enregistrer l'évaluation rapport</button>`;
 }
 
 function setRapportNiv(key,secteur,niv){
@@ -3277,11 +3429,16 @@ function setRapportPts(critId,val){
 function sauverRapport(){
   if(!cur)return;
   const pfmp=document.getElementById('selRapportPfmp')?.value||'pfmp1';
-  // Sauvegarder dans notes locales
+  // Sauvegarder dans notes locales (sans le fichier PDF pour éviter la taille)
   if(!notes[cur])notes[cur]={};
-  notes[cur]['rapport_'+pfmp]=rapportData[cur]?.[pfmp];
+  const rd=rapportData[cur]?.[pfmp];
+  if(rd){
+    const toSave=Object.assign({},rd);
+    // Le fichier PDF reste dans rapportData mais on sauve les métadonnées dans notes
+    notes[cur]['rapport_'+pfmp]={pro:toSave.pro,fr:toSave.fr,fr_pts:toSave.fr_pts,obs_pro:toSave.obs_pro,obs_fr:toSave.obs_fr,jury:toSave.jury,rapportFileName:toSave.rapportFileName,rapportDate:toSave.rapportDate};
+  }
   saveLocal();
-  toast('Évaluation rapport sauvegardée ✓','ok');
+  toast('Évaluation rapport sauvegardée','ok');
 }
 
 /* ═══ [H-ter] DOCUMENTS PARTAGÉS — DRIVE CLASSE ═══ */
