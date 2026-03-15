@@ -140,7 +140,7 @@ body.show-app #screen-app{display:flex;}
 /* [5] Cards & composants */
 .card{background:#fff;border-radius:var(--r);padding:1.1rem 1.15rem;box-shadow:var(--ombre2);margin-bottom:.85rem;}
 .card-title{font-size:.95rem;font-weight:800;color:var(--bleu);display:flex;align-items:center;gap:.4rem;margin-bottom:.75rem;}
-.btn{display:inline-flex;align-items:center;gap:.35rem;padding:.55rem 1rem;border-radius:var(--r2);border:none;cursor:pointer;font-weight:700;font-size:.82rem;transition:var(--t);text-decoration:none;white-space:nowrap;min-height:44px;}
+.btn{display:inline-flex;align-items:center;gap:.35rem;padding:12px 20px;border-radius:var(--r2);border:none;cursor:pointer;font-weight:700;font-size:16px;transition:var(--t);text-decoration:none;white-space:nowrap;min-height:44px;}
 .btn:active{transform:scale(.97);}
 .btn-primary{background:var(--bleu);color:#fff;}.btn-primary:hover{background:var(--bleu2);}
 .btn-orange{background:var(--orange);color:#fff;}.btn-orange:hover{opacity:.9;}
@@ -211,7 +211,7 @@ body.show-app #screen-app{display:flex;}
 .nav-arrows button{width:40px;height:40px;border:2px solid var(--gris3);background:#fff;border-radius:var(--r2);cursor:pointer;font-size:1rem;transition:var(--t);}
 .nav-arrows button:hover{background:var(--bleu);color:#fff;border-color:var(--bleu);}
 .ctx-tabs{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.75rem;}
-.ctx-tab{padding:.4rem .75rem;border-radius:20px;border:2px solid var(--gris3);background:#fff;cursor:pointer;font-weight:700;font-size:.74rem;transition:var(--t);}
+.ctx-tab{padding:12px 20px;border-radius:20px;border:2px solid var(--gris3);background:#fff;cursor:pointer;font-weight:700;font-size:16px;transition:var(--t);min-height:44px;}
 .ctx-tab.active{background:var(--bleu2);color:#fff;border-color:var(--bleu2);}
 .ctx-tab.sit.active{background:var(--violet);color:#fff;border-color:var(--violet);}
 .comp-block{background:#fff;border-radius:var(--r);margin-bottom:.5rem;overflow:hidden;box-shadow:var(--ombre2);}
@@ -270,7 +270,7 @@ body.show-app #screen-app{display:flex;}
 
 /* [8] Stage */
 .stage-tabs{display:flex;gap:.3rem;margin-bottom:.75rem;flex-wrap:wrap;}
-.stage-tab{padding:.4rem .8rem;border-radius:20px;border:2px solid var(--gris3);background:#fff;cursor:pointer;font-weight:700;font-size:.76rem;transition:var(--t);}
+.stage-tab{padding:12px 20px;border-radius:20px;border:2px solid var(--gris3);background:#fff;cursor:pointer;font-weight:700;font-size:16px;transition:var(--t);min-height:44px;}
 .stage-tab.active{background:var(--teal);color:#fff;border-color:var(--teal);}
 .stage-panel{display:none;}.stage-panel.active{display:block;}
 .act-panel{display:none;}.act-panel.active{display:block;}
@@ -478,9 +478,6 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
     <button class="nav-btn active" data-tab="dashboard"><span class="ni">🏠</span>Tableau</button>
     <button class="nav-btn" data-tab="eleves"><span class="ni">👥</span>Élèves</button>
     <div class="nav-sep"></div>
-    <button class="nav-btn" data-tab="ep2" style="display:none"><span class="ni">🔧</span>EP2</button>
-    <button class="nav-btn" data-tab="ep3" style="display:none"><span class="ni">🔍</span>EP3</button>
-    <button class="nav-btn" data-tab="modules" style="display:none"><span class="ni">📦</span>Modules</button>
     <button class="nav-btn" data-tab="activites"><span class="ni">📋</span>Activités</button>
     <button class="nav-btn" data-tab="progression"><span class="ni">📅</span>Progression</button>
     <button class="nav-btn" data-tab="stage"><span class="ni">🏢</span>Stage</button>
@@ -494,10 +491,13 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
     <a href="prof.html" class="nav-btn" style="text-decoration:none"><span class="ni">📡</span>Classroom</a>
     <button class="nav-btn" data-tab="config"><span class="ni">⚙️</span>Config</button>
     <button class="nav-btn" data-tab="admin" id="navAdmin" style="display:none"><span class="ni">👑</span>Admin</button>
-    <!-- E31/E32 tab-pane gardés mais accessibles via Activités uniquement -->
-    <button class="nav-btn" data-tab="e31" style="display:none"><span class="ni">🔧</span>E31</button>
-    <button class="nav-btn" data-tab="e32" style="display:none"><span class="ni">🔍</span>E32</button>
-    <button class="nav-btn" data-tab="e33" style="display:none"><span class="ni">📋</span>E33</button>
+    <!-- Onglets épreuves : accessibles via Activités/radar uniquement, jamais dans la nav -->
+    <button class="nav-btn" data-tab="ep2" style="display:none" aria-hidden="true"><span class="ni">🔧</span>EP2</button>
+    <button class="nav-btn" data-tab="ep3" style="display:none" aria-hidden="true"><span class="ni">🔍</span>EP3</button>
+    <button class="nav-btn" data-tab="modules" style="display:none" aria-hidden="true"><span class="ni">📦</span>Modules</button>
+    <button class="nav-btn" data-tab="e31" style="display:none" aria-hidden="true"><span class="ni">🔧</span>E31</button>
+    <button class="nav-btn" data-tab="e32" style="display:none" aria-hidden="true"><span class="ni">🔍</span>E32</button>
+    <button class="nav-btn" data-tab="e33" style="display:none" aria-hidden="true"><span class="ni">📋</span>E33</button>
   </nav>
 
   <main class="main-content" role="main" id="main-content">
@@ -664,11 +664,9 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
 
     <!-- ACTIVITÉS PÉDAGOGIQUES -->
     <div class="tab-pane" id="tab-activites"><div class="tab-inner">
-      <div class="stage-tabs" style="margin-bottom:.75rem">
+      <div class="stage-tabs" id="activitesTabs" style="margin-bottom:.75rem">
         <button class="stage-tab active" data-ap="liste" onclick="switchActPanel('liste')">📋 Sessions</button>
-        <button class="stage-tab" data-ap="e31" onclick="switchActPanel('e31')">🔧 E31</button>
-        <button class="stage-tab" data-ap="e32" onclick="switchActPanel('e32')">🔍 E32</button>
-        <button class="stage-tab" data-ap="e33" onclick="switchActPanel('e33')">📋 E33</button>
+        <!-- Les onglets épreuves sont générés dynamiquement par updateActivitesTabs() -->
       </div>
       <div class="act-panel active" id="ap-liste">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
@@ -796,6 +794,65 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
           <button class="ctx-tab sit" data-sit="C" onclick="switchSit('C')">📋 Sit. C</button>
         </div>
         <div id="e32Listb"></div>
+      </div>
+      <!-- Panel E33 dans Activités -->
+      <div class="act-panel" id="ap-e33">
+        <div class="eval-hdr">
+          <div class="eval-sel-wrap">
+            <select id="selE33" onchange="selectStudent(this.value,'e33');renderE33()" aria-label="Sélection élève E33"></select>
+            <div class="nav-arrows"><button onclick="navStudent(-1,'e33')" aria-label="Élève précédent">◀</button><button onclick="navStudent(1,'e33')" aria-label="Élève suivant">▶</button></div>
+          </div>
+          <span class="badge b-e33">E33 — Dossier professionnel</span>
+        </div>
+        <div class="ctx-tabs">
+          <button class="ctx-tab sit active" data-sit="D" onclick="switchSitE33('D')">📝 Dossier écrit</button>
+          <button class="ctx-tab sit" data-sit="E" onclick="switchSitE33('E')">🎤 Soutenance</button>
+        </div>
+        <div id="e33List"></div>
+      </div>
+      <!-- Panel EP2 dans Activités (CAP IFCA) -->
+      <div class="act-panel" id="ap-ep2">
+        <div class="eval-hdr">
+          <div class="eval-sel-wrap">
+            <select id="selEP2" onchange="selectStudent(this.value,'ep2');renderEP2()" aria-label="Sélection élève EP2"></select>
+            <div class="nav-arrows"><button onclick="navStudent(-1,'ep2')" aria-label="Élève précédent">◀</button><button onclick="navStudent(1,'ep2')" aria-label="Élève suivant">▶</button></div>
+          </div>
+          <span class="badge b-e31">EP2 — Réalisation d'une installation</span>
+        </div>
+        <div class="ctx-tabs">
+          <button class="ctx-tab active" data-ctx="atelier" onclick="switchCtxEP2('atelier')">🏫 Atelier</button>
+          <button class="ctx-tab" data-ctx="pfmp1" onclick="switchCtxEP2('pfmp1')">🏢 PFMP 1</button>
+          <button class="ctx-tab" data-ctx="pfmp2" onclick="switchCtxEP2('pfmp2')">🏢 PFMP 2</button>
+          <button class="ctx-tab" data-ctx="dossier" onclick="switchCtxEP2('dossier')">📝 Dossier</button>
+        </div>
+        <div id="ep2Comps"><div class="empty"><div class="ei">🔧</div><p>Sélectionnez un élève</p></div></div>
+      </div>
+      <!-- Panel EP3 dans Activités (CAP IFCA) -->
+      <div class="act-panel" id="ap-ep3">
+        <div class="eval-hdr">
+          <div class="eval-sel-wrap">
+            <select id="selEP3" onchange="selectStudent(this.value,'ep3');renderEP3()" aria-label="Sélection élève EP3"></select>
+            <div class="nav-arrows"><button onclick="navStudent(-1,'ep3')" aria-label="Élève précédent">◀</button><button onclick="navStudent(1,'ep3')" aria-label="Élève suivant">▶</button></div>
+          </div>
+          <span class="badge b-e32">EP3 — Mise en service et maintenance</span>
+        </div>
+        <div class="ctx-tabs">
+          <button class="ctx-tab sit active" data-sit="A" onclick="switchSitEP3('A')">🅰️ Mise en service</button>
+          <button class="ctx-tab sit" data-sit="B" onclick="switchSitEP3('B')">🅱️ Maintenance</button>
+          <button class="ctx-tab sit" data-sit="C" onclick="switchSitEP3('C')">🅲 Communication</button>
+        </div>
+        <div id="ep3Comps"><div class="empty"><div class="ei">🔍</div><p>Sélectionnez un élève</p></div></div>
+      </div>
+      <!-- Panel Modules dans Activités (TNE) -->
+      <div class="act-panel" id="ap-modules">
+        <div class="eval-hdr">
+          <div class="eval-sel-wrap">
+            <select id="selModules" onchange="selectStudent(this.value,'modules');renderModules()" aria-label="Sélection élève Modules"></select>
+            <div class="nav-arrows"><button onclick="navStudent(-1,'modules')" aria-label="Élève précédent">◀</button><button onclick="navStudent(1,'modules')" aria-label="Élève suivant">▶</button></div>
+          </div>
+          <span class="badge b-vert">Modules découverte TNE</span>
+        </div>
+        <div id="modulesComps"><div class="empty"><div class="ei">📦</div><p>Sélectionnez un élève</p></div></div>
       </div>
     </div></div>
 
@@ -1091,52 +1148,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
       </div>
     </div></div>
 
-    <!-- EP2 (CAP IFCA) -->
-    <div class="tab-pane" id="tab-ep2"><div class="tab-inner">
-      <div class="eval-hdr">
-        <div class="eval-sel-wrap">
-          <select id="selEP2" onchange="selectStudent(this.value,'ep2')" aria-label="Sélection élève EP2"></select>
-          <div class="nav-arrows"><button onclick="navStudent(-1,'ep2')" aria-label="Élève précédent">◀</button><button onclick="navStudent(1,'ep2')" aria-label="Élève suivant">▶</button></div>
-        </div>
-        <span class="badge b-e31">EP2 — Réalisation d'une installation</span>
-      </div>
-      <div class="ctx-tabs">
-        <button class="ctx-tab active" data-ctx="atelier" onclick="switchCtxEP2('atelier')">🏫 Atelier</button>
-        <button class="ctx-tab" data-ctx="pfmp1" onclick="switchCtxEP2('pfmp1')">🏢 PFMP 1</button>
-        <button class="ctx-tab" data-ctx="pfmp2" onclick="switchCtxEP2('pfmp2')">🏢 PFMP 2</button>
-        <button class="ctx-tab" data-ctx="dossier" onclick="switchCtxEP2('dossier')">📝 Dossier</button>
-      </div>
-      <div id="ep2Comps"><div class="empty"><div class="ei">🔧</div><p>Sélectionnez un élève</p></div></div>
-    </div></div>
-
-    <!-- EP3 (CAP IFCA) -->
-    <div class="tab-pane" id="tab-ep3"><div class="tab-inner">
-      <div class="eval-hdr">
-        <div class="eval-sel-wrap">
-          <select id="selEP3" onchange="selectStudent(this.value,'ep3')" aria-label="Sélection élève EP3"></select>
-          <div class="nav-arrows"><button onclick="navStudent(-1,'ep3')" aria-label="Élève précédent">◀</button><button onclick="navStudent(1,'ep3')" aria-label="Élève suivant">▶</button></div>
-        </div>
-        <span class="badge b-e32">EP3 — Mise en service et maintenance</span>
-      </div>
-      <div class="ctx-tabs">
-        <button class="ctx-tab sit active" data-sit="A" onclick="switchSitEP3('A')">🅰️ Mise en service</button>
-        <button class="ctx-tab sit" data-sit="B" onclick="switchSitEP3('B')">🅱️ Maintenance</button>
-        <button class="ctx-tab sit" data-sit="C" onclick="switchSitEP3('C')">🅲 Communication</button>
-      </div>
-      <div id="ep3Comps"><div class="empty"><div class="ei">🔍</div><p>Sélectionnez un élève</p></div></div>
-    </div></div>
-
-    <!-- MODULES (2nde TNE) -->
-    <div class="tab-pane" id="tab-modules"><div class="tab-inner">
-      <div class="eval-hdr">
-        <div class="eval-sel-wrap">
-          <select id="selModules" onchange="selectStudent(this.value,'modules')" aria-label="Sélection élève Modules"></select>
-          <div class="nav-arrows"><button onclick="navStudent(-1,'modules')" aria-label="Élève précédent">◀</button><button onclick="navStudent(1,'modules')" aria-label="Élève suivant">▶</button></div>
-        </div>
-        <span class="badge b-vert">Modules découverte TNE</span>
-      </div>
-      <div id="modulesComps"><div class="empty"><div class="ei">📦</div><p>Sélectionnez un élève</p></div></div>
-    </div></div>
+    <!-- EP2/EP3/Modules sont intégrés dans le tab Activités (act-panel) -->
 
     <!-- BIBLIOTHÈQUE TP -->
     <div class="tab-pane" id="tab-tp-library"><div class="tab-inner">
@@ -1713,16 +1725,16 @@ window.iwState = {
 
 var TABS_CONFIG = {
   'CAP_IFCA': {
-    show: ['dashboard','eleves','ep2','ep3','activites','stage','bilan','rapport','export','tp-library','eval-mobile','progression','config'],
-    hide: ['e31','e32','e33','modules']
+    show: ['dashboard','eleves','activites','stage','bilan','rapport','export','tp-library','eval-mobile','progression','config'],
+    hide: ['ep2','ep3','e31','e32','e33','modules']
   },
   'BAC_MFER': {
-    show: ['dashboard','eleves','e31','e32','e33','activites','stage','bilan','rapport','export','tp-library','eval-mobile','progression','config'],
-    hide: ['ep2','ep3','modules']
+    show: ['dashboard','eleves','activites','stage','bilan','rapport','export','tp-library','eval-mobile','progression','config'],
+    hide: ['ep2','ep3','e31','e32','e33','modules']
   },
   'TNE': {
-    show: ['dashboard','eleves','modules','activites','stage','tp-library','eval-mobile','progression','config'],
-    hide: ['ep2','ep3','e31','e32','e33','bilan','rapport','export']
+    show: ['dashboard','eleves','activites','stage','tp-library','eval-mobile','progression','config'],
+    hide: ['ep2','ep3','e31','e32','e33','modules','bilan','rapport','export']
   },
   'NONE': {
     show: ['dashboard','tp-library','progression','config','eval-mobile'],
@@ -1841,13 +1853,29 @@ function renderClasseCards() {
   // Radars mini
   ['cap','bac','tne'].forEach(function(key) {
     var zone = document.getElementById('radar-' + key);
-    if (!zone || !window.radarModule) return;
+    if (!zone) return;
     var formation = key === 'cap' ? 'CAP_IFCA' : key === 'bac' ? 'BAC_MFER' : 'TNE';
     var filClasse = key === 'cap' ? 'CAP IFCA' : key === 'bac' ? 'MFER' : 'TNE';
-    try {
-      radarModule.renderClassRadar(zone, { classe: filClasse, annee: 'all', groupe: 'all' });
-    } catch(e) {
-      zone.innerHTML = '<span style="color:var(--gris);font-size:.8rem">🕸️ Radar</span>';
+    var count = key === 'cap' ? capCount : key === 'bac' ? bacCount : tneCount;
+    if (count === 0) {
+      zone.innerHTML = '<span style="color:var(--gris);font-size:.75rem">Aucun élève</span>';
+      return;
+    }
+    var rendered = false;
+    if (window.radarModule) {
+      try {
+        radarModule.renderClassRadar(zone, { classe: filClasse, annee: 'all', groupe: 'all' });
+        rendered = true;
+      } catch(e) {}
+    }
+    if (!rendered && window.iwRadarUnified) {
+      try {
+        var firstStudent = students.find(function(s){ return getFiliere(s) === formation; });
+        if (firstStudent) { iwRadarUnified.render(zone, firstStudent.code, formation, {size:120, showLegend:false}); rendered = true; }
+      } catch(e) {}
+    }
+    if (!rendered) {
+      zone.innerHTML = '<div style="text-align:center;padding:.5rem"><span style="font-size:1.5rem">🕸️</span><br><span style="color:var(--gris);font-size:.7rem">' + count + ' élève' + (count > 1 ? 's' : '') + '</span></div>';
     }
   });
 }
@@ -1879,7 +1907,23 @@ function switchTab(tab){
   if(tab==='modules'){popSelects();if(typeof renderModules==='function')renderModules();}
   if(tab==='bilan'){popSelects();if(cur){renderBilan();renderRadarUnified();}}
   if(tab==='rapport'){popSelectsRapport();if(cur)renderRapport();}
-  if(tab==='activites'&&window.activModule){activModule.renderList(document.getElementById('activitesList'));const st=activModule.getStats();const c=document.getElementById('activiteStats');if(c)c.innerHTML=`<span class="badge" style="background:var(--bleu2);color:#fff">Total: ${st.total}</span><span class="badge" style="background:var(--e31);color:#fff">E31: ${st.byEpreuve.E31||0}</span><span class="badge" style="background:var(--e32);color:#fff">E32: ${(st.byEpreuve['E32-A']||0)+(st.byEpreuve['E32-B']||0)+(st.byEpreuve['E32-C']||0)}</span><span class="badge" style="background:var(--e33);color:#fff">E33: ${(st.byEpreuve['E33']||0)+(st.byEpreuve['E33-D']||0)+(st.byEpreuve['E33-E']||0)}</span>`;}
+  if(tab==='activites'){
+    updateActivitesTabs();
+    if(window.activModule){
+      activModule.renderList(document.getElementById('activitesList'));
+      var st=activModule.getStats();var c=document.getElementById('activiteStats');
+      if(c){
+        var formation=window.iwState&&window.iwState.formationActive;
+        if(formation==='CAP_IFCA'){
+          c.innerHTML='<span class="badge" style="background:var(--bleu2);color:#fff">Total: '+st.total+'</span><span class="badge" style="background:var(--e31);color:#fff">EP2: '+(st.byEpreuve.EP2||0)+'</span><span class="badge" style="background:var(--e32);color:#fff">EP3: '+(st.byEpreuve.EP3||0)+'</span>';
+        }else if(formation==='TNE'){
+          c.innerHTML='<span class="badge" style="background:var(--bleu2);color:#fff">Total: '+st.total+'</span>';
+        }else{
+          c.innerHTML='<span class="badge" style="background:var(--bleu2);color:#fff">Total: '+st.total+'</span><span class="badge" style="background:var(--e31);color:#fff">E31: '+(st.byEpreuve.E31||0)+'</span><span class="badge" style="background:var(--e32);color:#fff">E32: '+((st.byEpreuve['E32-A']||0)+(st.byEpreuve['E32-B']||0)+(st.byEpreuve['E32-C']||0))+'</span><span class="badge" style="background:var(--e33);color:#fff">E33: '+((st.byEpreuve['E33']||0)+(st.byEpreuve['E33-D']||0)+(st.byEpreuve['E33-E']||0))+'</span>';
+        }
+      }
+    }
+  }
   if(tab==='stage'){renderStage();loadTuteurEvals();}
   if(tab==='export'){renderJournal();renderBackupList();}
   if(tab==='eleves')renderEleves();
@@ -2074,12 +2118,33 @@ function createFromCalendar(y,m,d){
   switchActPanel('liste');
   tpManager.showCreate(dateStr);
 }
+function updateActivitesTabs(){
+  var tabs=document.getElementById('activitesTabs');
+  if(!tabs)return;
+  var formation=window.iwState&&window.iwState.formationActive;
+  var html='<button class="stage-tab active" data-ap="liste" onclick="switchActPanel(\'liste\')">📋 Sessions</button>';
+  if(formation==='CAP_IFCA'){
+    html+='<button class="stage-tab" data-ap="ep2" onclick="switchActPanel(\'ep2\')">🔧 EP2</button>';
+    html+='<button class="stage-tab" data-ap="ep3" onclick="switchActPanel(\'ep3\')">🔍 EP3</button>';
+  }else if(formation==='BAC_MFER'){
+    html+='<button class="stage-tab" data-ap="e31" onclick="switchActPanel(\'e31\')">🔧 E31</button>';
+    html+='<button class="stage-tab" data-ap="e32" onclick="switchActPanel(\'e32\')">🔍 E32</button>';
+    html+='<button class="stage-tab" data-ap="e33" onclick="switchActPanel(\'e33\')">📋 E33</button>';
+  }else if(formation==='TNE'){
+    html+='<button class="stage-tab" data-ap="modules" onclick="switchActPanel(\'modules\')">📦 Modules</button>';
+  }
+  tabs.innerHTML=html;
+}
 function switchActPanel(p){
   document.querySelectorAll('.act-panel').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('[data-ap]').forEach(t=>t.classList.toggle('active',t.dataset.ap===p));
   document.getElementById('ap-'+p)?.classList.add('active');
-  if(p==='e31'){popSelectsAct('e31');renderE31();}
-  if(p==='e32'){popSelectsAct('e32');renderE32();}
+  if(p==='e31'){popSelects();renderE31();}
+  if(p==='e32'){popSelects();renderE32();}
+  if(p==='e33'){popSelects();renderE33();}
+  if(p==='ep2'){popSelects();renderEP2();}
+  if(p==='ep3'){popSelects();renderEP3();}
+  if(p==='modules'){popSelects();renderModules();}
 }
 function popSelectsAct(ep){
   const suffix='b';
@@ -2313,12 +2378,12 @@ function renderDash(){
   }
 }
 function goEval(code){
-  // Phase 13 — naviguer vers le bon onglet selon la formation
   var s=students.find(function(x){return x.code===code;});
   var fk=s?getFiliere(s):'CAP_IFCA';
-  if(fk==='CAP_IFCA'){selectStudent(code,'ep2');switchTab('ep2');}
-  else if(fk==='BAC_MFER'){selectStudent(code,'e31');switchTab('e31');}
-  else if(fk==='TNE'){selectStudent(code,'modules');switchTab('modules');}
+  // Naviguer vers Activités puis ouvrir le bon sous-panneau
+  if(fk==='CAP_IFCA'){selectStudent(code,'ep2');switchTab('activites');setTimeout(function(){switchActPanel('ep2');},50);}
+  else if(fk==='BAC_MFER'){selectStudent(code,'e31');switchTab('activites');setTimeout(function(){switchActPanel('e31');},50);}
+  else if(fk==='TNE'){selectStudent(code,'modules');switchTab('activites');setTimeout(function(){switchActPanel('modules');},50);}
   else{selectStudent(code,'e31');switchTab('activites');}
 }
 

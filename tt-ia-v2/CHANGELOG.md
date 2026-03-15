@@ -1,5 +1,17 @@
 # Changelog — INERWEB TT-IA
 
+## [7.7.1] - 2026-03-15
+
+### Fix référentiels + navigation + taille boutons
+- **Onglets EP2/EP3/E31/E32/E33/Modules retirés de la barre de navigation** — navigation exclusivement via Activités ou radar
+- **Sous-onglets Activités dynamiques** : EP2/EP3 pour CAP, E31/E32/E33 pour Bac Pro, Modules pour TNE
+- **Panneaux évaluation intégrés dans Activités** : ap-ep2, ap-ep3, ap-e33, ap-modules créés
+- **goEval() redirige vers Activités** puis ouvre le bon sous-panneau
+- **Stats Activités dynamiques** : badges EP2/EP3 pour CAP, E31/E32/E33 pour BAC, rien pour TNE
+- **Radars dashboard améliorés** : essaie radarModule puis iwRadarUnified, fallback avec compteur élèves
+- **Taille boutons** : .btn padding 12px 20px, font-size 16px ; .stage-tab et .ctx-tab idem
+- VERSION_FRONT : 7.7.0 → 7.7.1
+
 ## [7.7.0] - 2026-03-15
 
 ### Corrections référentiels + UX mobile
