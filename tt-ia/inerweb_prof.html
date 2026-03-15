@@ -923,7 +923,10 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
         <!-- ═══ COMM TUTEURS ═══ -->
         <div id="commPanelTut">
           <div class="card" style="border-top:3px solid var(--teal)">
-            <div style="font-size:.85rem;font-weight:800;color:var(--teal);margin-bottom:.5rem">📣 Message aux tuteurs</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;flex-wrap:wrap;gap:.3rem">
+              <div style="font-size:.85rem;font-weight:800;color:var(--teal)">📣 Message aux tuteurs</div>
+              <button class="btn btn-sm" onclick="envoyerCodesTous('tuteurs')" style="min-height:44px;background:#25D366;color:#fff;border:none;font-weight:700">📱 Envoyer les codes à tous les tuteurs</button>
+            </div>
             <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem">
               <button class="btn btn-ghost btn-sm" onclick="prepMsg('bienvenue')">👋 Bienvenue</button>
               <button class="btn btn-ghost btn-sm" onclick="prepMsg('rappel')">🔔 Rappel</button>
@@ -962,7 +965,10 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
         <!-- ═══ COMM ÉLÈVES ═══ -->
         <div id="commPanelElv" style="display:none">
           <div class="card" style="border-top:3px solid var(--violet)">
-            <div style="font-size:.85rem;font-weight:800;color:var(--violet);margin-bottom:.5rem">📣 Message aux élèves</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;flex-wrap:wrap;gap:.3rem">
+              <div style="font-size:.85rem;font-weight:800;color:var(--violet)">📣 Message aux élèves</div>
+              <button class="btn btn-sm" onclick="envoyerCodesTous('eleves')" style="min-height:44px;background:#25D366;color:#fff;border:none;font-weight:700">📱 Envoyer les codes à tous les élèves</button>
+            </div>
             <div class="fr" style="margin-bottom:.5rem"><label>Message</label>
               <textarea id="msgElv" rows="3" style="width:100%;padding:.5rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.85rem" placeholder="Bonjour,&#10;..."></textarea>
             </div>
@@ -3164,6 +3170,64 @@ function envoyerComm(type,mode){
 }
 
 function renderComm(){renderCommTut();}
+
+function envoyerCodesTous(type){
+  var base=cfg.baseUrl||location.href.replace(/[^/]*$/,'');
+  var liste=students.filter(s=>s.statut!=='inactif');
+  var sansTel=[];
+  var urls=[];
+
+  if(type==='tuteurs'){
+    liste.forEach(function(s){
+      var tel=s.tel_tuteur||s.tuteur_tel||'';
+      if(!tel){sansTel.push(s.nom+' '+( s.prenom||''));return;}
+      var lien=base+'inerweb_tuteur.html?eleve='+s.code+'&tuteur='+(s.token_tuteur||'')+'&role=tuteur';
+      var msg='Bonjour '+(s.tuteur_nom||'')+',\nVoici votre accès tuteur pour '+s.nom+' '+(s.prenom||'')+' :\n'+lien;
+      urls.push({nom:s.nom+' → '+(s.tuteur_nom||'?'),url:'https://wa.me/'+formatWA(tel)+'?text='+encodeURIComponent(msg)});
+    });
+  }else{
+    liste.forEach(function(s){
+      var tel=s.tel_eleve||'';
+      if(!tel){sansTel.push(s.nom+' '+(s.prenom||''));return;}
+      var lien=base+'inerweb_eleve.html?token='+(s.token_eleve||'')+'&role=eleve';
+      var msg='Bonjour '+(s.prenom||s.nom)+',\nVoici ton accès inerWeb TT :\n'+lien;
+      urls.push({nom:s.nom+' '+(s.prenom||''),url:'https://wa.me/'+formatWA(tel)+'?text='+encodeURIComponent(msg)});
+    });
+  }
+
+  if(!urls.length){toast('Aucun numéro de téléphone renseigné','err');return;}
+
+  // Modale de confirmation avec récap
+  var html='<div style="font-size:.82rem;margin-bottom:.75rem">';
+  html+='<div class="alert al-info" style="margin-bottom:.5rem">📱 <strong>'+urls.length+'</strong> message(s) WhatsApp vont s\'ouvrir un par un.</div>';
+  if(sansTel.length){
+    html+='<div class="alert al-warn" style="margin-bottom:.5rem">⚠️ <strong>'+sansTel.length+'</strong> sans numéro : '+sansTel.join(', ')+'</div>';
+  }
+  html+='<div style="max-height:150px;overflow-y:auto">';
+  urls.forEach(function(u,i){
+    html+='<div style="padding:.3rem .5rem;background:var(--gris2);border-radius:var(--r2);margin-bottom:.2rem;font-size:.75rem"><strong>'+(i+1)+'.</strong> '+esc(u.nom)+'</div>';
+  });
+  html+='</div></div>';
+  html+='<p style="font-size:.72rem;color:var(--gris);margin-bottom:.5rem">Chaque message s\'ouvre dans un nouvel onglet WhatsApp. Il suffit de cliquer "Envoyer" dans chacun.</p>';
+
+  showModal('📱 Envoyer les codes par WhatsApp',html,'<button class="btn btn-primary btn-sm" onclick="lancerEnvoiCodes()" style="min-height:44px;background:#25D366;border-color:#25D366">✅ C\'est parti !</button> <button class="btn btn-ghost btn-sm" onclick="closeModal()">Annuler</button>');
+
+  // Stocker les URLs pour l'envoi
+  window._codesUrls=urls;
+}
+
+function lancerEnvoiCodes(){
+  closeModal();
+  if(!window._codesUrls||!window._codesUrls.length)return;
+  var i=0;
+  function next(){
+    if(i>=window._codesUrls.length){toast(window._codesUrls.length+' codes envoyés via WhatsApp','ok');return;}
+    window.open(window._codesUrls[i].url,'_blank');
+    i++;
+    setTimeout(next,800);
+  }
+  next();
+}
 
 /* ═══ [H] BILAN ═══ */
 /* calcNote → js/prog/prog-data.js (copie locale conservée) */
