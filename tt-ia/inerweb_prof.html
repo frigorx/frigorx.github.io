@@ -1751,6 +1751,21 @@ function loadLocal(){
   loadLocalData().then(()=>{try{partenaires=JSON.parse(localStorage.getItem(SPART)||'[]');}catch{partenaires=[];}}).catch(()=>{});
 }
 /* syncAll → js/core/utils.js (copie locale conservée) */
+async function pushStudentsToBackend(list){
+  if(!cfg.apiUrl)return;
+  var sent=0;
+  for(var i=0;i<list.length;i++){
+    var s=list[i];
+    try{
+      var url=new URL(cfg.apiUrl);
+      url.searchParams.set('action','addEleve');
+      var r=await fetch(url.toString(),{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({key:cfg.apiKey,data:{nom:s.nom,prenom:s.prenom,classe:s.classe,groupe:s.groupe,annee:s.annee,referentiel:s.referentiel,tel_eleve:s.tel_eleve||'',tel_tuteur:s.tel_tuteur||''}})});
+      var d=await r.json();
+      if(d&&d.ok)sent++;
+    }catch(e){}
+  }
+  if(sent)toast('✓ '+sent+' élève(s) envoyés au serveur','ok');
+}
 function sauvegarder(){
   saveLocal();
   setSyncState('ok');
@@ -4114,17 +4129,9 @@ async function importRows(rows){
     n++;
   }
   saveLocal();updateAll();hideSpinner();
-  toast(`${n} élève(s) importé(s) — envoi au serveur...`,'ok');
-  // Envoyer chaque élève au backend en arrière-plan
-  var sent=0;
-  for(var si=0;si<students.length;si++){
-    var st=students[si];
-    try{
-      await apiCall({action:'addEleve',data:{nom:st.nom,prenom:st.prenom,classe:st.classe,groupe:st.groupe,annee:st.annee,referentiel:st.referentiel,tel_eleve:st.tel_eleve||'',tel_tuteur:st.tel_tuteur||''}});
-      sent++;
-    }catch(e){}
-  }
-  if(sent)toast(`✓ ${sent} élève(s) enregistrés sur le serveur`,'ok');
+  toast(`✓ ${n} élève(s) importé(s)`,'ok');
+  // Envoi au serveur en arrière-plan (non bloquant)
+  setTimeout(function(){pushStudentsToBackend(students);},500);
 }
 function showQR(code){
   const s=students.find(x=>x.code===code)||{nom:'?',prenom:''};
