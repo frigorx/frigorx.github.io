@@ -43,7 +43,7 @@
     //   - GitHub Pages : https://votre-compte.github.io/inerweb/
     //   - Serveur local : http://localhost:8080/
     //   - Serveur etablissement : https://intranet.lycee.fr/inerweb/
-    BASE_URL: '',
+    BASE_URL: 'https://frigorx.github.io/tt-ia/',
 
     // ─── ETABLISSEMENT ───
     ETABLISSEMENT: {
