@@ -24,7 +24,7 @@
     MODE: 'prod',
 
     // ─── VERSIONS ───
-    VERSION_FRONT: '7.6.2',
+    VERSION_FRONT: '7.6.3',
     VERSION_TTIA: '1.1.0',
     VERSION_BACKEND: '3.0.0',
     VERSION_CONFIG: '1.0.0',

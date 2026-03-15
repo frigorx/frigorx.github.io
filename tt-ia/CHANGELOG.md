@@ -1,5 +1,12 @@
 # Changelog — INERWEB TT-IA
 
+## [7.6.3] - 2026-03-15
+
+### Correction bug btoa UTF-8
+- Correction : `_dp()` dans `inerweb_eleve.html` — btoa() crashait sur les emojis SVG (❄️🔧🔥⚡💨)
+- Fix : `btoa(unescape(encodeURIComponent(svg)))` pour support UTF-8 complet
+- VERSION_FRONT : 7.6.2 → 7.6.3
+
 ## [7.6.2] - 2026-03-15
 
 ### Déploiement GitHub Pages + Écran bienvenue
