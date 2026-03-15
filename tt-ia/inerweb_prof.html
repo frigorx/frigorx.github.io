@@ -1760,17 +1760,20 @@ async function syncAll(){
   if(!cfg.apiUrl){
     try{var _sc=JSON.parse(localStorage.getItem(SCFG)||'{}');if(_sc.apiUrl){cfg.apiUrl=_sc.apiUrl;cfg.apiKey=_sc.apiKey;cfg.nomProf=_sc.nomProf;cfg.baseUrl=_sc.baseUrl;}}catch(e){}
   }
-  saveLocal();setSyncState('ok');
-  // Ping discret en arrière-plan (aucun impact sur l'UI)
-  if(cfg.apiUrl){
-    try{
-      var pingUrl=new URL(cfg.apiUrl);
-      pingUrl.searchParams.set('action','ping');
-      pingUrl.searchParams.set('key',cfg.apiKey);
-      var pingR=await fetch(pingUrl.toString(),{method:'GET',redirect:'follow'});
-      var ping=await pingR.json();
-      online=(ping&&ping.status==='ok');
-    }catch(e){online=false;}
+  if(!cfg.apiUrl){saveLocal();setSyncState('ok');return;}
+  setSyncState('syncing');
+  try{
+    var dash=await apiCall({action:'getDashboard'});
+    if(Array.isArray(dash)&&dash.length>0){
+      students=dash;window.students=students;
+    }
+    online=true;saveLocal();setSyncState('ok');updateAll();
+    toast('✓ Synchronisé — '+students.length+' élève(s)','ok');
+  }catch(e){
+    console.warn('[syncAll]',e.message||e);
+    online=false;setSyncState('ok');
+    if(students.length)saveLocal();
+    updateAll();
   }
 }
 /* setSyncState → js/core/utils.js (copie locale conservée) */
@@ -1788,6 +1791,8 @@ async function pushVal(data){
   if(!validations[cur]) validations[cur]=[];
   validations[cur].push(entry); saveLocal(); updateAll();
   toast('✓ Enregistré','ok');
+  // Sync vers le backend en arrière-plan (silencieux)
+  try{await apiCall({action:'saveValidation',eleve:cur,data:entry});}catch(e){console.warn('[pushVal] sync:',e.message);}
 }
 
 /* ═══ [D0] PHASE 13 — NAVIGATION MULTI-CLASSE ═══ */
