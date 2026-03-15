@@ -1490,6 +1490,8 @@ const SK='inerweb-tt-fe-v1',SCFG='inerweb-tt-fe-cfg',SPART='inerweb-tt-fe-parts'
 window.SK=SK;window.SCFG=SCFG;window.SPART=SPART;window.SUSERS=SUSERS;window.SCLASSES=SCLASSES;window.SJOURNAL=SJOURNAL;
 const DB_NAME='inerwebtt-fe-db',DB_VERSION=3;
 let db=null,backupInterval=null;
+/* Variable globale : élève actuellement sélectionné */
+var cur=null;
 
 /* ═══ [B2] INDEXEDDB MODULE ═══ */
 async function initDB(){
