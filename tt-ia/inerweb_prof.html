@@ -1751,6 +1751,14 @@ async function syncAll(){
   try{
     const dash=await apiCall({action:'getDashboard'});
     if(!Array.isArray(dash)) throw new Error('invalid');
+    // Ne pas écraser les élèves locaux si le backend renvoie un tableau vide
+    // alors qu'on a déjà des élèves en local (import récent)
+    if(dash.length===0&&students.length>0){
+      console.warn('[syncAll] Dashboard vide mais '+students.length+' élèves locaux — on garde les locaux');
+      online=true;setSyncState('ok');updateAll();
+      toast('Sync OK — élèves locaux conservés','ok');
+      return;
+    }
     students=dash;window.students=students;
     validations={}; notes={};
     // Traitement par lots de 10 pour éviter surcharge API
@@ -1770,8 +1778,12 @@ async function syncAll(){
     online=true; saveLocal(); setSyncState('ok'); updateAll();
     toast(`${students.length} élèves synchronisés`,'ok');
   }catch(e){
-    online=false; setSyncState('error'); updateAll();
-    toast('Hors-ligne — données locales','warn');
+    console.warn('[syncAll] Erreur sync:',e.message||e);
+    online=false; setSyncState('error');
+    // Garder les données locales intactes, juste mettre à jour l'UI
+    if(students.length)saveLocal();
+    updateAll();
+    toast('Hors-ligne — données locales conservées','warn');
   }
 }
 /* setSyncState → js/core/utils.js (copie locale conservée) */
