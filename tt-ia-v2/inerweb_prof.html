@@ -581,6 +581,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
         <button class="btn btn-ghost btn-sm" onclick="showScanner()">📷 Scan</button>
         <button class="btn btn-ghost btn-sm" onclick="syncAll()">🔄 Sync</button>
         <button class="btn btn-orange btn-sm" onclick="showPromotion()">🎓 Promotion</button>
+        <button class="btn btn-ghost btn-sm" onclick="regenererTousTokens()" title="Régénérer tous les codes au format XELV001X">🔑 Codes</button>
       </div>
       <div class="filter-bar">
         <label>Filtrer :</label>
@@ -3656,7 +3657,7 @@ function renderEleves(){
     <div class="el-av">${esc((s.nom||'?')[0])}${s.prenom?esc(s.prenom[0]):''}</div>
     <div style="flex:1;cursor:pointer" onclick="goEval('${s.code}')">
       <div class="el-nom">${esc(s.nom)} ${esc(s.prenom)}</div>
-      <div class="el-meta">${esc(s.classe)||'—'}${s.groupe?' · '+esc(s.groupe):''} · A${s.annee||1} · <span style="font-family:'JetBrains Mono',monospace;font-size:.65rem">${esc(s.code)}</span></div>
+      <div class="el-meta">${esc(s.classe)||'—'}${s.groupe?' · '+esc(s.groupe):''} · A${s.annee||1} · <span style="font-family:'JetBrains Mono',monospace;font-size:.65rem">${esc(s.code)}</span> · <span style="font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--teal);font-weight:700" title="Code élève">${esc(s.token_eleve||'—')}</span></div>
       ${stageInfo}
     </div>
     <div class="el-act">
@@ -3668,6 +3669,7 @@ function renderEleves(){
       <button class="btn btn-ghost btn-xs" onclick="viewStagePhotos('${s.code}')" title="Photos stage">📷</button>
       <button class="btn btn-ghost btn-xs" onclick="if(window.activModule)activModule.showStudentHistory('${s.code}')" title="Historique">📋</button>
       <button class="btn btn-ghost btn-xs" onclick="showQR('${s.code}')">📱</button>
+      <button class="btn btn-ghost btn-xs" onclick="resetElevToken('${s.code}')" title="Réinitialiser code élève">🔑</button>
       <button class="btn btn-ghost btn-xs" onclick="editStudent('${s.code}')" title="Modifier">✏️</button>
       <button class="btn btn-rouge btn-xs" onclick="confirmDel('${s.code}')">🗑️</button>
     </div>
@@ -3696,6 +3698,41 @@ function showAddEleve(){
     </div>`,
     `<button class="btn btn-primary" onclick="doAddEleve()">✅ Ajouter</button><button class="btn btn-ghost" onclick="closeModal()">Annuler</button>`);
 }
+/* ── Génération token élève : [Initiale Nom]ELV[001][Initiale Prénom] ── */
+function generateElevToken(nom,prenom,numero){
+  const n=(nom||'X')[0].toUpperCase();
+  const p=(prenom||'X')[0].toUpperCase();
+  const num=String(numero).padStart(3,'0');
+  return n+'ELV'+num+p;
+}
+function getNextElevNum(){
+  let max=0;
+  students.forEach(s=>{
+    const m=(s.token_eleve||s.code||'').match(/ELV(\d{3})/);
+    if(m)max=Math.max(max,parseInt(m[1]));
+  });
+  return max+1;
+}
+function resetElevToken(code){
+  const s=students.find(x=>x.code===code);
+  if(!s)return;
+  const num=getNextElevNum();
+  s.token_eleve=generateElevToken(s.nom,s.prenom,num);
+  s.token_eleve_custom=false;
+  window.students=students;
+  saveLocal();renderEleves();
+  toast(`Code réinitialisé : ${s.token_eleve}`,'ok');
+}
+function regenererTousTokens(){
+  if(!confirm('Régénérer tous les codes élèves au nouveau format ?\n\nExemple : AGUENI Dris → AELV001D\n\nLes anciens codes QR ne fonctionneront plus.'))return;
+  students.forEach((s,i)=>{
+    s.token_eleve=generateElevToken(s.nom,s.prenom,i+1);
+    s.token_eleve_custom=false;
+  });
+  window.students=students;
+  saveLocal();updateAll();
+  toast(`${students.length} codes régénérés au nouveau format`,'ok');
+}
 async function doAddEleve(){
   const nom=document.getElementById('aNom').value.trim().toUpperCase();
   const prenom=document.getElementById('aPrenom').value.trim();
@@ -3710,10 +3747,12 @@ async function doAddEleve(){
     const r=await apiCall({action:'addEleve',data:{nom,prenom,classe,groupe,annee,referentiel:getFiliere({classe}),pfmp1_sem:parseInt(document.getElementById('aPfmp1')?.value)||3,pfmp2_sem:parseInt(document.getElementById('aPfmp2')?.value)||3,tel_eleve,tel_tuteur}});
     await syncAll();toast(`${nom} ajouté · ${r.code}`,'ok');
   }catch{
+    const num=getNextElevNum();
     const code='ELV-'+String(students.length+1).padStart(3,'0');
-    students.push({code,nom,prenom,classe,groupe,annee,statut:'actif',referentiel:getFiliere({classe}),token_eleve:Math.random().toString(36).substring(2,10).toUpperCase(),token_tuteur:Math.random().toString(36).substring(2,10).toUpperCase(),tel_eleve,tel_tuteur});
+    const tokenEleve=generateElevToken(nom,prenom,num);
+    students.push({code,nom,prenom,classe,groupe,annee,statut:'actif',referentiel:getFiliere({classe}),token_eleve:tokenEleve,token_tuteur:Math.random().toString(36).substring(2,10).toUpperCase(),tel_eleve,tel_tuteur});
     window.students=students;
-    saveLocal();updateAll();toast(`${nom} ajouté localement (sync en attente)`,'warn');
+    saveLocal();updateAll();toast(`${nom} ajouté · Code : ${tokenEleve}`,'warn');
   }finally{hideSpinner();}
 }
 function showPromotion(){
