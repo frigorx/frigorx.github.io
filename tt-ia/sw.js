@@ -1,5 +1,5 @@
-// inerWeb — Service Worker principal v7.6
-const CACHE_NAME = 'inerweb-v7.6';
+// inerWeb — Service Worker principal v7.7
+const CACHE_NAME = 'inerweb-v7.7';
 const ASSETS = [
   './',
   './index.html',
@@ -41,8 +41,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Requetes API (Apps Script) -> network-first avec fallback cache
+  // Requetes API (Apps Script) -> network-first avec fallback cache (GET uniquement)
   if (url.hostname.includes('script.google.com')) {
+    if (event.request.method !== 'GET') {
+      // POST/PUT/DELETE → network only, pas de cache
+      event.respondWith(fetch(event.request));
+      return;
+    }
     event.respondWith(
       fetch(event.request)
         .then((response) => {
