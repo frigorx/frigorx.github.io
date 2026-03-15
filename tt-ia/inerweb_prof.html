@@ -468,7 +468,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
       <button class="btn-change-classe" onclick="selectClasse(null)" title="Changer de classe">✕</button>
     </div>
     <div class="hdr-right">
-      <div class="sync-pill" data-help="sync" onclick="syncAll()"><span class="sync-dot syncing" id="syncDot"></span><span id="syncLbl">Sync...</span><span id="syncBadge" style="display:none;background:var(--orange);color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:10px;margin-left:.3rem;">0</span></div>
+      <div class="sync-pill" data-help="sync" onclick="syncAll()"><span class="sync-dot" id="syncDot"></span><span id="syncLbl">Local</span><span id="syncBadge" style="display:none;background:var(--orange);color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:10px;margin-left:.3rem;">0</span></div>
       <button class="btn btn-ghost btn-xs" onclick="showParamModal()" aria-label="Paramètres">⚙️</button>
       <button class="btn btn-ghost btn-xs" onclick="doLogout()" title="Déconnexion" aria-label="Déconnexion" style="font-size:.8rem">🚪</button>
     </div>
@@ -1759,7 +1759,6 @@ async function syncAll(){
   if(!cfg.apiUrl){setSyncState('error');return;}
   setSyncState('syncing');
   try{
-    // Ping le backend pour vérifier la connexion
     var pingUrl=new URL(cfg.apiUrl);
     pingUrl.searchParams.set('action','ping');
     pingUrl.searchParams.set('key',cfg.apiKey);
@@ -1767,17 +1766,13 @@ async function syncAll(){
     var ping=await pingR.json();
     if(ping&&ping.status==='ok'){
       online=true;setSyncState('ok');
-      saveLocal();updateAll();
-      toast('Connecté (v'+(ping.version||'?')+') — '+students.length+' élève(s) en local','ok');
+      toast('Connecté (v'+(ping.version||'?')+')','ok');
     }else{
-      throw new Error('Ping échoué');
+      online=false;setSyncState('local');
     }
   }catch(e){
     console.warn('[syncAll]',e.message||e);
-    online=false;setSyncState('error');
-    if(students.length)saveLocal();
-    updateAll();
-    toast('Hors-ligne — '+students.length+' élève(s) conservés en local','warn');
+    online=false;setSyncState('local');
   }
 }
 /* setSyncState → js/core/utils.js (copie locale conservée) */
@@ -1785,8 +1780,9 @@ function setSyncState(s){
   const d=document.getElementById('syncDot'),l=document.getElementById('syncLbl');
   if(!d)return;
   d.className='sync-dot';
-  if(s==='ok'){l.textContent='Synchronisé';}
+  if(s==='ok'){l.textContent='Connecté';}
   if(s==='syncing'){d.classList.add('syncing');l.textContent='Sync...';}
+  if(s==='local'){l.textContent='Local';}
   if(s==='error'){d.classList.add('offline');l.textContent='Hors-ligne';}
 }
 /* pushVal → js/core/utils.js (copie locale conservée) */
@@ -4901,7 +4897,9 @@ function renderAdminTab(){
 async function initApp(){
   await initDB();
   await loadLocalData().catch(()=>{});partenaires=JSON.parse(localStorage.getItem(SPART)||'[]');
-  loadAdminData();checkAdmin();loadCfgToForm();updateAll();syncAll();setPhase('formatif');
+  loadAdminData();checkAdmin();loadCfgToForm();updateAll();setPhase('formatif');
+  // Sync en arrière-plan, silencieuse — n'affecte pas le démarrage
+  syncAll().catch(function(){});
   // Phase 13 — Initialiser la navigation multi-classe
   var savedClasse = (window.appState&&appState.config&&appState.config.classe)||'';
   if(savedClasse){selectClasse(savedClasse);switchTab('dashboard');}
