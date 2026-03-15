@@ -2091,9 +2091,13 @@ function popSelectsAct(ep){
 }
 function selectStudent(code,ctx){
   cur=code;
-  ['selE31','selE32','selBilan','selRapport'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=code;});
+  ['selE31','selE32','selE33','selBilan','selRapport','selEP2','selEP3','selModules'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=code;});
   if(ctx==='e31')renderE31();
   if(ctx==='e32')renderE32();
+  if(ctx==='e33')renderE33();
+  if(ctx==='ep2')renderEP2();
+  if(ctx==='ep3')renderEP3();
+  if(ctx==='modules')renderModules();
   if(ctx==='bilan')renderBilan();
   if(ctx==='rapport')renderRapport();
 }
@@ -2552,7 +2556,7 @@ async function setLv(comp,niv,ep){
     compLocks[compKey]=true;
     saveLocal();
     // Re-render pour afficher le cadenas
-    if(ep==='E31')renderE31();else renderE32();
+    if(ep==='E31')renderE31();else if(ep==='E32')renderE32();else if(ep==='E33')renderE33();else if(ep==='EP2')renderEP2();else if(ep==='EP3')renderEP3();else if(ep==='modules')renderModules();
     toast('🔒 Compétence verrouillée','inf');
   }
   
