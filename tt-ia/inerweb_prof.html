@@ -4114,7 +4114,17 @@ async function importRows(rows){
     n++;
   }
   saveLocal();updateAll();hideSpinner();
-  toast(`${n} élève(s) importé(s) — cliquez Sync pour synchroniser`,'ok');
+  toast(`${n} élève(s) importé(s) — envoi au serveur...`,'ok');
+  // Envoyer chaque élève au backend en arrière-plan
+  var sent=0;
+  for(var si=0;si<students.length;si++){
+    var st=students[si];
+    try{
+      await apiCall({action:'addEleve',data:{nom:st.nom,prenom:st.prenom,classe:st.classe,groupe:st.groupe,annee:st.annee,referentiel:st.referentiel,tel_eleve:st.tel_eleve||'',tel_tuteur:st.tel_tuteur||''}});
+      sent++;
+    }catch(e){}
+  }
+  if(sent)toast(`✓ ${sent} élève(s) enregistrés sur le serveur`,'ok');
 }
 function showQR(code){
   const s=students.find(x=>x.code===code)||{nom:'?',prenom:''};
