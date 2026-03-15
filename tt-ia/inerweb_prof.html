@@ -576,6 +576,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
         <button class="btn btn-primary btn-sm" onclick="showAddEleve()">➕ Ajouter</button>
         <button class="btn btn-ghost btn-sm" onclick="contactClasse()">📣 Contacter la classe</button>
         <button class="btn btn-ghost btn-sm" onclick="lienInscription()" style="color:var(--violet)">🎓 Lien inscription</button>
+        <button class="btn btn-ghost btn-sm" onclick="pushStudentsToBackend(students)" style="color:var(--teal)">☁️ Envoyer au serveur</button>
         <button class="btn btn-ghost btn-sm" onclick="showImportModal()">📥 Import</button>
         <input type="file" id="importCsv" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleImportFile(this.files[0])">
         <button class="btn btn-ghost btn-sm" onclick="showQRAll()">📱 QR</button>
@@ -1752,19 +1753,29 @@ function loadLocal(){
 }
 /* syncAll → js/core/utils.js (copie locale conservée) */
 async function pushStudentsToBackend(list){
-  if(!cfg.apiUrl)return;
-  var sent=0;
+  if(!cfg.apiUrl){toast('URL API non configurée','err');return;}
+  if(!list||!list.length){toast('Aucun élève à envoyer','warn');return;}
+  toast('☁️ Envoi de '+list.length+' élève(s)...','inf');
+  var sent=0,errors=0;
   for(var i=0;i<list.length;i++){
     var s=list[i];
     try{
       var url=new URL(cfg.apiUrl);
       url.searchParams.set('action','addEleve');
-      var r=await fetch(url.toString(),{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({key:cfg.apiKey,data:{nom:s.nom,prenom:s.prenom,classe:s.classe,groupe:s.groupe,annee:s.annee,referentiel:s.referentiel,tel_eleve:s.tel_eleve||'',tel_tuteur:s.tel_tuteur||''}})});
+      var r=await fetch(url.toString(),{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({key:cfg.apiKey,data:{nom:s.nom,prenom:s.prenom,classe:s.classe,groupe:s.groupe,annee:s.annee||1,referentiel:s.referentiel||'',tel_eleve:s.tel_eleve||'',tel_tuteur:s.tel_tuteur||''}})});
       var d=await r.json();
-      if(d&&d.ok)sent++;
-    }catch(e){}
+      if(d&&d.ok){
+        // Récupérer le token du serveur si disponible
+        if(d.token_eleve)s.token_eleve=d.token_eleve;
+        if(d.token_tuteur)s.token_tuteur=d.token_tuteur;
+        if(d.code&&!s.code)s.code=d.code;
+        sent++;
+      }else{errors++;}
+    }catch(e){errors++;console.warn('[push]',s.nom,e.message);}
   }
-  if(sent)toast('✓ '+sent+' élève(s) envoyés au serveur','ok');
+  saveLocal();
+  if(sent)toast('✓ '+sent+'/'+list.length+' élève(s) envoyés au serveur'+(errors?' ('+errors+' erreur(s))':''),'ok');
+  else toast('Erreur envoi — vérifiez la connexion','err');
 }
 function sauvegarder(){
   saveLocal();
