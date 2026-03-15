@@ -574,6 +574,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
     <div class="tab-pane" id="tab-eleves"><div class="tab-inner">
       <div class="eleves-tb" style="flex-wrap:wrap">
         <button class="btn btn-primary btn-sm" onclick="showAddEleve()">➕ Ajouter</button>
+        <button class="btn btn-ghost btn-sm" onclick="contactClasse()">📣 Contacter la classe</button>
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importCsv').click()">📥 Import</button>
         <button class="btn btn-ghost btn-xs" onclick="showImportHelp()" title="Format d'import" style="font-size:.7rem;padding:2px 6px">❓</button>
         <input type="file" id="importCsv" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleImportFile(this.files[0])">
@@ -3386,8 +3387,10 @@ function renderEleves(){
     </div>
     <div class="el-act">
       <button class="btn btn-ghost btn-xs" onclick="toggleGroupe('${s.code}')" title="Groupe">👥</button>
-      ${s.tel_eleve?`<a class="btn btn-ghost btn-xs" href="https://wa.me/${formatWA(s.tel_eleve)}" target="_blank" title="WhatsApp élève (${esc(s.tel_eleve)})">💬E</a>`:''}
-      ${s.tel_tuteur||s.tuteur_tel?`<a class="btn btn-ghost btn-xs" href="https://wa.me/${formatWA(s.tel_tuteur||s.tuteur_tel)}" target="_blank" title="WhatsApp tuteur (${esc(s.tel_tuteur||s.tuteur_tel)})">💬T</a>`:''}
+      ${s.tel_eleve?`<a class="btn btn-ghost btn-xs" href="tel:+${formatWA(s.tel_eleve)}" title="Appeler ${esc(s.prenom)} (${esc(s.tel_eleve)})">📞</a><a class="btn btn-ghost btn-xs" href="sms:+${formatWA(s.tel_eleve)}?body=${encodeURIComponent('Bonjour '+s.prenom+', voici ton accès inerWeb TT : '+(cfg.baseUrl||'')+'inerweb_eleve.html?token='+(s.token_eleve||''))}" title="SMS élève">💬</a><a class="btn btn-ghost btn-xs" href="https://wa.me/${formatWA(s.tel_eleve)}?text=${encodeURIComponent('Bonjour '+s.prenom+', voici ton accès inerWeb TT : '+(cfg.baseUrl||'')+'inerweb_eleve.html?token='+(s.token_eleve||''))}" target="_blank" title="WhatsApp élève">📱E</a>`:''}
+      ${s.tel_tuteur||s.tuteur_tel?`<a class="btn btn-ghost btn-xs" href="tel:+${formatWA(s.tel_tuteur||s.tuteur_tel)}" title="Appeler tuteur (${esc(s.tel_tuteur||s.tuteur_tel)})">📞T</a><a class="btn btn-ghost btn-xs" href="https://wa.me/${formatWA(s.tel_tuteur||s.tuteur_tel)}?text=${encodeURIComponent('Bonjour, voici le lien tuteur pour '+s.nom+' : '+(cfg.baseUrl||'')+'inerweb_tuteur.html?eleve='+s.code+'&tuteur='+(s.token_tuteur||''))}" target="_blank" title="WhatsApp tuteur">📱T</a>`:''}
+      ${s.tuteur_email||s.email_tuteur?`<a class="btn btn-ghost btn-xs" href="mailto:${esc(s.tuteur_email||s.email_tuteur)}?subject=${encodeURIComponent('Stage '+s.nom+' '+s.prenom)}&body=${encodeURIComponent('Bonjour,\nVoici le lien tuteur : '+(cfg.baseUrl||'')+'inerweb_tuteur.html?eleve='+s.code+'&tuteur='+(s.token_tuteur||''))}" title="Email tuteur">📧</a>`:''}
+      ${s.preference_contact_tuteur?`<span class="badge-pref-contact" title="Préf. contact tuteur : ${esc(s.preference_contact_tuteur)}" style="font-size:.6rem;background:var(--teal2);color:var(--teal);padding:1px 4px;border-radius:3px;font-weight:700">⭐${esc(s.preference_contact_tuteur)}</span>`:''}
       <button class="btn btn-ghost btn-xs" onclick="previewPageEleve('${s.code}')" title="Voir page élève">👁️E</button>
       <button class="btn btn-ghost btn-xs" onclick="previewPageTuteur('${s.code}')" title="Voir page tuteur">👁️T</button>
       <button class="btn btn-ghost btn-xs" onclick="viewStagePhotos('${s.code}')" title="Photos stage">📷</button>
@@ -3399,6 +3402,36 @@ function renderEleves(){
   </div>`;
   }).join('');
   updateStor();
+}
+function contactClasse(){
+  var classe=document.getElementById('selEleve')?.options?.[document.getElementById('selEleve')?.selectedIndex]?.parentNode?.label||'';
+  var els=students.filter(s=>s.statut!=='inactif');
+  var base=cfg.baseUrl||'';
+  var html='<div style="max-height:60vh;overflow-y:auto">';
+  html+='<div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem">';
+  html+='<button class="btn btn-teal btn-sm" onclick="contactClasseWA()">📱 WhatsApp tous</button>';
+  html+='<button class="btn btn-ghost btn-sm" onclick="contactClasseSMS()">💬 SMS tous</button>';
+  html+='</div>';
+  html+='<table style="width:100%;font-size:.78rem;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:.3rem">Élève</th><th>📞</th><th>📱</th><th>📧</th></tr></thead><tbody>';
+  els.forEach(function(s){
+    html+='<tr style="border-bottom:1px solid var(--gris3)">';
+    html+='<td style="padding:.3rem;font-weight:700">'+esc(s.nom)+' '+esc(s.prenom||'')+'</td>';
+    html+='<td style="text-align:center">'+(s.tel_eleve?'<a href="tel:+'+formatWA(s.tel_eleve)+'">📞</a>':'—')+'</td>';
+    html+='<td style="text-align:center">'+(s.tel_eleve?'<a href="https://wa.me/'+formatWA(s.tel_eleve)+'" target="_blank">📱</a>':'—')+'</td>';
+    html+='<td style="text-align:center">'+(s.email_eleve?'<a href="mailto:'+esc(s.email_eleve)+'">📧</a>':'—')+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  showModal('📣 Contacter la classe',html+'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+}
+function contactClasseWA(){
+  var msg='Bonjour à tous ! Message de votre enseignant inerWeb TT.';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+function contactClasseSMS(){
+  var nums=students.filter(s=>s.tel_eleve).map(s=>formatWA(s.tel_eleve)).join(',');
+  if(nums)window.open('sms:'+nums+'?body='+encodeURIComponent('Bonjour, message de votre enseignant inerWeb TT.'),'_blank');
+  else toast('Aucun numéro élève enregistré','err');
 }
 function showAddEleve(){
   showModal('➕ Ajouter un élève',`

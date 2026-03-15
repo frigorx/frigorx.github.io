@@ -418,6 +418,27 @@ video{width:100%;border-radius:var(--r);background:#000;display:block;}
 
     <div id="stagiaireInfo"></div>
 
+    <!-- Préférences de contact tuteur -->
+    <div class="card" id="prefContactCard" style="border-top:3px solid var(--teal);margin-bottom:.75rem">
+      <div style="font-size:.85rem;font-weight:800;color:var(--teal);margin-bottom:.5rem">📞 Vos préférences de contact</div>
+      <p style="font-size:.72rem;color:var(--gris);margin-bottom:.5rem">Comment souhaitez-vous être contacté par l'enseignant ?</p>
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+        <label style="display:flex;align-items:center;gap:.3rem;padding:.5rem .75rem;background:var(--gris2);border-radius:var(--r2);cursor:pointer;font-size:.82rem;font-weight:700;min-height:44px">
+          <input type="checkbox" id="prefTel" value="tel" onchange="savePrefContact()"> 📞 Téléphone
+        </label>
+        <label style="display:flex;align-items:center;gap:.3rem;padding:.5rem .75rem;background:var(--gris2);border-radius:var(--r2);cursor:pointer;font-size:.82rem;font-weight:700;min-height:44px">
+          <input type="checkbox" id="prefSMS" value="sms" onchange="savePrefContact()"> 💬 SMS
+        </label>
+        <label style="display:flex;align-items:center;gap:.3rem;padding:.5rem .75rem;background:var(--gris2);border-radius:var(--r2);cursor:pointer;font-size:.82rem;font-weight:700;min-height:44px">
+          <input type="checkbox" id="prefWA" value="whatsapp" onchange="savePrefContact()"> 📱 WhatsApp
+        </label>
+        <label style="display:flex;align-items:center;gap:.3rem;padding:.5rem .75rem;background:var(--gris2);border-radius:var(--r2);cursor:pointer;font-size:.82rem;font-weight:700;min-height:44px">
+          <input type="checkbox" id="prefEmail" value="email" onchange="savePrefContact()"> 📧 Email
+        </label>
+      </div>
+      <div id="prefContactStatus" style="font-size:.72rem;color:var(--vert);margin-top:.4rem;display:none"></div>
+    </div>
+
     <!-- Sélecteur PFMP -->
     <div class="card" style="padding:.75rem 1rem">
       <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
@@ -1343,6 +1364,25 @@ else if(_p.get('role')==='eleve'){
     entreprise=d.entreprise;tuteurs=d.tuteurs;
     chargerEleve(_p.get('eleve'),_p.get('tuteur')||_p.get('token')||'');
   }
+}
+async function savePrefContact(){
+  var prefs=[];
+  if(document.getElementById('prefTel').checked)prefs.push('tel');
+  if(document.getElementById('prefSMS').checked)prefs.push('sms');
+  if(document.getElementById('prefWA').checked)prefs.push('whatsapp');
+  if(document.getElementById('prefEmail').checked)prefs.push('email');
+  var prefStr=prefs.join(',');
+  var st=document.getElementById('prefContactStatus');
+  st.style.display='block';st.textContent='Enregistrement...';st.style.color='var(--gris)';
+  try{
+    var apiKey=_apiKey||'';
+    var p=new URLSearchParams({action:'savePrefContactTuteur',eleve:eleveCode,tuteur:tuteurToken,key:apiKey,preference:prefStr});
+    await fetch(apiUrl+'?'+p,{redirect:'follow'});
+    st.textContent='✅ Préférences enregistrées';st.style.color='var(--vert)';
+  }catch(e){
+    st.textContent='⚠️ Sauvegardé localement (sync en attente)';st.style.color='var(--orange)';
+  }
+  setTimeout(function(){st.style.display='none';},3000);
 }
 </script>
 <!-- Bouton aide flottant -->

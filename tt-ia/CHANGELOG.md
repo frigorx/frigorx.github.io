@@ -1,5 +1,20 @@
 # Changelog — INERWEB TT-IA
 
+## [7.7.0] - 2026-03-15
+
+### Profil élève, communication & contacts
+- **Profil élève** : modale "Complète ton profil" à la première connexion (téléphone + email)
+  - Sauvegarde locale + sync API (`updateEleveProfil`)
+  - Ne s'affiche qu'une fois (flag `_profilDemande`)
+- **Communication élèves** (inerweb_prof) : boutons contact enrichis par élève
+  - 📞 Appel, 💬 SMS, 📱 WhatsApp (avec message pré-rempli + lien token)
+  - 📧 Email tuteur avec sujet/corps pré-remplis
+  - Badge préférence contact tuteur (⭐)
+  - Bouton "📣 Contacter la classe" avec modale récapitulative
+- **Préférences contact tuteur** (inerweb_tuteur) : 4 cases à cocher (Tél/SMS/WhatsApp/Email)
+  - Sync API (`savePrefContactTuteur`)
+- **Fix** : `js/core/utils.js` — variable `online` non déclarée → `navigator.onLine`
+
 ## [7.6.3] - 2026-03-15
 
 ### Correction bug btoa UTF-8

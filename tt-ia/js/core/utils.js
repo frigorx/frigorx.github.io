@@ -125,10 +125,10 @@
           }
         }));
       }
-      online = true; saveLocal(); setSyncState('ok'); updateAll();
+      saveLocal(); setSyncState('ok'); updateAll();
       toast(students.length + ' eleves synchronises', 'ok');
     } catch(e) {
-      online = false; setSyncState('error'); updateAll();
+      setSyncState('error'); updateAll();
       toast('Hors-ligne \u2014 donnees locales', 'warn');
     }
   }
@@ -138,7 +138,7 @@
     var entry = Object.assign({}, data, { evaluateur: cfg.nomProf || 'Prof', timestamp: new Date().toISOString(), phase: curPhase });
     if (!validations[cur]) validations[cur] = [];
     validations[cur].push(entry); saveLocal(); toast('\u2713 Enregistre', 'ok');
-    if (online) {
+    if (navigator.onLine) {
       try { await apiCall({ action: 'saveValidation', eleve: cur, data: entry }); } catch(e) { toast('En attente sync', 'warn'); }
     }
   }
