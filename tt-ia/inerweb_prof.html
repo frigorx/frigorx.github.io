@@ -1548,9 +1548,6 @@ const SK='inerweb-tt-fe-v1',SCFG='inerweb-tt-fe-cfg',SPART='inerweb-tt-fe-parts'
 window.SK=SK;window.SCFG=SCFG;window.SPART=SPART;window.SUSERS=SUSERS;window.SCLASSES=SCLASSES;window.SJOURNAL=SJOURNAL;
 const DB_NAME='inerwebtt-fe-db',DB_VERSION=3;
 let db=null,backupInterval=null;
-/* Variables globales : état courant */
-var cur=null,curPhase='formatif',curCtx='atelier',curSit='A',online=false,demoMode=false;
-var students=[],validations={},notes={},pfmpData={},appCfg={},partenaires=[],sharedDocs=[],customCriteria={},compLocks={},cfg={};
 
 /* ═══ [B2] INDEXEDDB MODULE ═══ */
 async function initDB(){
