@@ -576,8 +576,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
         <button class="btn btn-primary btn-sm" onclick="showAddEleve()">➕ Ajouter</button>
         <button class="btn btn-ghost btn-sm" onclick="contactClasse()">📣 Contacter la classe</button>
         <button class="btn btn-ghost btn-sm" onclick="lienInscription()" style="color:var(--violet)">🎓 Lien inscription</button>
-        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importCsv').click()">📥 Import</button>
-        <button class="btn btn-ghost btn-xs" onclick="showImportHelp()" title="Format d'import" style="font-size:.7rem;padding:2px 6px">❓</button>
+        <button class="btn btn-ghost btn-sm" onclick="showImportModal()">📥 Import</button>
         <input type="file" id="importCsv" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleImportFile(this.files[0])">
         <button class="btn btn-ghost btn-sm" onclick="showQRAll()">📱 QR</button>
         <button class="btn btn-ghost btn-sm" onclick="showScanner()">📷 Scan</button>
@@ -4045,6 +4044,37 @@ async function doDel(code){
   catch{students=students.filter(s=>s.code!==code);saveLocal();updateAll();toast('Supprimé localement','warn');}
   finally{hideSpinner();}
 }
+var _importClasseDefaut='';
+function showImportModal(){
+  showModal('📥 Importer des élèves',`
+    <div class="alert al-info" style="margin-bottom:.75rem">Choisissez la classe <strong>avant</strong> d'importer. Si votre fichier contient une colonne "classe", elle sera utilisée à la place.</div>
+    <div class="fr"><label>Classe par défaut</label>
+      <select id="importClasseSelect" style="padding:.6rem;border:2px solid var(--gris3);border-radius:var(--r2);font-weight:700;font-size:.9rem">
+        <option value="CAP IFCA 1">CAP IFCA 1ère année</option>
+        <option value="CAP IFCA 2">CAP IFCA 2ème année</option>
+        <option value="2nde TNE">2nde TNE</option>
+        <option value="1ère MFER">1ère MFER</option>
+        <option value="Term MFER">Term MFER</option>
+      </select>
+    </div>
+    <div class="fr"><label>Année</label>
+      <select id="importAnneeSelect" style="padding:.6rem;border:2px solid var(--gris3);border-radius:var(--r2);font-weight:700;font-size:.9rem">
+        <option value="1">1ère année</option>
+        <option value="2">2ème année</option>
+      </select>
+    </div>
+    <div style="margin-top:.75rem">
+      <label class="file-upload" style="display:flex;align-items:center;justify-content:center;gap:.5rem;padding:1rem;border:2px dashed var(--gris3);border-radius:var(--r2);cursor:pointer;font-size:.9rem;font-weight:700;color:var(--bleu);min-height:44px">
+        <input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="_importClasseDefaut=document.getElementById('importClasseSelect').value;window._importAnneeDefaut=parseInt(document.getElementById('importAnneeSelect').value)||1;closeModal();handleImportFile(this.files[0])">
+        📁 Choisir le fichier (CSV ou Excel)
+      </label>
+    </div>
+    <div style="font-size:.72rem;color:var(--gris);margin-top:.5rem">
+      <strong>Colonnes reconnues :</strong> nom, prénom, classe, groupe, année, élève<br>
+      Si pas de colonne "classe", la classe sélectionnée ci-dessus sera utilisée.
+    </div>`,
+    '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>');
+}
 function handleImportFile(file){
   if(!file)return;
   const ext=file.name.split('.').pop().toLowerCase();
@@ -4084,10 +4114,10 @@ async function importRows(rows){
       const sp=splitNomPrenom(raw);nom=sp.nom;prenom=sp.prenom;
     }
     nom=nom.toUpperCase().trim();
-    const classe=(r['classe']||r['formation']||r['filière']||r['filiere']||'CAP IFCA 1').trim();
+    const classe=(r['classe']||r['formation']||r['filière']||r['filiere']||_importClasseDefaut||'CAP IFCA 1').trim();
     const groupe=(r['groupe']||r['group']||r['grp']||'').trim().toUpperCase();
     const anneeRaw=(r['année']||r['annee']||r['year']||'').trim();
-    const annee=anneeRaw?parseInt(anneeRaw)||1:1;
+    const annee=anneeRaw?parseInt(anneeRaw)||1:(window._importAnneeDefaut||1);
     if(!nom||students.find(s=>s.nom===nom&&s.prenom===prenom))continue;
     const grpNorm=groupe.match(/^G?1$/)?'G1':groupe.match(/^G?2$/)?'G2':groupe;
     try{await apiCall({action:'addEleve',data:{nom,prenom,classe,groupe:grpNorm,annee,referentiel:getFiliere({classe})}});n++;}
