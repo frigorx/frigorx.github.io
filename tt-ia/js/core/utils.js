@@ -26,7 +26,7 @@
   /* ═══ SYNC STATE ═══ */
   function setSyncState(s) {
     var d = document.getElementById('syncDot'), l = document.getElementById('syncLbl');
-    if (!d) return;
+    if (!d || !l) return;
     d.className = 'sync-dot';
     if (s === 'ok') { l.textContent = 'Synchronise'; }
     if (s === 'syncing') { d.classList.add('syncing'); l.textContent = 'Sync...'; }
@@ -140,6 +140,9 @@
     validations[cur].push(entry); saveLocal(); toast('\u2713 Enregistre', 'ok');
     if (navigator.onLine) {
       try { await apiCall({ action: 'saveValidation', eleve: cur, data: entry }); } catch(e) { toast('En attente sync', 'warn'); }
+    } else {
+      if (window.syncQueueWrapper) syncQueueWrapper.push({ action: 'saveValidation', eleve: cur, data: entry });
+      toast('Sauvegardé hors-ligne', 'warn');
     }
   }
 

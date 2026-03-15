@@ -674,7 +674,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
       <div class="act-panel active" id="ap-liste">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
         <span style="font-weight:800;color:var(--bleu);font-size:.9rem">📋 Sessions de cours</span>
-        <button class="btn btn-primary btn-sm" onclick="tpManager.showCreate()">➕ Créer une session</button>
+        <button class="btn btn-primary btn-sm" onclick="if(window.tpManager)tpManager.showCreate()">➕ Créer une session</button>
       </div>
       <!-- Vue liste des TP -->
       <div id="tpListView">
@@ -683,7 +683,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
       <!-- Vue création TP (même style que E31/E32) -->
       <div id="tpCreateView" style="display:none">
         <div style="margin-bottom:.6rem">
-          <button class="btn btn-ghost btn-sm" onclick="tpManager.backToList()">← Retour à la liste</button>
+          <button class="btn btn-ghost btn-sm" onclick="if(window.tpManager)tpManager.backToList()">← Retour à la liste</button>
         </div>
         <!-- Étape 1 : Config de la session -->
         <div class="card" style="margin-bottom:.75rem">
@@ -740,10 +740,10 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
             <span style="font-weight:800;color:var(--bleu)">👥 Élèves</span>
             <div style="display:flex;gap:.3rem;align-items:center">
-              <button class="btn btn-ghost btn-xs" onclick="tpManager.selectGroupe('all')">Tous</button>
-              <button class="btn btn-ghost btn-xs" onclick="tpManager.selectGroupe('G1')">G1</button>
-              <button class="btn btn-ghost btn-xs" onclick="tpManager.selectGroupe('G2')">G2</button>
-              <button class="btn btn-ghost btn-xs" onclick="tpManager.toggleAllEleves()">Cocher/décocher</button>
+              <button class="btn btn-ghost btn-xs" onclick="if(window.tpManager)tpManager.selectGroupe('all')">Tous</button>
+              <button class="btn btn-ghost btn-xs" onclick="if(window.tpManager)tpManager.selectGroupe('G1')">G1</button>
+              <button class="btn btn-ghost btn-xs" onclick="if(window.tpManager)tpManager.selectGroupe('G2')">G2</button>
+              <button class="btn btn-ghost btn-xs" onclick="if(window.tpManager)tpManager.toggleAllEleves()">Cocher/décocher</button>
               <span id="tpElvCount" style="font-size:.78rem;color:var(--gris);padding:.2rem .4rem">(0)</span>
             </div>
           </div>
@@ -762,7 +762,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
           <div id="tpCompsGrid"></div>
         </div>
         <!-- Bouton créer -->
-        <button class="btn btn-primary" onclick="tpManager.submit()" style="width:100%;padding:.7rem;font-size:.9rem;font-weight:700">✅ Créer et enregistrer la session</button>
+        <button class="btn btn-primary" onclick="if(window.tpManager)tpManager.submit()" style="width:100%;padding:.7rem;font-size:.9rem;font-weight:700">✅ Créer et enregistrer la session</button>
       </div>
       </div><!-- fin ap-liste -->
       <!-- Panel E31 dans Activités -->
@@ -1059,7 +1059,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
         <div class="exp-card" onclick="exportAllPDF()"><div class="exp-icon">📚</div><div class="exp-lbl">PDF classe entière</div><div class="exp-sub">Tous les élèves</div></div>
         <div class="exp-card" onclick="exportExcel()"><div class="exp-icon">📊</div><div class="exp-lbl">Excel récap.</div><div class="exp-sub">Notes E31 + E32</div></div>
         <div class="exp-card" onclick="exportBackup()"><div class="exp-icon">💾</div><div class="exp-lbl">Backup JSON</div><div class="exp-sub">Toutes les données</div></div>
-        <div class="exp-card" onclick="rapportModule.generate()"><div class="exp-icon">📋</div><div class="exp-lbl">Rapport inspection</div><div class="exp-sub">PDF synthétique</div></div>
+        <div class="exp-card" onclick="if(window.rapportModule)rapportModule.generate()"><div class="exp-icon">📋</div><div class="exp-lbl">Rapport inspection</div><div class="exp-sub">PDF synthétique</div></div>
       </div>
       <div id="fusionDropZone" style="margin-bottom:.75rem;"></div>
       <div class="card">
@@ -1215,7 +1215,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
         <h2 style="font-size:1.1rem;font-weight:800;color:var(--bleu);margin:0">📖 Bibliothèque TP</h2>
         <div style="display:flex;gap:.5rem">
-          <button class="btn btn-ghost btn-sm" onclick="iwDriveImport.showModal()">📥 Importer depuis Drive</button>
+          <button class="btn btn-ghost btn-sm" onclick="if(window.iwDriveImport)iwDriveImport.showModal()">📥 Importer depuis Drive</button>
         </div>
       </div>
       <div id="tp-explorer-container">
@@ -2159,7 +2159,7 @@ function createFromCalendar(y,m,d){
   const dateStr=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
   switchTab('activites');
   switchActPanel('liste');
-  tpManager.showCreate(dateStr);
+  if(window.tpManager)tpManager.showCreate(dateStr);
 }
 function switchActPanel(p){
   document.querySelectorAll('.act-panel').forEach(x=>x.classList.remove('active'));

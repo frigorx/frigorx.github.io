@@ -916,7 +916,7 @@ async function chargerEleve(code,token){
     eleveData={code,nom:'Stagiaire',prenom:code,classe:''};
     toast('Hors-ligne — données seront envoyées plus tard','warn');
   }
-  evalData={};behavData={};
+  behavData={};
   // Charger les locks et évaluations sauvegardées pour cet élève
   chargerLocksEleve(code);
   hideSpinner();
@@ -1056,7 +1056,7 @@ function setNiv(code,niv,btn){
     compLocks[code]=true;
     sauvegarderLocal();
     renderEval();
-    toast('🔒 Compétence verrouillée','info');
+    toast('🔒 Compétence verrouillée','inf');
   }
 }
 
@@ -1375,9 +1375,10 @@ async function savePrefContact(){
   var st=document.getElementById('prefContactStatus');
   st.style.display='block';st.textContent='Enregistrement...';st.style.color='var(--gris)';
   try{
-    var apiKey=_apiKey||'';
+    if(!eleveCode||!tuteurToken){st.textContent='Chargez un stagiaire d\'abord';st.style.color='var(--orange)';return;}
+    var apiKey=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():'';
     var p=new URLSearchParams({action:'savePrefContactTuteur',eleve:eleveCode,tuteur:tuteurToken,key:apiKey,preference:prefStr});
-    await fetch(apiUrl+'?'+p,{redirect:'follow'});
+    await fetch(API_URL+'?'+p,{redirect:'follow'});
     st.textContent='✅ Préférences enregistrées';st.style.color='var(--vert)';
   }catch(e){
     st.textContent='⚠️ Sauvegardé localement (sync en attente)';st.style.color='var(--orange)';

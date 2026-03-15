@@ -558,7 +558,7 @@ function dateShort(iso){if(!iso)return'—';try{return new Date(iso).toLocaleDat
 function timeHM(iso){if(!iso)return'';try{return new Date(iso).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}catch{return'';}}
 function todayISO(){return new Date().toISOString().slice(0,10);}
 function saveLocal(){localStorage.setItem(SK,JSON.stringify({cfg,eleve,journal,evals,eleveDocs}));}
-function loadLocal(){const d=localStorage.getItem(SK);if(!d)return false;try{const p=safeParse(d,null);if(!p)return false;cfg=p.cfg||{};eleve=p.eleve||null;journal=p.journal||[];evals=p.evals||{};eleveDocs=p.eleveDocs||[];return!!eleve;}catch{return false;}}
+function loadLocal(){const d=localStorage.getItem(SK);if(!d)return false;try{const p=safeParse(d,null);if(!p)return false;cfg=p.cfg||{};if(!cfg.apiUrl&&window.iwConfig)cfg.apiUrl=window.iwConfig.getApiUrl();eleve=p.eleve||null;journal=p.journal||[];evals=p.evals||{};eleveDocs=p.eleveDocs||[];return!!eleve;}catch{return false;}}
 
 async function compressImage(file){
   return new Promise(resolve=>{
@@ -673,7 +673,7 @@ function closePhotoModal(){var m=document.getElementById('photoModal');m.classLi
 function doLogin(){
   const token=document.getElementById('tokenInput').value.trim().toUpperCase();
   if(!token){document.getElementById('loginError').style.display='block';return;}
-  if(token==='DEMO'||token==='TEST'||token==='demo'){loadDemoData();saveLocal();startApp();toast('Mode démo activé','ok');return;}
+  if(token==='DEMO'||token==='TEST'){loadDemoData();saveLocal();startApp();toast('Mode démo activé','ok');return;}
   cfg.token=token;
   cfg.apiUrl=(window.iwConfig?window.iwConfig.getApiUrl():'');
   verifyToken(token);
@@ -812,7 +812,7 @@ function renderHome(){
 
 function renderStageStatus(){
   const c=document.getElementById('stageStatus');
-  const lastEntry=journal.sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+  const lastEntry=[...journal].sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
   if(!lastEntry){c.innerHTML='<div class="alert al-warn">📝 Tu n\'as pas encore commencé ton journal. Ajoute ta première entrée !</div>';return;}
   const daysSince=Math.floor((Date.now()-new Date(lastEntry.date))/(1000*60*60*24));
   if(daysSince<=1)c.innerHTML=`<div class="alert al-ok">✅ Journal à jour ! Dernière entrée : ${dateFR(lastEntry.date)}</div>`;
@@ -1056,6 +1056,7 @@ async function supprimerDocEleve(idx){
 async function exportPDF(){
   toast('Génération du PDF...','inf');showSpinner();
   const printWindow=window.open('','_blank');
+  if(!printWindow){toast('Autorise les popups pour exporter','err');return;}
   const byDay={};journal.forEach(j=>{const day=j.date?.slice(0,10)||'inconnu';if(!byDay[day])byDay[day]=[];byDay[day].push(j);});
   const days=Object.keys(byDay).sort();
   let html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Journal de stage - ${esc(eleve.prenom)} ${esc(eleve.nom)}</title><style>body{font-family:Arial,sans-serif;font-size:12px;padding:20px}h1{color:#1b3a63;border-bottom:2px solid #8e44ad;padding-bottom:10px}.info{background:#f0f2f5;padding:15px;border-radius:8px;margin-bottom:20px}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.info-item label{font-weight:bold;color:#666;font-size:10px;display:block}.day{margin-bottom:20px;page-break-inside:avoid}.day-title{background:#8e44ad;color:white;padding:8px 12px;border-radius:6px 6px 0 0}.day-content{border:1px solid #ddd;border-top:none;padding:12px;border-radius:0 0 6px 6px}.entry{margin-bottom:12px;padding-bottom:12px;border-bottom:1px dashed #ddd}.entry:last-child{border-bottom:none}.entry-time{color:#666;font-size:10px}.entry-type{background:#f3e5f5;color:#8e44ad;padding:2px 6px;border-radius:4px;font-size:10px;margin-left:8px}.entry-text{margin-top:6px}.photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.photos img{width:120px;height:120px;object-fit:cover;border-radius:6px}@media print{.no-print{display:none}}</style></head><body><div class="no-print" style="text-align:center;margin-bottom:20px"><button onclick="window.print()" style="padding:10px 20px;font-size:14px;cursor:pointer">🖨️ Imprimer / Enregistrer PDF</button></div><h1>📓 Journal de stage</h1><div class="info"><div class="info-grid"><div class="info-item"><label>Élève</label>${esc(eleve.prenom)} ${esc(eleve.nom)}</div><div class="info-item"><label>Classe</label>${esc(eleve.classe)}</div><div class="info-item"><label>Entreprise</label>${esc(eleve.entreprise_nom||'—')}</div><div class="info-item"><label>Tuteur</label>${esc(eleve.tuteur_nom||'—')}</div><div class="info-item"><label>Période</label>${dateShort(eleve.pfmp_debut)} → ${dateShort(eleve.pfmp_fin)}</div><div class="info-item"><label>Entrées</label>${journal.length}</div></div></div>`;
