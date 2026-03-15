@@ -468,7 +468,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
       <button class="btn-change-classe" onclick="selectClasse(null)" title="Changer de classe">✕</button>
     </div>
     <div class="hdr-right">
-      <div class="sync-pill" data-help="sync" onclick="syncAll()"><span class="sync-dot" id="syncDot"></span><span id="syncLbl">Local</span><span id="syncBadge" style="display:none;background:var(--orange);color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:10px;margin-left:.3rem;">0</span></div>
+      <div class="sync-pill" data-help="sync" onclick="sauvegarder()"><span class="sync-dot" id="syncDot"></span><span id="syncLbl">✓ Sauvegardé</span><span id="syncBadge" style="display:none;background:var(--orange);color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:10px;margin-left:.3rem;">0</span></div>
       <button class="btn btn-ghost btn-xs" onclick="showParamModal()" aria-label="Paramètres">⚙️</button>
       <button class="btn btn-ghost btn-xs" onclick="doLogout()" title="Déconnexion" aria-label="Déconnexion" style="font-size:.8rem">🚪</button>
     </div>
@@ -1751,39 +1751,36 @@ function loadLocal(){
   loadLocalData().then(()=>{try{partenaires=JSON.parse(localStorage.getItem(SPART)||'[]');}catch{partenaires=[];}}).catch(()=>{});
 }
 /* syncAll → js/core/utils.js (copie locale conservée) */
+function sauvegarder(){
+  saveLocal();
+  setSyncState('ok');
+  toast('✓ Données sauvegardées','ok');
+}
 async function syncAll(){
-  // Protection : relire cfg depuis localStorage si vide en mémoire
   if(!cfg.apiUrl){
     try{var _sc=JSON.parse(localStorage.getItem(SCFG)||'{}');if(_sc.apiUrl){cfg.apiUrl=_sc.apiUrl;cfg.apiKey=_sc.apiKey;cfg.nomProf=_sc.nomProf;cfg.baseUrl=_sc.baseUrl;}}catch(e){}
   }
-  if(!cfg.apiUrl){setSyncState('error');return;}
-  setSyncState('syncing');
-  try{
-    var pingUrl=new URL(cfg.apiUrl);
-    pingUrl.searchParams.set('action','ping');
-    pingUrl.searchParams.set('key',cfg.apiKey);
-    var pingR=await fetch(pingUrl.toString(),{method:'GET',redirect:'follow'});
-    var ping=await pingR.json();
-    if(ping&&ping.status==='ok'){
-      online=true;setSyncState('ok');
-      toast('Connecté (v'+(ping.version||'?')+')','ok');
-    }else{
-      online=false;setSyncState('local');
-    }
-  }catch(e){
-    console.warn('[syncAll]',e.message||e);
-    online=false;setSyncState('local');
+  saveLocal();setSyncState('ok');
+  // Ping discret en arrière-plan (aucun impact sur l'UI)
+  if(cfg.apiUrl){
+    try{
+      var pingUrl=new URL(cfg.apiUrl);
+      pingUrl.searchParams.set('action','ping');
+      pingUrl.searchParams.set('key',cfg.apiKey);
+      var pingR=await fetch(pingUrl.toString(),{method:'GET',redirect:'follow'});
+      var ping=await pingR.json();
+      online=(ping&&ping.status==='ok');
+    }catch(e){online=false;}
   }
 }
 /* setSyncState → js/core/utils.js (copie locale conservée) */
 function setSyncState(s){
   const d=document.getElementById('syncDot'),l=document.getElementById('syncLbl');
-  if(!d)return;
+  if(!d||!l)return;
   d.className='sync-dot';
-  if(s==='ok'){l.textContent='Connecté';}
-  if(s==='syncing'){d.classList.add('syncing');l.textContent='Sync...';}
-  if(s==='local'){l.textContent='Local';}
-  if(s==='error'){d.classList.add('offline');l.textContent='Hors-ligne';}
+  if(s==='ok'){l.textContent='✓ Sauvegardé';}
+  else if(s==='syncing'){d.classList.add('syncing');l.textContent='Sauvegarde...';}
+  else{l.textContent='✓ Sauvegardé';}
 }
 /* pushVal → js/core/utils.js (copie locale conservée) */
 async function pushVal(data){
