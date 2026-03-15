@@ -3945,7 +3945,8 @@ async function doAddEleve(){
   closeModal();showSpinner();
   try{
     const r=await apiCall({action:'addEleve',data:{nom,prenom,classe,groupe,annee,referentiel:getFiliere({classe}),pfmp1_sem:parseInt(document.getElementById('aPfmp1')?.value)||3,pfmp2_sem:parseInt(document.getElementById('aPfmp2')?.value)||3,tel_eleve,tel_tuteur}});
-    await syncAll();toast(`${nom} ajouté · ${r.code}`,'ok');
+    if(r&&r.code){students.push({code:r.code,nom,prenom,classe,groupe,annee,statut:'actif',referentiel:getFiliere({classe}),token_eleve:r.token_eleve||'',token_tuteur:r.token_tuteur||'',tel_eleve,tel_tuteur});window.students=students;}
+    saveLocal();updateAll();toast(`${nom} ajouté · ${r?.code||'OK'}`,'ok');
   }catch{
     const code='ELV-'+String(students.length+1).padStart(3,'0');
     students.push({code,nom,prenom,classe,groupe,annee,statut:'actif',referentiel:getFiliere({classe}),token_eleve:Math.random().toString(36).substring(2,10).toUpperCase(),token_tuteur:Math.random().toString(36).substring(2,10).toUpperCase(),tel_eleve,tel_tuteur});
@@ -4024,7 +4025,7 @@ function confirmDel(code){
 }
 async function doDel(code){
   closeModal();showSpinner();
-  try{await apiCall({action:'deleteEleve',eleve:code});await syncAll();toast('Élève supprimé','ok');}
+  try{await apiCall({action:'deleteEleve',eleve:code});students=students.filter(s=>s.code!==code);saveLocal();updateAll();toast('Élève supprimé','ok');}
   catch{students=students.filter(s=>s.code!==code);saveLocal();updateAll();toast('Supprimé localement','warn');}
   finally{hideSpinner();}
 }
@@ -4076,7 +4077,8 @@ async function importRows(rows){
     try{await apiCall({action:'addEleve',data:{nom,prenom,classe,groupe:grpNorm,annee,referentiel:getFiliere({classe})}});n++;}
     catch{const code='ELV-'+String(students.length+1).padStart(3,'0');students.push({code,nom,prenom,classe,groupe:grpNorm,annee,statut:'actif',referentiel:getFiliere({classe}),token_eleve:Math.random().toString(36).substring(2,10).toUpperCase(),token_tuteur:Math.random().toString(36).substring(2,10).toUpperCase()});n++;}
   }
-  saveLocal();await syncAll();hideSpinner();toast(`${n} élève(s) importé(s)`,'ok');
+  saveLocal();updateAll();hideSpinner();
+  toast(`${n} élève(s) importé(s) — cliquez Sync pour synchroniser`,'ok');
 }
 function showQR(code){
   const s=students.find(x=>x.code===code)||{nom:'?',prenom:''};
