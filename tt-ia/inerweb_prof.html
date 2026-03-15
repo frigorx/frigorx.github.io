@@ -1676,9 +1676,18 @@ function loadConfig(){
     cfg.apiUrl=cleanUrl(cfg.apiUrl||'');
     const bad=cfg.apiUrl.includes('AKfycbzTMUOk')||cfg.apiUrl.includes('%20')||cfg.apiUrl.length<20;
     if(bad){cfg.apiUrl='';cfg.apiKey='';}
-    return !!(cfg.apiUrl&&cfg.apiKey);
+    if(cfg.apiUrl&&cfg.apiKey)return true;
   }
-  // Pas de config sauvée → rester sur l'écran config
+  // Pas de config sauvée → essayer inerweb.config.js
+  if(window.INERWEB_CONFIG&&window.INERWEB_CONFIG.API_URL&&window.INERWEB_CONFIG.API_KEY){
+    cfg={apiUrl:cleanUrl(window.INERWEB_CONFIG.API_URL),apiKey:window.INERWEB_CONFIG.API_KEY,nomProf:cfg.nomProf||'',baseUrl:window.iwConfig?window.iwConfig.getBaseUrl():''};
+    if(cfg.apiUrl&&cfg.apiKey){
+      // Config auto-détectée, mais il manque le nom prof → écran config pré-rempli
+      if(!cfg.nomProf)return false;
+      localStorage.setItem(SCFG,JSON.stringify(cfg));
+      return true;
+    }
+  }
   cfg=Object.assign({},DEFAULT_CFG);
   return false;
 }
@@ -1694,6 +1703,14 @@ function showConfigScreen(){
   document.getElementById('screen-app').style.display='none';
   document.body.classList.add('show-config');
   document.body.classList.remove('show-app');
+  // Pré-remplir depuis inerweb.config.js si disponible
+  var ic=window.INERWEB_CONFIG;
+  if(ic){
+    var u=document.getElementById('cfgUrl'),k=document.getElementById('cfgKey'),b=document.getElementById('cfgBase');
+    if(u&&!u.value&&ic.API_URL)u.value=ic.API_URL;
+    if(k&&!k.value&&ic.API_KEY)k.value=ic.API_KEY;
+    if(b&&!b.value&&window.iwConfig)b.value=window.iwConfig.getBaseUrl();
+  }
 }
 /* apiCall → js/core/api.js (copie locale conservée pour rétro-compatibilité) */
 async function apiCall(params){
