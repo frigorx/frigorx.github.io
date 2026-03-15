@@ -1753,6 +1753,8 @@ function loadLocal(){
 }
 /* syncAll → js/core/utils.js (copie locale conservée) */
 async function pushStudentsToBackend(list){
+  if(!cfg.apiUrl){try{var _sc=JSON.parse(localStorage.getItem(SCFG)||'{}');if(_sc.apiUrl){cfg.apiUrl=_sc.apiUrl;cfg.apiKey=_sc.apiKey;}}catch(e){}}
+  if(!cfg.apiUrl&&window.INERWEB_CONFIG){cfg.apiUrl=window.INERWEB_CONFIG.API_URL;cfg.apiKey=window.INERWEB_CONFIG.API_KEY;}
   if(!cfg.apiUrl){toast('URL API non configurée','err');return;}
   if(!list||!list.length){toast('Aucun élève à envoyer','warn');return;}
   toast('☁️ Envoi de '+list.length+' élève(s)...','inf');
