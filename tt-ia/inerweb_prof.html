@@ -1759,41 +1759,59 @@ async function syncAll(){
   if(!cfg.apiUrl){setSyncState('error');return;}
   setSyncState('syncing');
   try{
-    const dash=await apiCall({action:'getDashboard'});
-    if(!Array.isArray(dash)) throw new Error('invalid');
-    // Ne pas écraser les élèves locaux si le backend renvoie un tableau vide
-    // alors qu'on a déjà des élèves en local (import récent)
+    // Vérifier d'abord que le backend répond (ping)
+    const ping=await apiCall({action:'ping'});
+    if(!ping||!ping.status){throw new Error('Backend injoignable');}
+
+    // Tenter getDashboard (peut ne pas exister dans cette version du backend)
+    let dash;
+    try{dash=await apiCall({action:'getDashboard'});}catch(dashErr){
+      // getDashboard n'existe pas → mode local, on garde les données
+      console.warn('[syncAll] getDashboard non supporté — mode local');
+      online=true;setSyncState('ok');
+      if(students.length)saveLocal();
+      updateAll();
+      toast('Connecté (backend v'+(ping.version||'?')+') — '+students.length+' élève(s) en local','ok');
+      return;
+    }
+
+    if(!Array.isArray(dash)){
+      // Réponse non-tableau → on garde les données locales
+      online=true;setSyncState('ok');updateAll();
+      toast('Connecté — données locales conservées','ok');
+      return;
+    }
     if(dash.length===0&&students.length>0){
       console.warn('[syncAll] Dashboard vide mais '+students.length+' élèves locaux — on garde les locaux');
       online=true;setSyncState('ok');updateAll();
-      toast('Sync OK — élèves locaux conservés','ok');
+      toast('Connecté — '+students.length+' élève(s) conservés en local','ok');
       return;
     }
-    students=dash;window.students=students;
-    validations={}; notes={};
-    // Traitement par lots de 10 pour éviter surcharge API
-    const BATCH_SIZE = 10;
-    for(let i = 0; i < students.length; i += BATCH_SIZE){
-      const batch = students.slice(i, i + BATCH_SIZE);
-      await Promise.all(batch.map(async s=>{
-        try{
-          const[v,n]=await Promise.all([apiCall({action:'getValidations',eleve:s.code}),apiCall({action:'getNotes',eleve:s.code})]);
-          validations[s.code]=Array.isArray(v)?v:[];
-          const e2=Array.isArray(n)?n.find(x=>x.epreuve==='E31'):null;
-          const e3=Array.isArray(n)?n.find(x=>x.epreuve==='E32'):null;
-          notes[s.code]={E31:e2||{},E32:e3||{},E33:notes[s.code]?.E33||{}};
-        }catch{validations[s.code]=validations[s.code]||[];notes[s.code]={E31:{},E32:{},E33:notes[s.code]?.E33||{}};}
-      }));
+    if(dash.length>0){
+      students=dash;window.students=students;
+      validations={}; notes={};
+      const BATCH_SIZE = 10;
+      for(let i = 0; i < students.length; i += BATCH_SIZE){
+        const batch = students.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async s=>{
+          try{
+            const[v,n]=await Promise.all([apiCall({action:'getValidations',eleve:s.code}),apiCall({action:'getNotes',eleve:s.code})]);
+            validations[s.code]=Array.isArray(v)?v:[];
+            const e2=Array.isArray(n)?n.find(x=>x.epreuve==='E31'):null;
+            const e3=Array.isArray(n)?n.find(x=>x.epreuve==='E32'):null;
+            notes[s.code]={E31:e2||{},E32:e3||{},E33:notes[s.code]?.E33||{}};
+          }catch{validations[s.code]=validations[s.code]||[];notes[s.code]={E31:{},E32:{},E33:notes[s.code]?.E33||{}};}
+        }));
+      }
     }
     online=true; saveLocal(); setSyncState('ok'); updateAll();
     toast(`${students.length} élèves synchronisés`,'ok');
   }catch(e){
-    console.error('[syncAll] Erreur sync:',e.message||e,e);
+    console.error('[syncAll] Erreur sync:',e.message||e);
     online=false; setSyncState('error');
-    // Garder les données locales intactes, juste mettre à jour l'UI
     if(students.length)saveLocal();
     updateAll();
-    toast('Sync échouée — '+students.length+' élève(s) conservés en local','warn');
+    toast('Hors-ligne — '+students.length+' élève(s) conservés en local','warn');
   }
 }
 /* setSyncState → js/core/utils.js (copie locale conservée) */
