@@ -4065,7 +4065,7 @@ function showImportModal(){
     </div>
     <div style="margin-top:.75rem">
       <label class="file-upload" style="display:flex;align-items:center;justify-content:center;gap:.5rem;padding:1rem;border:2px dashed var(--gris3);border-radius:var(--r2);cursor:pointer;font-size:.9rem;font-weight:700;color:var(--bleu);min-height:44px">
-        <input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="_importClasseDefaut=document.getElementById('importClasseSelect').value;window._importAnneeDefaut=parseInt(document.getElementById('importAnneeSelect').value)||1;closeModal();handleImportFile(this.files[0])">
+        <input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="lancerImport(this)">
         📁 Choisir le fichier (CSV ou Excel)
       </label>
     </div>
@@ -4074,6 +4074,14 @@ function showImportModal(){
       Si pas de colonne "classe", la classe sélectionnée ci-dessus sera utilisée.
     </div>`,
     '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>');
+}
+function lancerImport(input){
+  var file=input.files[0];
+  if(!file)return;
+  _importClasseDefaut=document.getElementById('importClasseSelect')?.value||'CAP IFCA 1';
+  window._importAnneeDefaut=parseInt(document.getElementById('importAnneeSelect')?.value)||1;
+  closeModal();
+  handleImportFile(file);
 }
 function handleImportFile(file){
   if(!file)return;
@@ -4120,8 +4128,9 @@ async function importRows(rows){
     const annee=anneeRaw?parseInt(anneeRaw)||1:(window._importAnneeDefaut||1);
     if(!nom||students.find(s=>s.nom===nom&&s.prenom===prenom))continue;
     const grpNorm=groupe.match(/^G?1$/)?'G1':groupe.match(/^G?2$/)?'G2':groupe;
-    try{await apiCall({action:'addEleve',data:{nom,prenom,classe,groupe:grpNorm,annee,referentiel:getFiliere({classe})}});n++;}
-    catch{const code='ELV-'+String(students.length+1).padStart(3,'0');students.push({code,nom,prenom,classe,groupe:grpNorm,annee,statut:'actif',referentiel:getFiliere({classe}),token_eleve:Math.random().toString(36).substring(2,10).toUpperCase(),token_tuteur:Math.random().toString(36).substring(2,10).toUpperCase()});n++;}
+    const code='ELV-'+String(students.length+1).padStart(3,'0');
+    students.push({code,nom,prenom,classe,groupe:grpNorm,annee,statut:'actif',referentiel:getFiliere({classe}),token_eleve:Math.random().toString(36).substring(2,10).toUpperCase(),token_tuteur:Math.random().toString(36).substring(2,10).toUpperCase()});
+    n++;
   }
   saveLocal();updateAll();hideSpinner();
   toast(`${n} élève(s) importé(s) — cliquez Sync pour synchroniser`,'ok');
