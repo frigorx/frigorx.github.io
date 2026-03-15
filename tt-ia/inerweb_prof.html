@@ -914,17 +914,83 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
       </div>
 
       <div class="stage-panel" id="sp-comm">
-        <div class="card">
-          <div class="card-title">📣 Contacter les tuteurs</div>
-          <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem;">
-            <button class="btn btn-ghost btn-sm" onclick="prepMsg('bienvenue')">👋 Bienvenue</button>
-            <button class="btn btn-ghost btn-sm" onclick="prepMsg('rappel')">🔔 Rappel</button>
-            <button class="btn btn-ghost btn-sm" onclick="prepMsg('alerte')">⚠️ Alerte</button>
+        <!-- Sous-onglets Tuteurs / Élèves -->
+        <div style="display:flex;gap:0;margin-bottom:.75rem;border-bottom:2px solid var(--gris3)">
+          <button class="btn btn-ghost btn-sm" id="commTabTut" onclick="switchCommTab('tuteurs')" style="border-bottom:3px solid var(--bleu);border-radius:0;font-weight:800;color:var(--bleu)">🏢 Tuteurs</button>
+          <button class="btn btn-ghost btn-sm" id="commTabElv" onclick="switchCommTab('eleves')" style="border-bottom:3px solid transparent;border-radius:0;color:var(--gris)">🎓 Élèves</button>
+        </div>
+
+        <!-- ═══ COMM TUTEURS ═══ -->
+        <div id="commPanelTut">
+          <div class="card" style="border-top:3px solid var(--teal)">
+            <div style="font-size:.85rem;font-weight:800;color:var(--teal);margin-bottom:.5rem">📣 Message aux tuteurs</div>
+            <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem">
+              <button class="btn btn-ghost btn-sm" onclick="prepMsg('bienvenue')">👋 Bienvenue</button>
+              <button class="btn btn-ghost btn-sm" onclick="prepMsg('rappel')">🔔 Rappel</button>
+              <button class="btn btn-ghost btn-sm" onclick="prepMsg('alerte')">⚠️ Alerte</button>
+            </div>
+            <div class="fr" style="margin-bottom:.5rem"><label>Message</label>
+              <textarea id="msgTpl" rows="3" style="width:100%;padding:.5rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.85rem" placeholder="Bonjour,&#10;..."></textarea>
+            </div>
+            <!-- Zone fichier joint -->
+            <div style="margin-bottom:.75rem">
+              <label style="font-size:.78rem;font-weight:700;color:var(--bleu);margin-bottom:.25rem;display:block">📎 Fichier joint (optionnel)</label>
+              <div id="commDropTut" style="border:2px dashed var(--gris3);border-radius:var(--r2);padding:.75rem;text-align:center;cursor:pointer;font-size:.8rem;color:var(--gris);transition:all .2s;min-height:44px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('commFileTut').click()">
+                📁 Glisser-déposer ou cliquer
+              </div>
+              <input type="file" id="commFileTut" style="display:none" onchange="commFileSelected(this,'tut')">
+              <div id="commFileInfoTut" style="font-size:.72rem;color:var(--vert);margin-top:.25rem;display:none"></div>
+            </div>
+            <!-- Sélection destinataires -->
+            <div style="margin-bottom:.5rem">
+              <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">
+                <label style="font-size:.78rem;font-weight:700;color:var(--bleu)">Destinataires</label>
+                <label style="font-size:.72rem;display:flex;align-items:center;gap:.25rem;cursor:pointer"><input type="checkbox" id="commAllTut" onchange="toggleAllComm('tut')"> Tous</label>
+              </div>
+              <div id="commListTut" style="max-height:200px;overflow-y:auto"></div>
+            </div>
+            <!-- Envoi -->
+            <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+              <button class="btn btn-teal btn-sm" onclick="envoyerComm('tut','sms')" style="min-height:44px">💬 SMS</button>
+              <button class="btn btn-primary btn-sm" onclick="envoyerComm('tut','whatsapp')" style="min-height:44px;background:#25D366;border-color:#25D366">📱 WhatsApp</button>
+              <button class="btn btn-ghost btn-sm" onclick="envoyerComm('tut','email')" style="min-height:44px">📧 Email</button>
+              <button class="btn btn-orange btn-sm" onclick="envoyerComm('tut','tous')" style="min-height:44px">🚀 Les 3</button>
+            </div>
           </div>
-          <div class="fr" style="margin-bottom:.75rem;"><label>Message</label>
-            <textarea id="msgTpl" rows="4" style="width:100%;padding:.5rem;border:2px solid var(--gris3);border-radius:var(--r2);" placeholder="Bonjour,&#10;..."></textarea>
+        </div>
+
+        <!-- ═══ COMM ÉLÈVES ═══ -->
+        <div id="commPanelElv" style="display:none">
+          <div class="card" style="border-top:3px solid var(--violet)">
+            <div style="font-size:.85rem;font-weight:800;color:var(--violet);margin-bottom:.5rem">📣 Message aux élèves</div>
+            <div class="fr" style="margin-bottom:.5rem"><label>Message</label>
+              <textarea id="msgElv" rows="3" style="width:100%;padding:.5rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.85rem" placeholder="Bonjour,&#10;..."></textarea>
+            </div>
+            <!-- Zone fichier joint -->
+            <div style="margin-bottom:.75rem">
+              <label style="font-size:.78rem;font-weight:700;color:var(--bleu);margin-bottom:.25rem;display:block">📎 Fichier / Document à envoyer</label>
+              <div id="commDropElv" style="border:2px dashed var(--gris3);border-radius:var(--r2);padding:.75rem;text-align:center;cursor:pointer;font-size:.8rem;color:var(--gris);transition:all .2s;min-height:44px;display:flex;align-items:center;justify-content:center" onclick="document.getElementById('commFileElv').click()">
+                📁 Glisser-déposer ou cliquer (sujet, convention...)
+              </div>
+              <input type="file" id="commFileElv" style="display:none" onchange="commFileSelected(this,'elv')">
+              <div id="commFileInfoElv" style="font-size:.72rem;color:var(--vert);margin-top:.25rem;display:none"></div>
+            </div>
+            <!-- Sélection destinataires -->
+            <div style="margin-bottom:.5rem">
+              <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">
+                <label style="font-size:.78rem;font-weight:700;color:var(--bleu)">Destinataires</label>
+                <label style="font-size:.72rem;display:flex;align-items:center;gap:.25rem;cursor:pointer"><input type="checkbox" id="commAllElv" onchange="toggleAllComm('elv')"> Tous</label>
+              </div>
+              <div id="commListElv" style="max-height:200px;overflow-y:auto"></div>
+            </div>
+            <!-- Envoi -->
+            <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+              <button class="btn btn-teal btn-sm" onclick="envoyerComm('elv','sms')" style="min-height:44px">💬 SMS</button>
+              <button class="btn btn-primary btn-sm" onclick="envoyerComm('elv','whatsapp')" style="min-height:44px;background:#25D366;border-color:#25D366">📱 WhatsApp</button>
+              <button class="btn btn-ghost btn-sm" onclick="envoyerComm('elv','email')" style="min-height:44px">📧 Email</button>
+              <button class="btn btn-orange btn-sm" onclick="envoyerComm('elv','tous')" style="min-height:44px">🚀 Les 3</button>
+            </div>
           </div>
-          <div id="commList"></div>
         </div>
       </div>
     </div></div>
@@ -2946,20 +3012,158 @@ const MSG_TPL={
   alerte:`Bonjour,\nNous n'avons pas reçu de retour depuis quelques jours.\nPouvez-vous nous donner des nouvelles de votre stagiaire ?\nCordialement,`,
 };
 function prepMsg(t){document.getElementById('msgTpl').value=MSG_TPL[t]||'';}
-function renderComm(){
-  const c=document.getElementById('commList');
-  const msg=document.getElementById('msgTpl')?.value||'';
-  if(!students.length){c.innerHTML='<div class="alert al-info">Aucun élève chargé</div>';return;}
-  c.innerHTML=students.map(s=>{
-    const tutUrl=`${cfg.baseUrl||''}inerweb_tuteur.html?eleve=${s.code}&tuteur=${s.token_tuteur||''}&role=tuteur`;
-    const m=msg.replace('[lien tuteur]',tutUrl);
-    return `<div style="display:flex;align-items:center;gap:.5rem;padding:.5rem;background:var(--gris2);border-radius:var(--r2);margin-bottom:.3rem;">
-      <div style="flex:1"><div style="font-weight:700;font-size:.8rem">${esc(s.nom)} ${esc(s.prenom||'')}</div><div style="font-size:.65rem;color:var(--gris)">${esc(s.tuteur_nom||'Tuteur non défini')}</div></div>
-      <a class="btn btn-ghost btn-xs" href="https://wa.me/?text=${encodeURIComponent(m)}" target="_blank">💬 WA</a>
-      ${s.tuteur_email?`<a class="btn btn-ghost btn-xs" href="mailto:${esc(s.tuteur_email)}?subject=Stage%20${encodeURIComponent(s.nom)}&body=${encodeURIComponent(m)}">✉️</a>`:''}
-    </div>`;
-  }).join('')||'<div class="alert al-warn">Aucun tuteur avec coordonnées</div>';
+
+/* ═══ COMM V2 — Centre de communication complet ═══ */
+var _commFiles={tut:null,elv:null};
+
+function switchCommTab(tab){
+  var isTut=tab==='tuteurs';
+  document.getElementById('commPanelTut').style.display=isTut?'block':'none';
+  document.getElementById('commPanelElv').style.display=isTut?'none':'block';
+  document.getElementById('commTabTut').style.borderBottomColor=isTut?'var(--bleu)':'transparent';
+  document.getElementById('commTabTut').style.color=isTut?'var(--bleu)':'var(--gris)';
+  document.getElementById('commTabElv').style.borderBottomColor=isTut?'transparent':'var(--violet)';
+  document.getElementById('commTabElv').style.color=isTut?'var(--gris)':'var(--violet)';
+  if(isTut)renderCommTut();else renderCommElv();
 }
+
+function renderCommTut(){
+  var c=document.getElementById('commListTut');
+  if(!students.length){c.innerHTML='<div class="alert al-info">Aucun élève chargé</div>';return;}
+  c.innerHTML=students.filter(s=>s.statut!=='inactif').map(s=>{
+    var pref=s.preference_contact_tuteur||'';
+    var prefBadge=pref?`<span style="font-size:.6rem;background:var(--teal2);color:var(--teal);padding:1px 4px;border-radius:3px;font-weight:700" title="Préfère : ${esc(pref)}">⭐${esc(pref)}</span>`:'';
+    var tel=s.tel_tuteur||s.tuteur_tel||'';
+    var email=s.tuteur_email||s.email_tuteur||'';
+    var icons=[];
+    if(tel)icons.push('📞');if(email)icons.push('📧');
+    return `<label style="display:flex;align-items:center;gap:.4rem;padding:.4rem .5rem;background:var(--gris2);border-radius:var(--r2);margin-bottom:.25rem;cursor:pointer;font-size:.78rem">
+      <input type="checkbox" class="commCbTut" data-code="${esc(s.code)}" data-tel="${esc(tel)}" data-email="${esc(email)}" data-pref="${esc(pref)}" data-nom="${esc(s.tuteur_nom||'Tuteur')}" data-eleve="${esc(s.nom)} ${esc(s.prenom||'')}">
+      <div style="flex:1"><strong>${esc(s.nom)} ${esc(s.prenom||'')}</strong> <span style="color:var(--gris)">→ ${esc(s.tuteur_nom||'?')}</span></div>
+      <div style="display:flex;gap:.2rem;align-items:center">${prefBadge} <span style="font-size:.65rem;color:var(--gris)">${icons.join('')||'—'}</span></div>
+    </label>`;
+  }).join('');
+}
+
+function renderCommElv(){
+  var c=document.getElementById('commListElv');
+  if(!students.length){c.innerHTML='<div class="alert al-info">Aucun élève chargé</div>';return;}
+  c.innerHTML=students.filter(s=>s.statut!=='inactif').map(s=>{
+    var tel=s.tel_eleve||'';
+    var email=s.email_eleve||s.telephone_email||'';
+    var icons=[];
+    if(tel)icons.push('📞');if(email)icons.push('📧');
+    return `<label style="display:flex;align-items:center;gap:.4rem;padding:.4rem .5rem;background:var(--gris2);border-radius:var(--r2);margin-bottom:.25rem;cursor:pointer;font-size:.78rem">
+      <input type="checkbox" class="commCbElv" data-code="${esc(s.code)}" data-tel="${esc(tel)}" data-email="${esc(email)}" data-prenom="${esc(s.prenom||'')}" data-nom="${esc(s.nom)}" data-token="${esc(s.token_eleve||'')}">
+      <div style="flex:1"><strong>${esc(s.nom)} ${esc(s.prenom||'')}</strong> <span style="color:var(--gris);font-size:.7rem">${esc(s.classe||'')}</span></div>
+      <span style="font-size:.65rem;color:var(--gris)">${icons.join('')||'—'}</span>
+    </label>`;
+  }).join('');
+}
+
+function toggleAllComm(type){
+  var checked=document.getElementById(type==='tut'?'commAllTut':'commAllElv').checked;
+  document.querySelectorAll('.commCb'+(type==='tut'?'Tut':'Elv')).forEach(cb=>{cb.checked=checked;});
+}
+
+function commFileSelected(input,type){
+  var file=input.files[0];
+  if(!file)return;
+  _commFiles[type]=file;
+  var info=document.getElementById(type==='tut'?'commFileInfoTut':'commFileInfoElv');
+  info.style.display='block';
+  info.textContent='📎 '+file.name+' ('+Math.round(file.size/1024)+' Ko)';
+  var drop=document.getElementById(type==='tut'?'commDropTut':'commDropElv');
+  drop.textContent='✅ '+file.name;
+  drop.style.borderColor='var(--vert)';drop.style.color='var(--vert)';
+}
+
+// Drag & drop pour les zones fichier
+document.addEventListener('DOMContentLoaded',function(){
+  ['Tut','Elv'].forEach(function(t){
+    var drop=document.getElementById('commDrop'+t);
+    if(!drop)return;
+    drop.addEventListener('dragover',function(e){e.preventDefault();this.style.borderColor='var(--bleu)';this.style.background='var(--bleu3)';});
+    drop.addEventListener('dragleave',function(){this.style.borderColor='var(--gris3)';this.style.background='';});
+    drop.addEventListener('drop',function(e){
+      e.preventDefault();this.style.borderColor='var(--gris3)';this.style.background='';
+      if(e.dataTransfer.files.length){
+        var input=document.getElementById('commFile'+t);
+        input.files=e.dataTransfer.files;
+        commFileSelected(input,t.toLowerCase());
+      }
+    });
+  });
+});
+
+function envoyerComm(type,mode){
+  var cbClass=type==='tut'?'commCbTut':'commCbElv';
+  var checked=Array.from(document.querySelectorAll('.'+cbClass+':checked'));
+  if(!checked.length){toast('Sélectionne au moins un destinataire','err');return;}
+  var msg=document.getElementById(type==='tut'?'msgTpl':'msgElv')?.value||'';
+  if(!msg.trim()&&!_commFiles[type]){toast('Écris un message ou ajoute un fichier','err');return;}
+  var base=cfg.baseUrl||location.href.replace(/[^/]*$/,'');
+  var alertes=[];
+  var sent=0;
+
+  checked.forEach(function(cb){
+    var tel=cb.dataset.tel;
+    var email=cb.dataset.email;
+    var pref=cb.dataset.pref||'';
+    var nom=cb.dataset.nom||'';
+    var prenom=cb.dataset.prenom||'';
+    var code=cb.dataset.code||'';
+    var token=cb.dataset.token||'';
+    var eleve=cb.dataset.eleve||'';
+
+    // Construire le message personnalisé
+    var m=msg;
+    if(type==='tut'){
+      var tutUrl=base+'inerweb_tuteur.html?eleve='+code+'&tuteur='+token+'&role=tuteur';
+      m=m.replace(/\[lien tuteur\]/g,tutUrl);
+    }else{
+      var elvUrl=base+'inerweb_eleve.html?token='+token+'&role=eleve';
+      m=m.replace(/\[lien élève\]/g,elvUrl).replace(/\[lien eleve\]/g,elvUrl);
+      if(!m.includes(elvUrl)&&token)m+='\n\nTon accès : '+elvUrl;
+    }
+
+    // Vérif préférence tuteur
+    if(type==='tut'&&pref){
+      if(mode==='sms'&&!pref.includes('sms'))alertes.push(nom+' préfère '+pref+' (pas SMS)');
+      if(mode==='whatsapp'&&!pref.includes('whatsapp'))alertes.push(nom+' préfère '+pref+' (pas WhatsApp)');
+      if(mode==='email'&&!pref.includes('email'))alertes.push(nom+' préfère '+pref+' (pas Email)');
+    }
+
+    // Envoyer selon le mode
+    if(mode==='sms'||mode==='tous'){
+      if(tel)window.open('sms:+'+formatWA(tel)+'?body='+encodeURIComponent(m),'_blank');
+      sent++;
+    }
+    if(mode==='whatsapp'||mode==='tous'){
+      if(tel)window.open('https://wa.me/'+formatWA(tel)+'?text='+encodeURIComponent(m),'_blank');
+      else if(!tel&&mode==='whatsapp')toast(nom+' : pas de numéro','warn');
+      sent++;
+    }
+    if(mode==='email'||mode==='tous'){
+      if(email){
+        var sujet=type==='tut'?'Stage '+eleve:'inerWeb TT — '+prenom;
+        window.open('mailto:'+email+'?subject='+encodeURIComponent(sujet)+'&body='+encodeURIComponent(m),'_blank');
+      }else if(mode==='email')toast(nom+' : pas d\'email','warn');
+      sent++;
+    }
+  });
+
+  // Alertes préférences
+  if(alertes.length){
+    setTimeout(function(){
+      showModal('⚠️ Attention — Préférences de contact','<div class="alert al-warn" style="margin-bottom:.5rem"><strong>'+alertes.length+' tuteur(s)</strong> ont une préférence différente :</div><ul style="font-size:.8rem;padding-left:1.2rem;margin-bottom:.75rem">'+alertes.map(function(a){return '<li>'+esc(a)+'</li>';}).join('')+'</ul><p style="font-size:.78rem;color:var(--gris)">Les messages ont quand même été envoyés. Vérifiez que les tuteurs les ont reçus.</p>','<button class="btn btn-ghost" onclick="closeModal()">Compris</button>');
+    },500);
+  }
+
+  if(sent)toast(checked.length+' message(s) lancé(s)','ok');
+}
+
+function renderComm(){renderCommTut();}
 
 /* ═══ [H] BILAN ═══ */
 /* calcNote → js/prog/prog-data.js (copie locale conservée) */

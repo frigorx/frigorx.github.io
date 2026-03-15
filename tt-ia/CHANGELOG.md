@@ -1,5 +1,17 @@
 # Changelog — INERWEB TT-IA
 
+## [7.7.1] - 2026-03-15
+
+### Centre de communication complet (Stage → Comm.)
+- Refonte complète du panel Communication avec sous-onglets **Tuteurs** / **Élèves**
+- Sélection individuelle ou "Tous" via cases à cocher
+- 4 modes d'envoi : 💬 SMS, 📱 WhatsApp, 📧 Email, 🚀 Les 3 d'un coup
+- Message pré-rempli personnalisé avec lien token automatique
+- Zone fichier par glisser-déposer (conventions, sujets d'examen...)
+- Alerte visuelle si le mode choisi ne correspond pas à la préférence du tuteur
+- Badge préférence contact visible sur chaque tuteur (⭐)
+- Messages types conservés (Bienvenue / Rappel / Alerte) pour les tuteurs
+
 ## [7.7.0] - 2026-03-15
 
 ### Profil élève, communication & contacts
