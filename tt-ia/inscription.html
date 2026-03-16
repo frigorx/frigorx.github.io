@@ -16,31 +16,34 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(135deg,#1b3a63 0
 .logo-title{font-size:1.4rem;font-weight:900;color:var(--bleu);}
 .logo-title span{color:var(--violet);}
 .logo-sub{font-size:.78rem;color:var(--gris);margin-top:.25rem;}
-.step{display:none;}
-.step.active{display:block;}
+.step{display:none;}.step.active{display:block;}
 .fr{margin-bottom:.75rem;}
 .fr label{display:block;font-size:.8rem;font-weight:700;color:var(--bleu);margin-bottom:.25rem;}
-.fr select,.fr input{width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;font-family:inherit;transition:border-color .2s;}
-.fr select:focus,.fr input:focus{outline:none;border-color:var(--violet);}
+.fr input{width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;font-family:inherit;transition:border-color .2s;}
+.fr input:focus{outline:none;border-color:var(--violet);}
 .btn{width:100%;padding:.85rem;border:none;border-radius:var(--r2);font-size:1rem;font-weight:800;cursor:pointer;transition:all .2s;min-height:44px;font-family:inherit;}
 .btn-primary{background:linear-gradient(135deg,var(--violet),var(--bleu2));color:#fff;}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(142,68,173,.4);}
-.btn-primary:disabled{background:var(--gris3);color:var(--gris);cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-primary:disabled{background:var(--gris3);color:var(--gris);cursor:not-allowed;transform:none;}
 .btn-ghost{background:var(--gris2);color:var(--gris);margin-top:.5rem;}
-.btn-vert{background:var(--vert);color:#fff;}
-.btn-vert:hover{background:#219a52;}
 .alert{padding:.75rem;border-radius:var(--r2);font-size:.82rem;margin-bottom:.75rem;}
 .al-info{background:var(--bleu3);color:var(--bleu);border-left:4px solid var(--bleu);}
-.al-err{background:#fde8e6;color:var(--rouge);border-left:4px solid var(--rouge);}
 .al-ok{background:#d4f4e2;color:var(--vert);border-left:4px solid var(--vert);}
-.token-box{background:linear-gradient(135deg,var(--bleu),var(--violet));border-radius:12px;padding:1.25rem;color:#fff;text-align:center;margin:1rem 0;}
-.token-code{font-size:1.8rem;font-weight:900;letter-spacing:3px;margin:.5rem 0;font-family:'JetBrains Mono',monospace;}
-.token-label{font-size:.72rem;opacity:.7;text-transform:uppercase;letter-spacing:1px;}
 .spinner{display:none;text-align:center;padding:1.5rem;}
 .spinner.active{display:block;}
 .spinner-icon{font-size:2rem;animation:spin 1s linear infinite;display:inline-block;}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.classe-badge{display:inline-block;background:var(--bleu3);color:var(--bleu);padding:.2rem .5rem;border-radius:4px;font-size:.72rem;font-weight:700;margin-bottom:.5rem;}
+.suggestion{padding:.6rem .75rem;border-bottom:1px solid var(--gris3);cursor:pointer;font-size:.9rem;transition:background .15s;}
+.suggestion:hover,.suggestion.selected{background:var(--bleu3);}
+.suggestion .s-nom{font-weight:800;color:var(--bleu);}
+.suggestion .s-classe{font-size:.72rem;color:var(--gris);margin-left:.5rem;}
+.suggestions-box{border:2px solid var(--gris3);border-radius:var(--r2);max-height:200px;overflow-y:auto;display:none;margin-bottom:.75rem;}
+.suggestions-box.active{display:block;}
+.hint{font-size:.72rem;color:var(--gris);margin-top:.25rem;}
+.selected-student{background:var(--bleu3);border-radius:var(--r2);padding:.75rem;margin-bottom:.75rem;display:none;}
+.selected-student.active{display:block;}
+.selected-student .ss-nom{font-weight:900;color:var(--bleu);font-size:1.1rem;}
+.selected-student .ss-classe{font-size:.78rem;color:var(--gris);}
 </style>
 </head>
 <body>
@@ -56,56 +59,55 @@ body{font-family:'Nunito',sans-serif;background:linear-gradient(135deg,#1b3a63 0
   <div class="step active" id="step-load">
     <div class="spinner active">
       <div class="spinner-icon">⏳</div>
-      <div style="margin-top:.5rem;font-size:.85rem;color:var(--gris)">Chargement de la classe...</div>
+      <div style="margin-top:.5rem;font-size:.85rem;color:var(--gris)">Chargement...</div>
     </div>
     <div id="loadError" style="display:none"></div>
   </div>
 
-  <!-- ÉTAPE 2 : Sélection du nom -->
-  <div class="step" id="step-nom">
-    <div class="alert al-info">📋 Sélectionnez votre nom dans la liste ci-dessous</div>
-    <div class="fr">
-      <label>Votre classe</label>
-      <select id="selClasse" onchange="filtrerEleves()">
-        <option value="">— Toutes les classes —</option>
-      </select>
-    </div>
+  <!-- ÉTAPE 2 : Recherche par nom -->
+  <div class="step" id="step-search">
+    <div class="alert al-info">🔍 Tapez votre nom de famille (3 lettres minimum)</div>
     <div class="fr">
       <label>Votre nom</label>
-      <select id="selEleve">
-        <option value="">— Choisissez votre nom —</option>
-      </select>
+      <input type="text" id="searchInput" placeholder="Tapez votre nom..." autocomplete="off" oninput="rechercher()">
+      <div class="hint" id="searchHint">Minimum 3 lettres</div>
     </div>
-    <button class="btn btn-primary" onclick="choisirEleve()" id="btnChoisir" disabled>Suivant →</button>
+    <div class="suggestions-box" id="suggestions"></div>
+
+    <div class="selected-student" id="selectedInfo">
+      <div class="ss-nom" id="ssNom"></div>
+      <div class="ss-classe" id="ssClasse"></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="confirmerChoix()" id="btnConfirm" disabled>C'est moi →</button>
   </div>
 
   <!-- ÉTAPE 3 : Coordonnées -->
   <div class="step" id="step-contact">
-    <div id="eleveChoisi"></div>
-    <div class="alert al-info">📞 Renseignez vos coordonnées pour que votre enseignant puisse vous contacter</div>
+    <div id="contactInfo"></div>
+    <div class="alert al-info">📞 Renseignez vos coordonnées pour recevoir votre code d'accès</div>
     <div class="fr">
       <label>Téléphone *</label>
-      <input type="tel" id="inTel" placeholder="06 12 34 56 78" required>
+      <input type="tel" id="inTel" placeholder="06 12 34 56 78">
     </div>
     <div class="fr">
       <label>Email (facultatif)</label>
       <input type="email" id="inEmail" placeholder="prenom.nom@email.fr">
     </div>
     <button class="btn btn-primary" onclick="validerInscription()">✅ Valider mon inscription</button>
-    <button class="btn btn-ghost" onclick="goStep('step-nom')">← Retour</button>
+    <button class="btn btn-ghost" onclick="goStep('step-search')">← Retour</button>
   </div>
 
-  <!-- ÉTAPE 4 : Code reçu -->
-  <div class="step" id="step-code">
-    <div class="alert al-ok">✅ Inscription réussie ! Voici votre code d'accès.</div>
-    <div id="codeInfo"></div>
-    <div class="token-box">
-      <div class="token-label">Votre code personnel</div>
-      <div class="token-code" id="monToken">—</div>
-      <div style="font-size:.7rem;opacity:.6;margin-top:.25rem">Gardez ce code, il est unique</div>
+  <!-- ÉTAPE 4 : Confirmation -->
+  <div class="step" id="step-done">
+    <div style="text-align:center;padding:1rem 0">
+      <div style="font-size:3rem;margin-bottom:.5rem">✅</div>
+      <h2 style="font-size:1.2rem;font-weight:900;color:var(--vert);margin-bottom:.5rem">Inscription enregistrée !</h2>
+      <p style="font-size:.85rem;color:var(--gris);margin-bottom:1rem">Votre enseignant va vous envoyer votre code d'accès personnel par SMS ou WhatsApp.</p>
+      <div style="background:var(--bleu3);border-radius:var(--r2);padding:.75rem;font-size:.82rem;color:var(--bleu)">
+        <strong>En attendant :</strong> gardez votre téléphone à portée de main. Vous recevrez un message avec votre code et un lien pour accéder à votre espace.
+      </div>
     </div>
-    <button class="btn btn-vert" onclick="ouvrirEspace()">📱 Ouvrir mon espace élève</button>
-    <button class="btn btn-ghost" onclick="copierCode()">📋 Copier le code</button>
   </div>
 </div>
 
@@ -114,22 +116,24 @@ var allStudents=[];
 var selectedStudent=null;
 var apiUrl='';
 var apiKey='';
-var baseUrl='';
 
 function goStep(id){
-  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.step').forEach(function(s){s.classList.remove('active');});
   document.getElementById(id).classList.add('active');
+}
+
+function normalize(s){
+  return String(s||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 }
 
 // Chargement initial
 document.addEventListener('DOMContentLoaded',async function(){
   apiUrl=window.iwConfig?window.iwConfig.getApiUrl():'';
   apiKey=window.INERWEB_CONFIG?window.INERWEB_CONFIG.API_KEY:'';
-  baseUrl=window.iwConfig?window.iwConfig.getBaseUrl():'';
 
   if(!apiUrl){
     document.getElementById('loadError').style.display='block';
-    document.getElementById('loadError').innerHTML='<div class="alert al-err">Configuration API manquante.</div>';
+    document.getElementById('loadError').innerHTML='<div class="alert" style="background:#fde8e6;color:#e74c3c;border-left:4px solid #e74c3c">Configuration manquante.</div>';
     document.querySelector('#step-load .spinner').style.display='none';
     return;
   }
@@ -145,62 +149,82 @@ document.addEventListener('DOMContentLoaded',async function(){
 
     if(!allStudents.length){
       document.getElementById('loadError').style.display='block';
-      document.getElementById('loadError').innerHTML='<div class="alert al-err">Aucun élève trouvé. Demandez à votre enseignant d\'importer la liste.</div>';
+      document.getElementById('loadError').innerHTML='<div class="alert" style="background:#fde8e6;color:#e74c3c;border-left:4px solid #e74c3c">Aucun élève trouvé. Demandez à votre enseignant.</div>';
       document.querySelector('#step-load .spinner').style.display='none';
       return;
     }
-
-    // Remplir les classes
-    var classes=[...new Set(allStudents.map(s=>s.classe).filter(Boolean))].sort();
-    var selC=document.getElementById('selClasse');
-    classes.forEach(function(c){
-      var o=document.createElement('option');
-      o.value=c;o.textContent=c;
-      selC.appendChild(o);
-    });
-
-    filtrerEleves();
-    goStep('step-nom');
+    goStep('step-search');
+    document.getElementById('searchInput').focus();
   }catch(e){
-    console.error('Erreur chargement:',e);
     document.getElementById('loadError').style.display='block';
-    document.getElementById('loadError').innerHTML='<div class="alert al-err">Impossible de charger la liste. Vérifiez votre connexion et réessayez.<br><button class="btn btn-ghost" style="margin-top:.5rem" onclick="location.reload()">🔄 Réessayer</button></div>';
+    document.getElementById('loadError').innerHTML='<div class="alert" style="background:#fde8e6;color:#e74c3c;border-left:4px solid #e74c3c">Erreur de connexion.<br><button class="btn btn-ghost" style="margin-top:.5rem" onclick="location.reload()">🔄 Réessayer</button></div>';
     document.querySelector('#step-load .spinner').style.display='none';
   }
 });
 
-function filtrerEleves(){
-  var classe=document.getElementById('selClasse').value;
-  var filtered=classe?allStudents.filter(s=>s.classe===classe):allStudents;
-  var sel=document.getElementById('selEleve');
-  sel.innerHTML='<option value="">— Choisissez votre nom —</option>';
-  filtered.sort(function(a,b){return(a.nom||'').localeCompare(b.nom||'');});
-  filtered.forEach(function(s){
-    var o=document.createElement('option');
-    o.value=s.code;
-    o.textContent=s.nom+' '+(s.prenom||'')+' — '+(s.classe||'');
-    sel.appendChild(o);
+function rechercher(){
+  var query=normalize(document.getElementById('searchInput').value);
+  var box=document.getElementById('suggestions');
+  var hint=document.getElementById('searchHint');
+  var selInfo=document.getElementById('selectedInfo');
+
+  selectedStudent=null;
+  selInfo.classList.remove('active');
+  document.getElementById('btnConfirm').disabled=true;
+
+  if(query.length<3){
+    box.classList.remove('active');
+    box.innerHTML='';
+    hint.textContent='Minimum 3 lettres';
+    return;
+  }
+
+  var results=allStudents.filter(function(s){
+    var nom=normalize(s.nom);
+    var prenom=normalize(s.prenom);
+    return nom.indexOf(query)===0||prenom.indexOf(query)===0||(nom+' '+prenom).indexOf(query)===0||(prenom+' '+nom).indexOf(query)===0;
   });
-  document.getElementById('btnChoisir').disabled=true;
-  sel.onchange=function(){document.getElementById('btnChoisir').disabled=!sel.value;};
+
+  if(!results.length){
+    box.classList.remove('active');
+    box.innerHTML='';
+    hint.textContent='Aucun résultat. Vérifiez l\'orthographe.';
+    return;
+  }
+
+  hint.textContent=results.length+' résultat(s)';
+  box.classList.add('active');
+  box.innerHTML=results.map(function(s,i){
+    return '<div class="suggestion" onclick="selectionner('+i+')" data-idx="'+i+'"><span class="s-nom">'+esc(s.nom)+' '+esc(s.prenom||'')+'</span><span class="s-classe">'+esc(s.classe||'')+'</span></div>';
+  }).join('');
+
+  // Stocker les résultats pour la sélection
+  window._searchResults=results;
 }
 
-function choisirEleve(){
-  var code=document.getElementById('selEleve').value;
-  if(!code)return;
-  selectedStudent=allStudents.find(function(s){return s.code===code;});
+function selectionner(idx){
+  var s=window._searchResults[idx];
+  if(!s)return;
+  selectedStudent=s;
+
+  document.getElementById('suggestions').classList.remove('active');
+  document.getElementById('searchInput').value=s.nom+' '+s.prenom;
+
+  var selInfo=document.getElementById('selectedInfo');
+  document.getElementById('ssNom').textContent=s.nom+' '+(s.prenom||'');
+  document.getElementById('ssClasse').textContent=s.classe||'';
+  selInfo.classList.add('active');
+
+  document.getElementById('btnConfirm').disabled=false;
+  document.getElementById('searchHint').textContent='';
+}
+
+function confirmerChoix(){
   if(!selectedStudent)return;
-
-  document.getElementById('eleveChoisi').innerHTML=
-    '<div class="classe-badge">'+esc(selectedStudent.classe||'')+'</div>'+
-    '<div style="font-size:1.1rem;font-weight:900;color:var(--bleu);margin-bottom:.75rem">'+
-    esc(selectedStudent.nom)+' '+esc(selectedStudent.prenom||'')+
-    '</div>';
-
-  // Pré-remplir si données existantes
-  if(selectedStudent.tel_eleve)document.getElementById('inTel').value=selectedStudent.tel_eleve;
-  if(selectedStudent.email_eleve)document.getElementById('inEmail').value=selectedStudent.email_eleve;
-
+  document.getElementById('contactInfo').innerHTML=
+    '<div style="background:var(--bleu3);border-radius:var(--r2);padding:.75rem;margin-bottom:.75rem">'+
+    '<div style="font-weight:900;color:var(--bleu);font-size:1rem">'+esc(selectedStudent.nom)+' '+esc(selectedStudent.prenom||'')+'</div>'+
+    '<div style="font-size:.78rem;color:var(--gris)">'+esc(selectedStudent.classe||'')+'</div></div>';
   goStep('step-contact');
 }
 
@@ -209,9 +233,9 @@ async function validerInscription(){
   var email=document.getElementById('inEmail').value.trim();
 
   if(!tel){alert('Le numéro de téléphone est obligatoire');return;}
-  if(!/^0[67]/.test(tel.replace(/[\s.-]/g,''))){alert('Le numéro doit commencer par 06 ou 07');return;}
+  if(!/^0[67]/.test(tel.replace(/[\s.\-]/g,''))){alert('Le numéro doit commencer par 06 ou 07');return;}
 
-  // Sauvegarder les coordonnées via l'API
+  // Enregistrer les coordonnées via l'API
   try{
     var url=new URL(apiUrl);
     url.searchParams.set('action','updateEleveProfil');
@@ -220,37 +244,9 @@ async function validerInscription(){
     url.searchParams.set('telephone',tel);
     url.searchParams.set('email',email);
     await fetch(url.toString(),{method:'GET',redirect:'follow'});
-  }catch(e){
-    console.warn('Sauvegarde profil:',e);
-  }
+  }catch(e){}
 
-  // Afficher le token
-  var token=selectedStudent.token_eleve||selectedStudent.code;
-  document.getElementById('monToken').textContent=token;
-  document.getElementById('codeInfo').innerHTML=
-    '<div style="text-align:center;margin-bottom:.5rem">'+
-    '<div style="font-size:1.5rem;margin-bottom:.25rem">🎉</div>'+
-    '<div style="font-weight:800;color:var(--bleu);font-size:1rem">'+esc(selectedStudent.nom)+' '+esc(selectedStudent.prenom||'')+'</div>'+
-    '<div class="classe-badge" style="margin-top:.25rem">'+esc(selectedStudent.classe||'')+'</div>'+
-    '</div>';
-
-  goStep('step-code');
-}
-
-function ouvrirEspace(){
-  var token=selectedStudent.token_eleve||selectedStudent.code;
-  var url=baseUrl+'inerweb_eleve.html?token='+encodeURIComponent(token)+'&role=eleve';
-  window.location.href=url;
-}
-
-function copierCode(){
-  var token=selectedStudent.token_eleve||selectedStudent.code;
-  if(navigator.clipboard){
-    navigator.clipboard.writeText(token);
-    alert('Code copié : '+token);
-  }else{
-    prompt('Votre code :',token);
-  }
+  goStep('step-done');
 }
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
