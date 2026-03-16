@@ -1811,8 +1811,9 @@ function envoyerToutEleve(code){
   msg+='👉 '+lienTuteur+'\n\n';
   msg+='Bonne continuation !';
   window.open('https://wa.me/'+formatWA(s.tel_eleve)+'?text='+encodeURIComponent(msg),'_blank');
-  // Griser le bouton après envoi
+  // Griser le bouton après envoi + persister
   s._envoye=true;
+  var sent=JSON.parse(localStorage.getItem('iw_codes_sent')||'{}');sent[code]=Date.now();localStorage.setItem('iw_codes_sent',JSON.stringify(sent));
   var btn=document.getElementById('btnSend_'+code);
   if(btn){btn.style.background='#ccc';btn.textContent='✓';btn.title='Déjà envoyé';}
 }
@@ -3935,6 +3936,9 @@ async function doDevrouille(ep){
 function renderEleves(){
   const c=document.getElementById('elevesList');
   if(!students.length){c.innerHTML='<div class="empty"><div class="ei">👥</div><p>Aucun élève. Ajoutez votre classe.</p></div>';return;}
+  // Restaurer les envois persistés
+  var _sent=JSON.parse(localStorage.getItem('iw_codes_sent')||'{}');
+  students.forEach(function(s){if(_sent[s.code])s._envoye=true;});
   const fAnnee=document.getElementById('filtreAnnee')?.value||'all';
   const fGroupe=document.getElementById('filtreGroupe')?.value||'all';
   const fClasse=document.getElementById('filtreClasse')?.value||'all';
