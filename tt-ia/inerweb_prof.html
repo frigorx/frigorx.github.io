@@ -1872,6 +1872,16 @@ async function syncAll(){
     if(Array.isArray(dash)&&dash.length>0){
       students=dash;window.students=students;
     }
+    // Récupérer le journal PFMP de chaque élève (photos + textes)
+    for(var si=0;si<students.length;si++){
+      try{
+        var sc=students[si].code;if(!sc)continue;
+        var jUrl=new URL(_url);jUrl.searchParams.set('action','getJournal');jUrl.searchParams.set('key',_key);jUrl.searchParams.set('eleve',sc);
+        var jr=await fetch(jUrl.toString(),{method:'GET',redirect:'follow'});
+        var jd=await jr.json();
+        if(Array.isArray(jd)&&jd.length>0){if(!pfmpData[sc])pfmpData[sc]={journal:[]};pfmpData[sc].journal=jd;}
+      }catch(ej){}
+    }
     online=true;saveLocal();setSyncState('ok');updateAll();
     toast('✓ Synchronisé — '+students.length+' élève(s)','ok');
   }catch(e){
@@ -2885,8 +2895,19 @@ function renderSuivi(){
     </div>`;
   }).join('');
 }
-function viewStagePhotos(code){
+async function viewStagePhotos(code){
   const s=students.find(x=>x.code===code)||{};
+  // Charger depuis l'API si pas de données locales
+  if((!pfmpData[code]||!(pfmpData[code].journal||[]).length)&&cfg.apiUrl){
+    try{showSpinner();
+      var _u=cfg.apiUrl,_k=cfg.apiKey;
+      if(!_u&&window.INERWEB_CONFIG){_u=window.INERWEB_CONFIG.API_URL;_k=window.INERWEB_CONFIG.API_KEY;}
+      if(_u){var jU=new URL(_u);jU.searchParams.set('action','getJournal');jU.searchParams.set('key',_k);jU.searchParams.set('eleve',code);
+        var jr=await fetch(jU.toString(),{method:'GET',redirect:'follow'});var jD=await jr.json();
+        if(Array.isArray(jD)&&jD.length>0){if(!pfmpData[code])pfmpData[code]={journal:[]};pfmpData[code].journal=jD;saveLocal();}}
+      hideSpinner();
+    }catch(e){hideSpinner();}
+  }
   const pf=pfmpData[code]||{journal:[]};
   const allPhotos=[];
   (pf.journal||[]).forEach(j=>{
@@ -2905,7 +2926,7 @@ function viewStagePhotos(code){
     <input type="file" id="profGalleryInput" accept="image/*" multiple style="display:none" onchange="profHandlePhoto(this.files,'${code}')">
   </div>`;
   if(!allPhotos.length){
-    showModal(`📷 Photos stage — ${s.nom} ${s.prenom||''}`,captureHtml+'<div class="alert al-info">Aucune photo de stage</div>','<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+    showModal(`📷 Photos stage — ${s.nom} ${s.prenom||''}`,captureHtml+'<div class="alert al-info">Aucune photo de stage. Les photos apparaîtront ici quand l\'élève aura synchronisé son journal.</div>','<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
     return;
   }
   // Grouper par jour

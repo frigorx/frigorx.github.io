@@ -612,11 +612,20 @@ async function addJournalEntry(){
   const type=document.getElementById('journalType').value;
   const text=document.getElementById('journalText').value.trim();
   if(!text&&!pendingPhotos.length){toast('Ajoute un texte ou des photos','err');return;}
+  // Mode édition : mise à jour in-place
+  if(window._editingEntryId){
+    const idx=journal.findIndex(j=>j.id===window._editingEntryId);
+    if(idx!==-1){journal[idx].type=type;journal[idx].text=text;journal[idx].photos=[...pendingPhotos];journal[idx].synced=false;}
+    window._editingEntryId=null;pendingPhotos=[];
+    saveLocal();renderPendingPhotos();updatePhotoCounter();renderJournal();
+    document.getElementById('journalText').value='';
+    toast('Entrée modifiée !','ok');syncCloud();return;
+  }
   const entry={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),date:new Date().toISOString(),type,text,photos:[...pendingPhotos],synced:false};
   journal.push(entry);pendingPhotos=[];
   saveLocal();renderPendingPhotos();updatePhotoCounter();renderJournal();
   document.getElementById('journalText').value='';
-  toast('Entrée ajoutée ! 📝','ok');
+  toast('Entrée ajoutée !','ok');
   syncCloud();
 }
 
@@ -624,14 +633,17 @@ function editJournalEntry(id){
   const idx=journal.findIndex(j=>j.id===id);
   if(idx===-1)return;
   const entry=journal[idx];
-  if(entry.synced){toast('Impossible de modifier une entrée déjà synchronisée','err');return;}
   document.getElementById('journalType').value=entry.type;
   document.getElementById('journalText').value=entry.text||'';
   pendingPhotos=[...(entry.photos||[])];
   renderPendingPhotos();
-  journal.splice(idx,1);
-  saveLocal();renderJournal();
-  toast('Entrée chargée pour modification','inf');
+  if(entry.synced){
+    window._editingEntryId=id;
+    toast('Modifie le texte puis clique Enregistrer','inf');
+  } else {
+    journal.splice(idx,1);saveLocal();renderJournal();
+    toast('Entrée chargée pour modification','inf');
+  }
   document.getElementById('page-journal').scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -663,7 +675,8 @@ function renderJournalEntry(e){
   const pendingClass=e.synced?'':'pending';
   const pendingBadge=e.synced?'':'<span class="badge-pending">En attente</span>';
   const syncIcon=e.synced?'<span style="color:var(--vert);margin-left:.3rem">✓</span>':'<span style="color:var(--orange);margin-left:.3rem">⏳</span>';
-  const actionsHtml=e.synced?'':`<div class="journal-entry-actions"><button class="btn-edit-entry" onclick="editJournalEntry('${esc(e.id)}')" aria-label="Modifier l'entrée">✏️ Modifier</button><button class="btn-del-entry" onclick="deleteJournalEntry('${esc(e.id)}')" aria-label="Supprimer l'entrée">🗑️ Supprimer</button></div>`;
+  const deleteBtn=e.synced?'':`<button class="btn-del-entry" onclick="deleteJournalEntry('${esc(e.id)}')" aria-label="Supprimer">🗑️</button>`;
+  const actionsHtml=`<div class="journal-entry-actions"><button class="btn-edit-entry" onclick="editJournalEntry('${esc(e.id)}')" aria-label="Modifier">✏️ Modifier</button>${deleteBtn}</div>`;
   return`<div class="journal-entry ${pendingClass}"><div class="journal-entry-time">${timeHM(e.date)}<span class="journal-entry-type">${TYPE_LBL[e.type]||esc(e.type)}</span>${syncIcon}${pendingBadge}</div>${e.text?`<div class="journal-entry-text">${esc(e.text)}</div>`:''}${photosHtml}${actionsHtml}</div>`;
 }
 
