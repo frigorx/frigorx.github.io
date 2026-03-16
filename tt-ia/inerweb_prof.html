@@ -1785,13 +1785,20 @@ function sauvegarder(){
   toast('✓ Données sauvegardées','ok');
 }
 async function syncAll(){
-  if(!cfg.apiUrl){
-    try{var _sc=JSON.parse(localStorage.getItem(SCFG)||'{}');if(_sc.apiUrl){cfg.apiUrl=_sc.apiUrl;cfg.apiKey=_sc.apiKey;cfg.nomProf=_sc.nomProf;cfg.baseUrl=_sc.baseUrl;}}catch(e){}
-  }
-  if(!cfg.apiUrl){saveLocal();setSyncState('ok');return;}
+  // Récupérer l'URL API depuis toutes les sources possibles
+  var _url=cfg.apiUrl;
+  var _key=cfg.apiKey;
+  if(!_url){try{var _sc=JSON.parse(localStorage.getItem(SCFG)||'{}');_url=_sc.apiUrl;_key=_sc.apiKey;cfg.apiUrl=_url;cfg.apiKey=_key;cfg.nomProf=_sc.nomProf;cfg.baseUrl=_sc.baseUrl;}catch(e){}}
+  if(!_url&&window.INERWEB_CONFIG){_url=window.INERWEB_CONFIG.API_URL;_key=window.INERWEB_CONFIG.API_KEY;cfg.apiUrl=_url;cfg.apiKey=_key;}
+  if(!_url){setSyncState('ok');return;}
   setSyncState('syncing');
   try{
-    var dash=await apiCall({action:'getDashboard'});
+    // Fetch DIRECT (pas via apiCall/events-bridge pour éviter les intercepteurs)
+    var dashUrl=new URL(_url);
+    dashUrl.searchParams.set('action','getDashboard');
+    dashUrl.searchParams.set('key',_key);
+    var r=await fetch(dashUrl.toString(),{method:'GET',redirect:'follow'});
+    var dash=await r.json();
     if(Array.isArray(dash)&&dash.length>0){
       students=dash;window.students=students;
     }
@@ -1799,7 +1806,7 @@ async function syncAll(){
     toast('✓ Synchronisé — '+students.length+' élève(s)','ok');
   }catch(e){
     console.warn('[syncAll]',e.message||e);
-    online=false;setSyncState('ok');
+    setSyncState('ok');
     if(students.length)saveLocal();
     updateAll();
   }
