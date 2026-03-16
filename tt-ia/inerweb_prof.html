@@ -4652,7 +4652,7 @@ function dateFR(iso){if(!iso)return'—';try{return new Date(iso).toLocaleDateSt
 /** Formate un numéro FR pour WhatsApp (06 → 336) */
 function formatWA(tel){
   if(!tel)return'';
-  let n=tel.replace(/[\s.\-()]/g,'');
+  let n=String(tel).replace(/[\s.\-()]/g,'');
   if(n.startsWith('0'))n='33'+n.slice(1);
   if(!n.startsWith('+')&&!n.startsWith('33'))n='33'+n;
   return n.replace('+','');

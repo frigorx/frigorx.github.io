@@ -15,32 +15,46 @@
     session: { online:false, demoMode:false, isAdmin:false, currentUser:null }
   };
 
+  /* Helper : defineProperty sécurisé (ne crashe pas si la propriété existe déjà) */
+  function safeProp(obj, name, target, key) {
+    try {
+      Object.defineProperty(obj, name, {
+        get: function(){ return target[key]; },
+        set: function(v){ target[key] = v; },
+        configurable: true,
+        enumerable: true
+      });
+    } catch(e) {
+      // La propriété existe déjà et n'est pas configurable — on la laisse
+    }
+  }
+
   /* Alias retro-compatibles (getters/setters bidirectionnels) */
   // — data —
-  Object.defineProperty(window,'students',    {get(){return appState.data.students;},      set(v){appState.data.students=v;},      configurable:true});
-  Object.defineProperty(window,'validations', {get(){return appState.data.validations;},   set(v){appState.data.validations=v;},   configurable:true});
-  Object.defineProperty(window,'notes',       {get(){return appState.data.notes;},         set(v){appState.data.notes=v;},         configurable:true});
-  Object.defineProperty(window,'pfmpData',    {get(){return appState.data.pfmpData;},      set(v){appState.data.pfmpData=v;},      configurable:true});
-  Object.defineProperty(window,'partenaires', {get(){return appState.data.partenaires;},   set(v){appState.data.partenaires=v;},   configurable:true});
-  Object.defineProperty(window,'customCriteria',{get(){return appState.data.customCriteria;},set(v){appState.data.customCriteria=v;},configurable:true});
-  Object.defineProperty(window,'compLocks',   {get(){return appState.data.compLocks;},     set(v){appState.data.compLocks=v;},     configurable:true});
-  Object.defineProperty(window,'sharedDocs',  {get(){return appState.data.sharedDocs;},    set(v){appState.data.sharedDocs=v;},    configurable:true});
+  safeProp(window, 'students',        appState.data, 'students');
+  safeProp(window, 'validations',     appState.data, 'validations');
+  safeProp(window, 'notes',           appState.data, 'notes');
+  safeProp(window, 'pfmpData',        appState.data, 'pfmpData');
+  safeProp(window, 'partenaires',     appState.data, 'partenaires');
+  safeProp(window, 'customCriteria',  appState.data, 'customCriteria');
+  safeProp(window, 'compLocks',       appState.data, 'compLocks');
+  safeProp(window, 'sharedDocs',      appState.data, 'sharedDocs');
   // — config —
-  Object.defineProperty(window,'cfg',    {get(){return appState.config.cfg;},    set(v){appState.config.cfg=v;},    configurable:true});
-  Object.defineProperty(window,'appCfg', {get(){return appState.config.appCfg;}, set(v){appState.config.appCfg=v;}, configurable:true});
+  safeProp(window, 'cfg',    appState.config, 'cfg');
+  safeProp(window, 'appCfg', appState.config, 'appCfg');
   // — admin —
-  Object.defineProperty(window,'users',        {get(){return appState.admin.users;},        set(v){appState.admin.users=v;},        configurable:true});
-  Object.defineProperty(window,'classes',      {get(){return appState.admin.classes;},      set(v){appState.admin.classes=v;},      configurable:true});
-  Object.defineProperty(window,'adminJournal', {get(){return appState.admin.adminJournal;}, set(v){appState.admin.adminJournal=v;}, configurable:true});
+  safeProp(window, 'users',        appState.admin, 'users');
+  safeProp(window, 'classes',      appState.admin, 'classes');
+  safeProp(window, 'adminJournal', appState.admin, 'adminJournal');
   // — ui —
-  Object.defineProperty(window,'cur',      {get(){return appState.ui.cur;},      set(v){appState.ui.cur=v;},      configurable:true});
-  Object.defineProperty(window,'curCtx',   {get(){return appState.ui.curCtx;},   set(v){appState.ui.curCtx=v;},   configurable:true});
-  Object.defineProperty(window,'curSit',   {get(){return appState.ui.curSit;},   set(v){appState.ui.curSit=v;},   configurable:true});
-  Object.defineProperty(window,'curPhase', {get(){return appState.ui.curPhase;}, set(v){appState.ui.curPhase=v;}, configurable:true});
+  safeProp(window, 'cur',      appState.ui, 'cur');
+  safeProp(window, 'curCtx',   appState.ui, 'curCtx');
+  safeProp(window, 'curSit',   appState.ui, 'curSit');
+  safeProp(window, 'curPhase', appState.ui, 'curPhase');
   // — session —
-  Object.defineProperty(window,'online',      {get(){return appState.session.online;},      set(v){appState.session.online=v;},      configurable:true});
-  Object.defineProperty(window,'demoMode',    {get(){return appState.session.demoMode;},    set(v){appState.session.demoMode=v;},    configurable:true});
-  Object.defineProperty(window,'isAdmin',     {get(){return appState.session.isAdmin;},     set(v){appState.session.isAdmin=v;},     configurable:true});
-  Object.defineProperty(window,'currentUser', {get(){return appState.session.currentUser;}, set(v){appState.session.currentUser=v;}, configurable:true});
+  safeProp(window, 'online',      appState.session, 'online');
+  safeProp(window, 'demoMode',    appState.session, 'demoMode');
+  safeProp(window, 'isAdmin',     appState.session, 'isAdmin');
+  safeProp(window, 'currentUser', appState.session, 'currentUser');
 
 })();
