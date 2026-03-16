@@ -1796,6 +1796,22 @@ async function pushStudentsToBackend(list){
   if(sent)toast('✓ '+sent+'/'+list.length+' élève(s) envoyés au serveur'+(errors?' ('+errors+' erreur(s))':''),'ok');
   else toast('Erreur envoi — vérifiez la connexion','err');
 }
+function envoyerToutEleve(code){
+  var s=students.find(function(x){return x.code===code;});
+  if(!s){toast('Élève introuvable','err');return;}
+  if(!s.tel_eleve){toast('Pas de numéro de téléphone','err');return;}
+  var base=cfg.baseUrl||(window.iwConfig?window.iwConfig.getBaseUrl():'');
+  var lienEleve=base+'inerweb_eleve.html?token='+(s.token_eleve||'')+'&role=eleve';
+  var lienTuteur=base+'inerweb_tuteur.html?eleve='+s.code+'&tuteur='+(s.token_tuteur||'')+'&role=tuteur';
+  var msg='Bonjour '+(s.prenom||s.nom)+' !\n\n';
+  msg+='Voici tes accès inerWeb TT :\n\n';
+  msg+='📱 *TON CODE ÉLÈVE :* '+(s.token_eleve||s.code)+'\n';
+  msg+='👉 Lien direct : '+lienEleve+'\n\n';
+  msg+='🏢 *QR TUTEUR* (à donner à ton maître de stage) :\n';
+  msg+='👉 '+lienTuteur+'\n\n';
+  msg+='Bonne continuation !';
+  window.open('https://wa.me/'+formatWA(s.tel_eleve)+'?text='+encodeURIComponent(msg),'_blank');
+}
 function sauvegarder(){
   saveLocal();
   setSyncState('ok');
@@ -3899,7 +3915,8 @@ function renderEleves(){
     </div>
     <div class="el-act">
       <button class="btn btn-ghost btn-xs" onclick="toggleGroupe('${s.code}')" title="Groupe">👥</button>
-      ${s.tel_eleve?`<a class="btn btn-ghost btn-xs" href="tel:+${formatWA(s.tel_eleve)}" title="Appeler ${esc(s.prenom)} (${esc(s.tel_eleve)})">📞</a><a class="btn btn-ghost btn-xs" href="sms:+${formatWA(s.tel_eleve)}?body=${encodeURIComponent('Bonjour '+s.prenom+', voici ton accès inerWeb TT : '+(cfg.baseUrl||'')+'inerweb_eleve.html?token='+(s.token_eleve||''))}" title="SMS élève">💬</a><a class="btn btn-ghost btn-xs" href="https://wa.me/${formatWA(s.tel_eleve)}?text=${encodeURIComponent('Bonjour '+s.prenom+', voici ton accès inerWeb TT : '+(cfg.baseUrl||'')+'inerweb_eleve.html?token='+(s.token_eleve||''))}" target="_blank" title="WhatsApp élève">📱E</a>`:''}
+      ${s.tel_eleve?`<button class="btn btn-xs" onclick="envoyerToutEleve('${s.code}')" title="Envoyer code + QR par WhatsApp" style="background:#25D366;color:#fff;border:none;font-weight:700">📨</button><a class="btn btn-ghost btn-xs" href="tel:+${formatWA(s.tel_eleve)}" title="Appeler">📞</a>`:''}
+      ${!s.tel_eleve?'<span style="font-size:.6rem;color:var(--gris)">pas de tél.</span>':''}
       ${s.tel_tuteur||s.tuteur_tel?`<a class="btn btn-ghost btn-xs" href="tel:+${formatWA(s.tel_tuteur||s.tuteur_tel)}" title="Appeler tuteur (${esc(s.tel_tuteur||s.tuteur_tel)})">📞T</a><a class="btn btn-ghost btn-xs" href="https://wa.me/${formatWA(s.tel_tuteur||s.tuteur_tel)}?text=${encodeURIComponent('Bonjour, voici le lien tuteur pour '+s.nom+' : '+(cfg.baseUrl||'')+'inerweb_tuteur.html?eleve='+s.code+'&tuteur='+(s.token_tuteur||''))}" target="_blank" title="WhatsApp tuteur">📱T</a>`:''}
       ${s.tuteur_email||s.email_tuteur?`<a class="btn btn-ghost btn-xs" href="mailto:${esc(s.tuteur_email||s.email_tuteur)}?subject=${encodeURIComponent('Stage '+s.nom+' '+s.prenom)}&body=${encodeURIComponent('Bonjour,\nVoici le lien tuteur : '+(cfg.baseUrl||'')+'inerweb_tuteur.html?eleve='+s.code+'&tuteur='+(s.token_tuteur||''))}" title="Email tuteur">📧</a>`:''}
       ${s.preference_contact_tuteur?`<span class="badge-pref-contact" title="Préf. contact tuteur : ${esc(s.preference_contact_tuteur)}" style="font-size:.6rem;background:var(--teal2);color:var(--teal);padding:1px 4px;border-radius:3px;font-weight:700">⭐${esc(s.preference_contact_tuteur)}</span>`:''}
