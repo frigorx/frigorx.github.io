@@ -1788,6 +1788,8 @@ async function pushStudentsToBackend(list){
         if(d.token_eleve)s.token_eleve=d.token_eleve;
         if(d.token_tuteur)s.token_tuteur=d.token_tuteur;
         if(d.code&&!s.code)s.code=d.code;
+        // Nouveau token → remettre le bouton envoi en vert
+        s._envoye=false;var _st=JSON.parse(localStorage.getItem('iw_codes_sent')||'{}');delete _st[s.code];localStorage.setItem('iw_codes_sent',JSON.stringify(_st));
         sent++;
       }else{errors++;}
     }catch(e){errors++;console.warn('[push]',s.nom,e.message);}
@@ -1815,7 +1817,7 @@ function envoyerToutEleve(code){
   s._envoye=true;
   var sent=JSON.parse(localStorage.getItem('iw_codes_sent')||'{}');sent[code]=Date.now();localStorage.setItem('iw_codes_sent',JSON.stringify(sent));
   var btn=document.getElementById('btnSend_'+code);
-  if(btn){btn.style.background='#ccc';btn.textContent='✓';btn.title='Déjà envoyé';}
+  if(btn){btn.style.background='#9e9e9e';btn.innerHTML='✓';btn.title='Envoyé — cliquer pour renvoyer';}
 }
 function showCodes(code){
   var s=students.find(function(x){return x.code===code;});
