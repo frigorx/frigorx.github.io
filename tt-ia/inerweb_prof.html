@@ -1811,6 +1811,10 @@ function envoyerToutEleve(code){
   msg+='👉 '+lienTuteur+'\n\n';
   msg+='Bonne continuation !';
   window.open('https://wa.me/'+formatWA(s.tel_eleve)+'?text='+encodeURIComponent(msg),'_blank');
+  // Griser le bouton après envoi
+  s._envoye=true;
+  var btn=document.getElementById('btnSend_'+code);
+  if(btn){btn.style.background='#ccc';btn.textContent='✓';btn.title='Déjà envoyé';}
 }
 function sauvegarder(){
   saveLocal();
@@ -3915,7 +3919,7 @@ function renderEleves(){
     </div>
     <div class="el-act">
       <button class="btn btn-ghost btn-xs" onclick="toggleGroupe('${s.code}')" title="Groupe">👥</button>
-      ${s.tel_eleve?`<button class="btn btn-xs" onclick="envoyerToutEleve('${s.code}')" title="Envoyer code + QR par WhatsApp" style="background:#25D366;color:#fff;border:none;font-weight:700">📨</button><a class="btn btn-ghost btn-xs" href="tel:+${formatWA(s.tel_eleve)}" title="Appeler">📞</a>`:''}
+      ${s.tel_eleve?`<button class="btn btn-xs" id="btnSend_${s.code}" onclick="envoyerToutEleve('${s.code}')" title="Envoyer code + QR par WhatsApp" style="background:${s._envoye?'#ccc':'#25D366'};color:#fff;border:none;font-weight:700">${s._envoye?'✓':'📨'}</button><a class="btn btn-ghost btn-xs" href="tel:+${formatWA(s.tel_eleve)}" title="Appeler">📞</a>`:''}
       ${!s.tel_eleve?'<span style="font-size:.6rem;color:var(--gris)">pas de tél.</span>':''}
       ${s.tel_tuteur||s.tuteur_tel?`<a class="btn btn-ghost btn-xs" href="tel:+${formatWA(s.tel_tuteur||s.tuteur_tel)}" title="Appeler tuteur (${esc(s.tel_tuteur||s.tuteur_tel)})">📞T</a><a class="btn btn-ghost btn-xs" href="https://wa.me/${formatWA(s.tel_tuteur||s.tuteur_tel)}?text=${encodeURIComponent('Bonjour, voici le lien tuteur pour '+s.nom+' : '+(cfg.baseUrl||'')+'inerweb_tuteur.html?eleve='+s.code+'&tuteur='+(s.token_tuteur||''))}" target="_blank" title="WhatsApp tuteur">📱T</a>`:''}
       ${s.tuteur_email||s.email_tuteur?`<a class="btn btn-ghost btn-xs" href="mailto:${esc(s.tuteur_email||s.email_tuteur)}?subject=${encodeURIComponent('Stage '+s.nom+' '+s.prenom)}&body=${encodeURIComponent('Bonjour,\nVoici le lien tuteur : '+(cfg.baseUrl||'')+'inerweb_tuteur.html?eleve='+s.code+'&tuteur='+(s.token_tuteur||''))}" title="Email tuteur">📧</a>`:''}
