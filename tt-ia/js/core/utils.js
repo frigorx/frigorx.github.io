@@ -99,54 +99,10 @@
     }
   }
 
-  /* ═══ SYNC ALL ═══ */
-  async function syncAll() {
-    if (!cfg.apiUrl) { setSyncState('error'); return; }
-    setSyncState('syncing');
-    try {
-      var dash = await apiCall({ action: 'getDashboard' });
-      if (!Array.isArray(dash)) throw new Error('invalid');
-      students = dash; window.students = students;
-      validations = {}; notes = {};
-      var BATCH_SIZE = 10;
-      for (var i = 0; i < students.length; i += BATCH_SIZE) {
-        var batch = students.slice(i, i + BATCH_SIZE);
-        await Promise.all(batch.map(async function(s) {
-          try {
-            var results = await Promise.all([apiCall({ action: 'getValidations', eleve: s.code }), apiCall({ action: 'getNotes', eleve: s.code })]);
-            var v = results[0], n = results[1];
-            validations[s.code] = Array.isArray(v) ? v : [];
-            var e2 = Array.isArray(n) ? n.find(function(x) { return x.epreuve === 'E31'; }) : null;
-            var e3 = Array.isArray(n) ? n.find(function(x) { return x.epreuve === 'E32'; }) : null;
-            notes[s.code] = { E31: e2 || {}, E32: e3 || {}, E33: (notes[s.code] && notes[s.code].E33) || {} };
-          } catch(e) {
-            validations[s.code] = validations[s.code] || [];
-            notes[s.code] = { E31: {}, E32: {}, E33: (notes[s.code] && notes[s.code].E33) || {} };
-          }
-        }));
-      }
-      saveLocal(); setSyncState('ok'); updateAll();
-      toast(students.length + ' eleves synchronises', 'ok');
-    } catch(e) {
-      setSyncState('error'); updateAll();
-      toast('Hors-ligne \u2014 donnees locales', 'warn');
-    }
-  }
+  /* syncAll et pushVal sont définis dans inerweb_prof.html (version corrigée) */
+  /* Ce module ne les expose plus pour éviter les conflits */
 
-  /* ═══ PUSH VALIDATION ═══ */
-  async function pushVal(data) {
-    var entry = Object.assign({}, data, { evaluateur: cfg.nomProf || 'Prof', timestamp: new Date().toISOString(), phase: curPhase });
-    if (!validations[cur]) validations[cur] = [];
-    validations[cur].push(entry); saveLocal(); toast('\u2713 Enregistre', 'ok');
-    if (navigator.onLine) {
-      try { await apiCall({ action: 'saveValidation', eleve: cur, data: entry }); } catch(e) { toast('En attente sync', 'warn'); }
-    } else {
-      if (window.syncQueueWrapper) syncQueueWrapper.push({ action: 'saveValidation', eleve: cur, data: entry });
-      toast('Sauvegardé hors-ligne', 'warn');
-    }
-  }
-
-  // Exposer sur window
+  // Exposer sur window (sauf syncAll et pushVal)
   window.setSyncState = setSyncState;
   window.saveLocal = saveLocal;
   window.saveLocalData = saveLocalData;
@@ -154,7 +110,5 @@
   window.loadLocal = loadLocal;
   window.updateStor = updateStor;
   window.updateAll = updateAll;
-  window.syncAll = syncAll;
-  window.pushVal = pushVal;
 
 })();
