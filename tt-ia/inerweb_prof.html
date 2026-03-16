@@ -1549,6 +1549,23 @@ const SK='inerweb-tt-fe-v1',SCFG='inerweb-tt-fe-cfg',SPART='inerweb-tt-fe-parts'
 window.SK=SK;window.SCFG=SCFG;window.SPART=SPART;window.SUSERS=SUSERS;window.SCLASSES=SCLASSES;window.SJOURNAL=SJOURNAL;
 const DB_NAME='inerwebtt-fe-db',DB_VERSION=3;
 let db=null,backupInterval=null;
+/* Pré-déclaration des globales pour éviter ReferenceError si state.js charge après */
+if(typeof window.cur==='undefined')window.cur=null;
+if(typeof window.curCtx==='undefined')window.curCtx='atelier';
+if(typeof window.curSit==='undefined')window.curSit='A';
+if(typeof window.curPhase==='undefined')window.curPhase='formatif';
+if(typeof window.online==='undefined')window.online=false;
+if(typeof window.demoMode==='undefined')window.demoMode=false;
+if(typeof window.students==='undefined')window.students=[];
+if(typeof window.validations==='undefined')window.validations={};
+if(typeof window.notes==='undefined')window.notes={};
+if(typeof window.pfmpData==='undefined')window.pfmpData={};
+if(typeof window.cfg==='undefined')window.cfg={};
+if(typeof window.appCfg==='undefined')window.appCfg={};
+if(typeof window.partenaires==='undefined')window.partenaires=[];
+if(typeof window.sharedDocs==='undefined')window.sharedDocs=[];
+if(typeof window.customCriteria==='undefined')window.customCriteria={};
+if(typeof window.compLocks==='undefined')window.compLocks={};
 
 /* ═══ [B2] INDEXEDDB MODULE ═══ */
 async function initDB(){
