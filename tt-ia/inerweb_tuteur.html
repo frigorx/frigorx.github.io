@@ -880,7 +880,7 @@ async function chargerEleve(code,token){
   showSpinner();
   try{
     // ⚠️ SÉCURITÉ : On utilise verifyTuteurToken, PAS la clé prof
-    const apiKey=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():'';
+    const apiKey=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():(window.INERWEB_CONFIG?window.INERWEB_CONFIG.API_KEY:'');
     const p=new URLSearchParams({action:'verifyTuteurToken',eleve:code,tuteur:token,key:apiKey});
     const r=await fetch(`${API_URL}?${p}`,{redirect:'follow'});
     const d=await r.json();
@@ -1167,7 +1167,7 @@ async function envoyerConfirme(){
     // ⚠️ SÉCURITÉ : POST — token dans le body, pas dans l'URL
     const url=new URL(API_URL);
     url.searchParams.set('action','saveEvalTuteur');
-    const _apiKey=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():'';
+    const _apiKey=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():(window.INERWEB_CONFIG?window.INERWEB_CONFIG.API_KEY:'');
     const r=await fetch(url.toString(),{
       method:'POST',
       redirect:'follow',
@@ -1292,7 +1292,7 @@ async function retryPending(){
       var p=pending[i];
       var url=new URL(API_URL);
       url.searchParams.set('action','saveEvalTuteur');
-      var _k=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():'';
+      var _k=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():(window.INERWEB_CONFIG?window.INERWEB_CONFIG.API_KEY:'');
       var r=await fetch(url.toString(),{
         method:'POST',
         redirect:'follow',
@@ -1376,7 +1376,7 @@ async function savePrefContact(){
   st.style.display='block';st.textContent='Enregistrement...';st.style.color='var(--gris)';
   try{
     if(!eleveCode||!tuteurToken){st.textContent='Chargez un stagiaire d\'abord';st.style.color='var(--orange)';return;}
-    var apiKey=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():'';
+    var apiKey=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():(window.INERWEB_CONFIG?window.INERWEB_CONFIG.API_KEY:'');
     var p=new URLSearchParams({action:'savePrefContactTuteur',eleve:eleveCode,tuteur:tuteurToken,key:apiKey,preference:prefStr});
     await fetch(API_URL+'?'+p,{redirect:'follow'});
     st.textContent='✅ Préférences enregistrées';st.style.color='var(--vert)';
