@@ -1816,6 +1816,39 @@ function envoyerToutEleve(code){
   var btn=document.getElementById('btnSend_'+code);
   if(btn){btn.style.background='#ccc';btn.textContent='✓';btn.title='Déjà envoyé';}
 }
+function showCodes(code){
+  var s=students.find(function(x){return x.code===code;});
+  if(!s){toast('Élève introuvable','err');return;}
+  var base=cfg.baseUrl||(window.iwConfig?window.iwConfig.getBaseUrl():'');
+  var lienEleve=base+'inerweb_eleve.html?token='+(s.token_eleve||'')+'&role=eleve';
+  var lienTuteur=base+'inerweb_tuteur.html?eleve='+s.code+'&tuteur='+(s.token_tuteur||'')+'&role=tuteur';
+  var html='<div style="text-align:left">';
+  html+='<div style="margin-bottom:1rem"><strong>'+esc(s.nom)+' '+esc(s.prenom)+'</strong> — '+esc(s.classe||'')+'</div>';
+  html+='<div style="background:var(--gris2);border-radius:var(--r2);padding:.75rem;margin-bottom:.75rem">';
+  html+='<div style="font-size:.75rem;color:var(--gris);margin-bottom:.25rem">Code élève</div>';
+  html+='<div style="font-family:\'JetBrains Mono\',monospace;font-size:1.1rem;font-weight:700;letter-spacing:1px">'+(s.token_eleve||s.code)+'</div>';
+  html+='</div>';
+  html+='<div style="background:var(--gris2);border-radius:var(--r2);padding:.75rem;margin-bottom:.75rem">';
+  html+='<div style="font-size:.75rem;color:var(--gris);margin-bottom:.25rem">Code tuteur</div>';
+  html+='<div style="font-family:\'JetBrains Mono\',monospace;font-size:1.1rem;font-weight:700;letter-spacing:1px">'+(s.token_tuteur||'—')+'</div>';
+  html+='</div>';
+  html+='<div style="background:var(--gris2);border-radius:var(--r2);padding:.75rem;margin-bottom:.75rem">';
+  html+='<div style="font-size:.75rem;color:var(--gris);margin-bottom:.25rem">Lien élève</div>';
+  html+='<div style="font-size:.7rem;word-break:break-all">'+esc(lienEleve)+'</div>';
+  html+='</div>';
+  html+='<div style="background:var(--gris2);border-radius:var(--r2);padding:.75rem;margin-bottom:.75rem">';
+  html+='<div style="font-size:.75rem;color:var(--gris);margin-bottom:.25rem">Lien tuteur</div>';
+  html+='<div style="font-size:.7rem;word-break:break-all">'+esc(lienTuteur)+'</div>';
+  html+='</div>';
+  html+='</div>';
+  var msgSMS='Bonjour '+(s.prenom||s.nom)+', voici ton code inerWeb : '+(s.token_eleve||s.code)+' — Lien : '+lienEleve;
+  var btns='<button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText(\''+(s.token_eleve||s.code)+' — '+(s.token_tuteur||'')+'\');toast(\'Codes copiés\',\'ok\')" style="min-height:44px">📋 Copier les codes</button> ';
+  btns+='<button class="btn btn-sm" onclick="navigator.clipboard.writeText(\''+lienEleve.replace(/'/g,"\\'")+'\');toast(\'Lien élève copié\',\'ok\')" style="min-height:44px">📋 Lien élève</button> ';
+  btns+='<button class="btn btn-sm" onclick="navigator.clipboard.writeText(\''+lienTuteur.replace(/'/g,"\\'")+'\');toast(\'Lien tuteur copié\',\'ok\')" style="min-height:44px">📋 Lien tuteur</button> ';
+  if(s.tel_eleve){btns+='<a class="btn btn-sm" href="sms:+'+formatWA(s.tel_eleve)+'?body='+encodeURIComponent(msgSMS)+'" style="min-height:44px;background:#0088cc;color:#fff;border:none;text-decoration:none">💬 SMS</a> ';}
+  btns+='<button class="btn btn-ghost btn-sm" onclick="closeModal()" style="min-height:44px">Fermer</button>';
+  showModal('🔑 Codes d\'accès — '+esc(s.nom),html,btns);
+}
 function sauvegarder(){
   saveLocal();
   setSyncState('ok');
@@ -3928,6 +3961,7 @@ function renderEleves(){
       <button class="btn btn-ghost btn-xs" onclick="previewPageTuteur('${s.code}')" title="Voir page tuteur">👁️T</button>
       <button class="btn btn-ghost btn-xs" onclick="viewStagePhotos('${s.code}')" title="Photos stage">📷</button>
       <button class="btn btn-ghost btn-xs" onclick="if(window.activModule)activModule.showStudentHistory('${s.code}')" title="Historique">📋</button>
+      <button class="btn btn-ghost btn-xs" onclick="showCodes('${s.code}')" title="Voir les codes d'accès">🔑</button>
       <button class="btn btn-ghost btn-xs" onclick="showQR('${s.code}')">📱</button>
       <button class="btn btn-ghost btn-xs" onclick="editStudent('${s.code}')" title="Modifier">✏️</button>
       <button class="btn btn-rouge btn-xs" onclick="confirmDel('${s.code}')">🗑️</button>
