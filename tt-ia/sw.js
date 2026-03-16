@@ -1,5 +1,5 @@
-// inerWeb — Service Worker principal v7.7
-const CACHE_NAME = 'inerweb-v7.7';
+// inerWeb — Service Worker principal v7.8
+const CACHE_NAME = 'inerweb-v7.8';
 const ASSETS = [
   './',
   './index.html',
