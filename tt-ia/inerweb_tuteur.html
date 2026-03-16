@@ -893,6 +893,8 @@ async function chargerEleve(code,token){
     eleveCode=code;
     tuteurToken=token;
     eleveData=d.eleve;
+    // Sauvegarder la classe pour le mode hors-ligne
+    if(eleveData&&eleveData.classe)localStorage.setItem('lastClasse_'+code,eleveData.classe);
     // Charger évaluations tuteur existantes si présentes
     if(d.evalTuteur&&d.evalTuteur.length){
       // Pré-remplir evalData avec les données existantes
@@ -913,7 +915,7 @@ async function chargerEleve(code,token){
     // Mode hors-ligne — on permet la saisie locale
     eleveCode=code;
     tuteurToken=token;
-    eleveData={code,nom:'Stagiaire',prenom:code,classe:''};
+    eleveData={code,nom:'Stagiaire',prenom:code,classe:localStorage.getItem('lastClasse_'+code)||''};
     toast('Hors-ligne — données seront envoyées plus tard','warn');
   }
   behavData={};

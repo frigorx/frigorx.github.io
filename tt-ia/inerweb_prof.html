@@ -4280,7 +4280,7 @@ function previewPageTuteur(code){
   const docsTuteur=sharedDocs.filter(d=>d.visibilite==='tous'||d.visibilite==='tuteurs');
   sessionStorage.setItem('inerwebPreviewTuteur',JSON.stringify({sharedDocs:docsTuteur}));
   const base=location.href.replace(/[^/]*$/,'');
-  const url=`${base}inerweb_tuteur.html?preview=1&eleve=${code}&tuteur=${s.token_tuteur||s.code}`;
+  const url=`${base}inerweb_tuteur.html?preview=1&eleve=${code}&tuteur=${s.token_tuteur||s.code}&classe=${encodeURIComponent(s.classe||'')}`;
   window.open(url,'_blank');
 }
 function showQRAll(){
