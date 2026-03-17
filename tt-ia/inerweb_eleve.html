@@ -559,7 +559,23 @@ function dateFR(iso){if(!iso)return'—';try{return new Date(iso).toLocaleDateSt
 function dateShort(iso){if(!iso)return'—';try{return new Date(iso).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});}catch{return String(iso).slice(0,10);}}
 function timeHM(iso){if(!iso)return'';try{return new Date(iso).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}catch{return'';}}
 function todayISO(){return new Date().toISOString().slice(0,10);}
-function saveLocal(){localStorage.setItem(SK,JSON.stringify({cfg,eleve,journal,evals,eleveDocs}));}
+function saveLocal(){
+  // Avant de sauvegarder, purger les base64 des entrées déjà synchronisées
+  journal.forEach(function(j){
+    if(j.synced&&j.photos&&j.photos.length){
+      j.photos=j.photos.filter(function(p){return typeof p!=='string'||!p.startsWith('data:');});
+    }
+  });
+  try{
+    localStorage.setItem(SK,JSON.stringify({cfg,eleve,journal,evals,eleveDocs}));
+  }catch(e){
+    // localStorage plein → purger les anciennes entrées synced sans photos
+    console.warn('localStorage plein, purge des anciennes entrées...');
+    var synced=journal.filter(function(j){return j.synced;});
+    if(synced.length>20){journal=journal.filter(function(j){return!j.synced;}).concat(synced.slice(-20));}
+    try{localStorage.setItem(SK,JSON.stringify({cfg,eleve,journal,evals,eleveDocs}));}catch(e2){console.error('localStorage critique',e2);}
+  }
+}
 function loadLocal(){const d=localStorage.getItem(SK);if(!d)return false;try{const p=safeParse(d,null);if(!p)return false;cfg=p.cfg||{};if(cfg.apiUrl&&cfg.apiUrl.includes('AKfycbybJxLLb3p0h'))cfg.apiUrl='';if(!cfg.apiUrl&&window.iwConfig)cfg.apiUrl=window.iwConfig.getApiUrl();eleve=p.eleve||null;journal=p.journal||[];evals=p.evals||{};eleveDocs=p.eleveDocs||[];
 // Anti-bug : si un token est dans l'URL, ne PAS charger le cache d'un autre élève
 const urlToken=(new URLSearchParams(window.location.search)).get('token')||(new URLSearchParams(window.location.search)).get('eleve');
@@ -761,7 +777,9 @@ async function saveProfilEleve(){
     }catch(e){console.warn('Sync profil:',e);}
   }
 }
-function startApp(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('appContainer').classList.add('active');renderAll();if(!eleve._profilDemande&&cfg.token!=='DEMO')setTimeout(showProfilModal,800);}
+function startApp(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('appContainer').classList.add('active');renderAll();if(!eleve._profilDemande&&cfg.token!=='DEMO')setTimeout(showProfilModal,800);
+// Auto-sync au démarrage pour libérer les base64 en attente
+if(cfg.token&&cfg.token!=='DEMO'&&cfg.token!=='PROF'&&cfg.token!=='TEST'){setTimeout(function(){var pending=journal.filter(function(j){return!j.synced;});if(pending.length)syncCloud();},2000);}}
 
 async function syncCloud(){
   if(!cfg.apiUrl||cfg.token==='DEMO'){journal.forEach(j=>j.synced=true);renderJournal();return;}
