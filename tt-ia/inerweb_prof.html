@@ -1694,8 +1694,8 @@ function loadConfig(){
   if(s){
     try{cfg=JSON.parse(s);}catch{cfg=Object.assign({},DEFAULT_CFG);return false;}
     cfg.apiUrl=cleanUrl(cfg.apiUrl||'');
-    const bad=cfg.apiUrl.includes('AKfycbzTMUOk')||cfg.apiUrl.includes('%20')||cfg.apiUrl.length<20;
-    if(bad){cfg.apiUrl='';cfg.apiKey='';}
+    const bad=cfg.apiUrl.includes('AKfycbzTMUOk')||cfg.apiUrl.includes('AKfycbybJxLLb3p0h')||cfg.apiUrl.includes('%20')||cfg.apiUrl.length<20;
+    if(bad){cfg.apiUrl='';cfg.apiKey='';localStorage.removeItem(SCFG);}
     if(cfg.apiUrl&&cfg.apiKey)return true;
   }
   // Pas de config sauvée → essayer inerweb.config.js
