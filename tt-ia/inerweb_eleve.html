@@ -560,7 +560,7 @@ function dateShort(iso){if(!iso)return'—';try{return new Date(iso).toLocaleDat
 function timeHM(iso){if(!iso)return'';try{return new Date(iso).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}catch{return'';}}
 function todayISO(){return new Date().toISOString().slice(0,10);}
 function saveLocal(){localStorage.setItem(SK,JSON.stringify({cfg,eleve,journal,evals,eleveDocs}));}
-function loadLocal(){const d=localStorage.getItem(SK);if(!d)return false;try{const p=safeParse(d,null);if(!p)return false;cfg=p.cfg||{};if(!cfg.apiUrl&&window.iwConfig)cfg.apiUrl=window.iwConfig.getApiUrl();eleve=p.eleve||null;journal=p.journal||[];evals=p.evals||{};eleveDocs=p.eleveDocs||[];
+function loadLocal(){const d=localStorage.getItem(SK);if(!d)return false;try{const p=safeParse(d,null);if(!p)return false;cfg=p.cfg||{};if(cfg.apiUrl&&cfg.apiUrl.includes('AKfycbybJxLLb3p0h'))cfg.apiUrl='';if(!cfg.apiUrl&&window.iwConfig)cfg.apiUrl=window.iwConfig.getApiUrl();eleve=p.eleve||null;journal=p.journal||[];evals=p.evals||{};eleveDocs=p.eleveDocs||[];
 // Anti-bug : si un token est dans l'URL, ne PAS charger le cache d'un autre élève
 const urlToken=(new URLSearchParams(window.location.search)).get('token')||(new URLSearchParams(window.location.search)).get('eleve');
 if(urlToken&&cfg.token&&urlToken!==cfg.token){localStorage.removeItem(SK);eleve=null;return false;}
