@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8"><script>
-(function(){if(sessionStorage.getItem('iw_purged'))return;if('serviceWorker' in navigator){caches.keys().then(function(k){k.forEach(function(c){caches.delete(c)})});navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(sw){sw.unregister()})});}sessionStorage.setItem('iw_purged','1');setTimeout(function(){location.reload(true)},500);})();
+(function(){try{if(sessionStorage.getItem('iw_purged'))return;}catch(e){return;}if('serviceWorker' in navigator){caches.keys().then(function(k){k.forEach(function(c){caches.delete(c)})});navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(sw){sw.unregister()})});}try{sessionStorage.setItem('iw_purged','1');}catch(e){}setTimeout(function(){location.reload(true)},500);})();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -1647,16 +1647,16 @@ function startAutoBackup(){
 }
 /* saveLocalData → js/core/utils.js (copie locale conservée) */
 async function saveLocalData(){
-  const data={id:'main',students,validations,notes,pfmpData,appCfg,customCriteria,compLocks,sharedDocs,lastSave:new Date().toISOString()};
+  const data={id:'main',students,validations,notes,pfmpData,appCfg,customCriteria,compLocks,sharedDocs,rapportData,lastSave:new Date().toISOString()};
   if(db){await saveIDB('data',data);}
-  try{localStorage.setItem(SK,JSON.stringify({students,validations,notes,pfmpData,appCfg,customCriteria,compLocks,sharedDocs}));}catch{}
+  try{localStorage.setItem(SK,JSON.stringify({students,validations,notes,pfmpData,appCfg,customCriteria,compLocks,sharedDocs,rapportData}));}catch{}
   updateStor();
 }
 async function loadLocalData(){
-  if(db){const d=await loadIDB('data','main');if(d){students=d.students||[];validations=d.validations||{};notes=d.notes||{};pfmpData=d.pfmpData||{};appCfg=d.appCfg||{};customCriteria=d.customCriteria||{};compLocks=d.compLocks||{};sharedDocs=d.sharedDocs||[];window.students=students;window.validations=validations;window.appCfg=appCfg;return true;}}
+  if(db){const d=await loadIDB('data','main');if(d){students=d.students||[];validations=d.validations||{};notes=d.notes||{};pfmpData=d.pfmpData||{};appCfg=d.appCfg||{};customCriteria=d.customCriteria||{};compLocks=d.compLocks||{};sharedDocs=d.sharedDocs||[];rapportData=d.rapportData||{};window.students=students;window.validations=validations;window.appCfg=appCfg;return true;}}
   const d=localStorage.getItem(SK);if(!d)return false;
   let p;try{p=JSON.parse(d);}catch{console.warn('[loadLocalData] JSON corrompu');return false;}
-  students=p.students||[];validations=p.validations||{};notes=p.notes||{};pfmpData=p.pfmpData||{};appCfg=p.appCfg||{};customCriteria=p.customCriteria||{};compLocks=p.compLocks||{};sharedDocs=p.sharedDocs||[];
+  students=p.students||[];validations=p.validations||{};notes=p.notes||{};pfmpData=p.pfmpData||{};appCfg=p.appCfg||{};customCriteria=p.customCriteria||{};compLocks=p.compLocks||{};sharedDocs=p.sharedDocs||[];rapportData=p.rapportData||{};
   window.students=students;window.validations=validations;window.appCfg=appCfg;
   return true;
 }
@@ -4015,7 +4015,7 @@ function lienInscription(){
     '<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
 }
 function contactClasse(){
-  var classe=document.getElementById('selEleve')?.options?.[document.getElementById('selEleve')?.selectedIndex]?.parentNode?.label||'';
+  var classe=(window.iwState&&window.iwState.classeSelectionnee)||'';
   var els=students.filter(s=>s.statut!=='inactif');
   var base=cfg.baseUrl||'';
   var html='<div style="max-height:60vh;overflow-y:auto">';
@@ -4797,7 +4797,7 @@ function updateStor(){
   const el=document.getElementById('storTxt');if(el)el.textContent=`${(used/1024/1024).toFixed(1)} MB / 5 MB`;
   const f=document.getElementById('storFill');if(f){const p=Math.min(used/(5*1024*1024)*100,100);f.style.width=p+'%';f.className='stor-fill'+(p>80?' danger':p>50?' warn':'');}
 }
-function updateAll(){populateClassFilters();renderDash();renderEleves();popSelects();updateStor();if(appCfg.etablissement)document.getElementById('hdrEtab').textContent=`${appCfg.etablissement} — Session ${appCfg.session||2026}`;}
+function updateAll(){populateClassFilters();renderDash();renderEleves();popSelects();updateStor();if(appCfg.etablissement){var hdr=document.getElementById('hdrEtab');if(hdr)hdr.innerHTML=`<span style="font-weight:800;font-size:.9rem;color:#fff">${esc(appCfg.etablissement)} — Session ${esc(String(appCfg.session||2026))}</span>`;}}
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveLocal();toast('💾 Sauvegardé','ok');}});
 
 /* ═══ [L2] ADMIN MODULE ═══ */

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8"><script>
-(function(){if(sessionStorage.getItem('iw_purged'))return;if('serviceWorker' in navigator){caches.keys().then(function(k){k.forEach(function(c){caches.delete(c)})});navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(sw){sw.unregister()})});}sessionStorage.setItem('iw_purged','1');setTimeout(function(){location.reload(true)},500);})();
+(function(){try{if(sessionStorage.getItem('iw_purged'))return;}catch(e){return;}if('serviceWorker' in navigator){caches.keys().then(function(k){k.forEach(function(c){caches.delete(c)})});navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(sw){sw.unregister()})});}try{sessionStorage.setItem('iw_purged','1');}catch(e){}setTimeout(function(){location.reload(true)},500);})();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -881,6 +881,9 @@ function scanFrame(){
     new BarcodeDetector({formats:['qr_code']}).detect(cvs).then(codes=>{
       if(codes.length){stopScan();handleQR(codes[0].rawValue);}
     }).catch(()=>{});
+  }else{
+    stopScan();
+    toast('Scan QR non supporté sur ce navigateur. Utilise Chrome ou saisis le code manuellement.','err');
   }
 }
 function handleQR(url){
@@ -1240,10 +1243,11 @@ async function envoyerConfirme(){
 /* ═══ PERSISTANCE LOCALE ═══ */
 function sauvegarderLocal(){
   localStorage.setItem('inerweb-tt-fe-tuteur-data',JSON.stringify({entreprise,tuteurs}));
-  // Sauvegarder les locks par élève
+  // Sauvegarder les locks et évaluations par élève
   if(eleveCode){
     localStorage.setItem('inerweb-tt-fe-tuteur-locks-'+eleveCode,JSON.stringify(compLocks));
     localStorage.setItem('inerweb-tt-fe-tuteur-eval-'+eleveCode,JSON.stringify(evalData));
+    localStorage.setItem('inerweb-tt-fe-tuteur-behav-'+eleveCode,JSON.stringify(behavData));
   }
 }
 function chargerLocal(){
@@ -1273,6 +1277,8 @@ function chargerLocksEleve(code){
   compLocks=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-locks-'+code),{});
   const savedEval=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-eval-'+code),{});
   if(Object.keys(savedEval).length)evalData=savedEval;
+  const savedBehav=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-behav-'+code),{});
+  if(Object.keys(savedBehav).length)behavData=savedBehav;
 }
 
 /* ═══ UTILITAIRES ═══ */
@@ -1402,10 +1408,10 @@ else if(_p.get('role')==='eleve'){
   toast('Mode aperçu (vue prof)','ok');
 } else if(_p.get('eleve')){
   const d=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-data'),{});
-  if(d.entreprise?.nom&&d.tuteurs?.[0]?.nom){
-    entreprise=d.entreprise;tuteurs=d.tuteurs;
-    chargerEleve(_p.get('eleve'),_p.get('tuteur')||_p.get('token')||'');
-  }
+  if(d.entreprise?.nom){entreprise=d.entreprise;}
+  if(d.tuteurs?.[0]?.nom){tuteurs=d.tuteurs;}
+  // Charger l'élève dans tous les cas (même première visite sans localStorage)
+  chargerEleve(_p.get('eleve'),_p.get('tuteur')||_p.get('token')||'');
 }
 async function savePrefContact(){
   var prefs=[];
