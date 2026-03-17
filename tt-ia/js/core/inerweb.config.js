@@ -32,7 +32,7 @@
     // ─── API BACKEND ───
     // URL de votre deploiement Google Apps Script
     // Format : https://script.google.com/macros/s/VOTRE_ID/exec
-    API_URL: 'https://script.google.com/macros/s/AKfycbybJxLLb3p0h_Jy7rtzRnFAAwCbm_RTMEk7E8T4TxA-Qi49901jUZsipH6ZrLKppuuqaw/exec',
+    API_URL: 'https://script.google.com/macros/s/AKfycbzVvXZRi4975OM4P8AJeoDWvnTbFSfTpVUDErzrNk2R2knfxBxCw-A-kLmKaNzmW35V1A/exec',
 
     // Cle API (doit correspondre a celle configuree dans le Apps Script)
     API_KEY: 'inerWeb2026fh',
