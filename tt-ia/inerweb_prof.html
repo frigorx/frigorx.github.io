@@ -2946,7 +2946,7 @@ async function viewStagePhotos(code){
     const photos=byDay[day];
     return `<div style="margin-bottom:.75rem"><div style="font-weight:700;font-size:.78rem;color:var(--bleu);margin-bottom:.3rem">📅 ${dateFR(day)} (${photos.length} photo${photos.length>1?'s':''})</div>
       <div style="display:flex;gap:.3rem;flex-wrap:wrap">${photos.map(p=>`<div style="position:relative">
-        <img src="${esc(p.src)}" style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid #ddd;cursor:pointer" onclick="window.open(this.src,'_blank')" title="${esc(p.text)}">
+        <img src="${esc(fixDriveUrl(p.src))}" style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid #ddd;cursor:pointer" onclick="window.open(this.src,'_blank')" title="${esc(p.text)}">
       </div>`).join('')}</div></div>`;
   }).join('');
   showModal(`📷 Photos stage — ${s.nom} ${s.prenom||''} (${allPhotos.length})`,captureHtml+`<div style="max-height:50vh;overflow-y:auto">${html}</div>`,'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
@@ -3035,7 +3035,7 @@ function viewJournalDetail(code){
       </div>
       <div style="padding:.75rem">
         ${entries.map(e=>{
-          const photosHtml=e.photos?.length?`<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.5rem">${e.photos.map((p,i)=>`<img src="${esc(p)}" style="width:60px;height:60px;object-fit:cover;border-radius:4px;cursor:pointer" onclick="window.open(this.src,'_blank')" title="Clic pour agrandir">`).join('')}</div>`:'';
+          const photosHtml=e.photos?.length?`<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.5rem">${e.photos.map((p,i)=>`<img src="${esc(fixDriveUrl(p))}" style="width:60px;height:60px;object-fit:cover;border-radius:4px;cursor:pointer" onclick="window.open(this.src,'_blank')" title="Clic pour agrandir">`).join('')}</div>`:'';
           return `<div style="padding:.5rem;background:#fff;border-radius:var(--r2);margin-bottom:.4rem;border-left:3px solid var(--violet)">
             <div style="font-size:.7rem;color:var(--gris)">${new Date(e.date||e.timestamp).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})} <span style="background:var(--violet2);color:var(--violet);padding:.1rem .3rem;border-radius:3px;font-weight:700">${TYPE_LBL[e.type]||esc(e.type||'—')}</span></div>
             ${e.text||e.description||e.activite?`<div style="font-size:.85rem;margin-top:.3rem">${esc(e.text||e.description||e.activite)}</div>`:''}
@@ -4744,6 +4744,8 @@ function loadDemoData(){
 /* ═══ [L] UTILITAIRES ═══ */
 /** Échappe les caractères HTML pour éviter les injections XSS */
 function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+/** Convertit les anciennes URLs Drive /uc?export=view vers le format lh3 qui fonctionne */
+function fixDriveUrl(url){if(!url||typeof url!=='string')return url;var m=url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);if(m)return'https://lh3.googleusercontent.com/d/'+m[1];return url;}
 function showModal(t,b,a){document.getElementById('modalTitle').textContent=t;document.getElementById('modalBody').innerHTML=b;document.getElementById('modalAct').innerHTML=a||'';var m=document.getElementById('modalOv');m.classList.add('open');m.setAttribute('aria-expanded','true');}
 function closeModal(){var m=document.getElementById('modalOv');m.classList.remove('open');m.setAttribute('aria-expanded','false');}
 function showSpinner(){document.getElementById('spinOv').classList.add('open');}

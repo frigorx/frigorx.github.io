@@ -560,6 +560,8 @@ function dateFR(iso){if(!iso)return'—';try{return new Date(iso).toLocaleDateSt
 function dateShort(iso){if(!iso)return'—';try{return new Date(iso).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});}catch{return String(iso).slice(0,10);}}
 function timeHM(iso){if(!iso)return'';try{return new Date(iso).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}catch{return'';}}
 function todayISO(){return new Date().toISOString().slice(0,10);}
+/** Convertit les anciennes URLs Drive /uc?export=view vers le format lh3 qui fonctionne */
+function fixDriveUrl(url){if(!url||typeof url!=='string')return url;var m=url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);if(m)return'https://lh3.googleusercontent.com/d/'+m[1];return url;}
 function saveLocal(){
   // Avant de sauvegarder, purger les base64 des entrées déjà synchronisées
   journal.forEach(function(j){
@@ -694,7 +696,7 @@ function renderJournal(){
 }
 
 function renderJournalEntry(e){
-  const photosHtml=e.photos?.length?`<div class="photos-grid">${e.photos.map((p,i)=>`<div class="photo-thumb" onclick="openPhoto(this.querySelector('img').src)"><img src="${esc(p)}" alt="Photo"></div>`).join('')}</div>`:'';
+  const photosHtml=e.photos?.length?`<div class="photos-grid">${e.photos.map((p,i)=>`<div class="photo-thumb" onclick="openPhoto(this.querySelector('img').src)"><img src="${esc(fixDriveUrl(p))}" alt="Photo"></div>`).join('')}</div>`:'';
   const pendingClass=e.synced?'':'pending';
   const pendingBadge=e.synced?'':'<span class="badge-pending">En attente</span>';
   const syncIcon=e.synced?'<span style="color:var(--vert);margin-left:.3rem">✓</span>':'<span style="color:var(--orange);margin-left:.3rem">⏳</span>';
@@ -971,7 +973,7 @@ function ecalShowDay(ds){
       html+=`<div style="background:var(--violet2);border-radius:var(--r2);padding:.5rem .6rem;margin-bottom:.3rem;border-left:3px solid var(--violet)">
         <div style="font-size:.7rem;color:var(--gris)">${timeHM(j.date)} <span style="background:var(--violet);color:#fff;padding:.1rem .3rem;border-radius:4px;font-size:.6rem;font-weight:700">${TYPE_LBL[j.type]||esc(j.type)}</span></div>
         ${j.text?`<div style="font-size:.82rem;margin-top:.2rem">${esc(j.text)}</div>`:''}
-        ${j.photos&&j.photos.length?`<div style="display:flex;gap:.3rem;margin-top:.3rem;flex-wrap:wrap">${j.photos.map(p=>`<img src="${esc(p)}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;cursor:pointer" onclick="openPhotoModal(this.src)">`).join('')}</div>`:''}
+        ${j.photos&&j.photos.length?`<div style="display:flex;gap:.3rem;margin-top:.3rem;flex-wrap:wrap">${j.photos.map(p=>`<img src="${esc(fixDriveUrl(p))}" style="width:48px;height:48px;object-fit:cover;border-radius:4px;cursor:pointer" onclick="openPhotoModal(this.src)">`).join('')}</div>`:''}
       </div>`;
     });
   }
@@ -1099,7 +1101,7 @@ async function exportPDF(){
   const byDay={};journal.forEach(j=>{const day=j.date?.slice(0,10)||'inconnu';if(!byDay[day])byDay[day]=[];byDay[day].push(j);});
   const days=Object.keys(byDay).sort();
   let html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Journal de stage - ${esc(eleve.prenom)} ${esc(eleve.nom)}</title><style>body{font-family:Arial,sans-serif;font-size:12px;padding:20px}h1{color:#1b3a63;border-bottom:2px solid #8e44ad;padding-bottom:10px}.info{background:#f0f2f5;padding:15px;border-radius:8px;margin-bottom:20px}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.info-item label{font-weight:bold;color:#666;font-size:10px;display:block}.day{margin-bottom:20px;page-break-inside:avoid}.day-title{background:#8e44ad;color:white;padding:8px 12px;border-radius:6px 6px 0 0}.day-content{border:1px solid #ddd;border-top:none;padding:12px;border-radius:0 0 6px 6px}.entry{margin-bottom:12px;padding-bottom:12px;border-bottom:1px dashed #ddd}.entry:last-child{border-bottom:none}.entry-time{color:#666;font-size:10px}.entry-type{background:#f3e5f5;color:#8e44ad;padding:2px 6px;border-radius:4px;font-size:10px;margin-left:8px}.entry-text{margin-top:6px}.photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.photos img{width:120px;height:120px;object-fit:cover;border-radius:6px}@media print{.no-print{display:none}}</style></head><body><div class="no-print" style="text-align:center;margin-bottom:20px"><button onclick="window.print()" style="padding:10px 20px;font-size:14px;cursor:pointer">🖨️ Imprimer / Enregistrer PDF</button></div><h1>📓 Journal de stage</h1><div class="info"><div class="info-grid"><div class="info-item"><label>Élève</label>${esc(eleve.prenom)} ${esc(eleve.nom)}</div><div class="info-item"><label>Classe</label>${esc(eleve.classe)}</div><div class="info-item"><label>Entreprise</label>${esc(eleve.entreprise_nom||'—')}</div><div class="info-item"><label>Tuteur</label>${esc(eleve.tuteur_nom||'—')}</div><div class="info-item"><label>Période</label>${dateShort(eleve.pfmp_debut)} → ${dateShort(eleve.pfmp_fin)}</div><div class="info-item"><label>Entrées</label>${journal.length}</div></div></div>`;
-  for(const day of days){const entries=byDay[day].sort((a,b)=>new Date(a.date)-new Date(b.date));html+=`<div class="day"><div class="day-title">📅 ${dateFR(day)}</div><div class="day-content">`;for(const e of entries){html+=`<div class="entry"><div class="entry-time">${timeHM(e.date)} <span class="entry-type">${TYPE_LBL[e.type]||esc(e.type)}</span></div>${e.text?`<div class="entry-text">${esc(e.text)}</div>`:''}${e.photos?.length?`<div class="photos">${e.photos.map(p=>`<img src="${esc(p)}">`).join('')}</div>`:''}</div>`;}html+=`</div></div>`;}
+  for(const day of days){const entries=byDay[day].sort((a,b)=>new Date(a.date)-new Date(b.date));html+=`<div class="day"><div class="day-title">📅 ${dateFR(day)}</div><div class="day-content">`;for(const e of entries){html+=`<div class="entry"><div class="entry-time">${timeHM(e.date)} <span class="entry-type">${TYPE_LBL[e.type]||esc(e.type)}</span></div>${e.text?`<div class="entry-text">${esc(e.text)}</div>`:''}${e.photos?.length?`<div class="photos">${e.photos.map(p=>`<img src="${esc(fixDriveUrl(p))}">`).join('')}</div>`:''}</div>`;}html+=`</div></div>`;}
   html+=`<p style="text-align:center;color:#666;margin-top:30px;font-size:10px">Généré le ${new Date().toLocaleDateString('fr-FR')} via inerWeb TT MFER</p></body></html>`;
   printWindow.document.write(html);printWindow.document.close();hideSpinner();
 }
