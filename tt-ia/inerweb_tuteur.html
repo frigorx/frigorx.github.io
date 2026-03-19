@@ -1274,10 +1274,10 @@ function chargerLocal(){
   }
 }
 function chargerLocksEleve(code){
-  compLocks=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-locks-'+code),{});
-  const savedEval=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-eval-'+code),{});
+  compLocks=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-locks-'+code),{})||{};
+  const savedEval=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-eval-'+code),{})||{};
   if(Object.keys(savedEval).length)evalData=savedEval;
-  const savedBehav=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-behav-'+code),{});
+  const savedBehav=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-behav-'+code),{})||{};
   if(Object.keys(savedBehav).length)behavData=savedBehav;
 }
 
@@ -1332,8 +1332,8 @@ function loadTuteurDemo(){
 
 /* ═══ RETRY PENDING — Renvoi automatique des évaluations en attente ═══ */
 async function retryPending(){
-  var pending=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-pending'),[]);
-  if(!pending.length) return;
+  var pending=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-pending'),[])||[];
+  if(!pending||!pending.length) return;
   var restant=[];
   for(var i=0;i<pending.length;i++){
     try{
