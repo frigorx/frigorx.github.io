@@ -762,6 +762,7 @@ function showProfilModal(){
   if(eleve.email)document.getElementById('profilEmail').value=eleve.email;
   if(eleve.tuteur_nom)document.getElementById('profilTuteurNom').value=eleve.tuteur_nom;
   if(eleve.tel_tuteur)document.getElementById('profilTuteurTel').value=eleve.tel_tuteur;
+  if(eleve.tuteur_email)document.getElementById('profilTuteurEmail').value=eleve.tuteur_email;
   var alerte=document.getElementById('profilAlertTuteur');
   if(!profilTuteurComplet()){alerte.style.display='block';document.getElementById('profilTuteurNom').style.borderColor='var(--orange,#ff6b35)';document.getElementById('profilTuteurTel').style.borderColor='var(--orange,#ff6b35)';}
   else{alerte.style.display='none';document.getElementById('profilTuteurNom').style.borderColor='';document.getElementById('profilTuteurTel').style.borderColor='';}
@@ -776,10 +777,12 @@ async function saveProfilEleve(){
   var email=document.getElementById('profilEmail').value.trim();
   var tuteurNom=document.getElementById('profilTuteurNom').value.trim();
   var tuteurTel=document.getElementById('profilTuteurTel').value.trim();
+  var tuteurEmail=document.getElementById('profilTuteurEmail').value.trim();
   if(tel)eleve.telephone=tel;
   if(email)eleve.email=email;
   if(tuteurNom)eleve.tuteur_nom=tuteurNom;
   if(tuteurTel)eleve.tel_tuteur=tuteurTel;
+  if(tuteurEmail)eleve.tuteur_email=tuteurEmail;
   if(profilTuteurComplet())eleve._profilDemande=true;
   saveLocal();
   document.getElementById('profilModal').style.display='none';
@@ -788,7 +791,7 @@ async function saveProfilEleve(){
   if(cfg.apiUrl&&cfg.token!=='DEMO'){
     try{
       var apiKey=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():(window.INERWEB_CONFIG?window.INERWEB_CONFIG.API_KEY:'');
-      await fetch(cfg.apiUrl,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateEleveProfil',apiKey:apiKey,token:cfg.token,eleve:eleve.code,telephone:tel,email:email,tuteur_nom:tuteurNom,tel_tuteur:tuteurTel})});
+      await fetch(cfg.apiUrl,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateEleveProfil',apiKey:apiKey,token:cfg.token,eleve:eleve.code,telephone:tel,email:email,tuteur_nom:tuteurNom,tel_tuteur:tuteurTel,tuteur_email:tuteurEmail})});
     }catch(e){console.warn('Sync profil:',e);}
   }
 }
@@ -1206,9 +1209,13 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closePhotoModal();})
       <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Nom du tuteur</label>
       <input type="text" id="profilTuteurNom" placeholder="ex : Jean Martin" style="width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;box-sizing:border-box">
     </div>
-    <div style="margin-bottom:1rem">
+    <div style="margin-bottom:.75rem">
       <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Téléphone du tuteur</label>
       <input type="tel" id="profilTuteurTel" placeholder="06 xx xx xx xx" style="width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:1rem">
+      <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Email du tuteur (optionnel)</label>
+      <input type="email" id="profilTuteurEmail" placeholder="tuteur@entreprise.fr" style="width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;box-sizing:border-box">
     </div>
     <div style="display:flex;gap:.5rem">
       <button onclick="saveProfilEleve()" style="flex:2;padding:.75rem;background:linear-gradient(135deg,var(--violet),var(--bleu2));color:#fff;border:none;border-radius:var(--r2);font-size:.9rem;font-weight:800;cursor:pointer;min-height:44px">Enregistrer</button>
