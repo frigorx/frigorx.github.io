@@ -302,7 +302,7 @@ input, select, textarea, button { font-family:inherit; }
     <div class="login-error" id="loginError">Code invalide. Vérifie ton badge ou demande à ton prof.</div>
     <input type="text" class="login-input" id="tokenInput" placeholder="Entre ton code élève" maxlength="20" aria-label="Code élève">
     <button class="login-btn" onclick="doLogin()">🚀 Accéder à mon espace</button>
-    <div class="login-help">Tu n'as pas ton code ? <a href="#">Demande à ton professeur</a></div>
+    <div class="login-help">Tu n'as pas ton code ? <a href="#" onclick="event.preventDefault();alert('Contacte ton professeur M. Henninot pour recevoir ton code d\'accès par SMS ou WhatsApp.');">Demande à ton professeur</a></div>
   </div>
 </div>
 
