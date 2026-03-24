@@ -789,7 +789,7 @@ function showProfilModal(){
     alerte.style.display='block';
     document.getElementById('profilTuteurNom').style.borderColor='var(--orange,#ff6b35)';
     document.getElementById('profilTuteurTel').style.borderColor='var(--orange,#ff6b35)';
-    if(btnLater)btnLater.style.display='none';
+    if(btnLater)btnLater.style.display='';
   }else{
     alerte.style.display='none';
     document.getElementById('profilTuteurNom').style.borderColor='';
@@ -798,16 +798,13 @@ function showProfilModal(){
   }
 }
 function closeProfilModal(){
-  // Bloquant : impossible de fermer sans avoir renseigné tuteur_nom + tel_tuteur
-  if(!profilTuteurComplet()&&cfg.token!=='DEMO'&&cfg.token!=='PROF'){
-    toast('Renseigne les infos de ton tuteur pour continuer','err');
-    document.getElementById('profilTuteurNom').focus();
-    return;
-  }
   document.getElementById('profilModal').style.display='none';
-  eleve._profilDemande=true;
+  if(profilTuteurComplet())eleve._profilDemande=true;
   saveLocal();
   renderHome();
+  if(!profilTuteurComplet()&&cfg.token!=='DEMO'&&cfg.token!=='PROF'){
+    toast('Pense à renseigner les infos de ton tuteur pour activer le QR code','warn');
+  }
 }
 async function saveProfilEleve(){
   var tel=document.getElementById('profilTel').value.trim();
@@ -816,13 +813,6 @@ async function saveProfilEleve(){
   var tuteurTel=document.getElementById('profilTuteurTel').value.trim();
   var tuteurEmail=document.getElementById('profilTuteurEmail').value.trim();
   var entrepriseNom=document.getElementById('profilEntreprise').value.trim();
-  // Vérification obligatoire tuteur
-  if(!tuteurNom||!tuteurTel){
-    toast('Le nom et le téléphone du tuteur sont obligatoires','err');
-    if(!tuteurNom)document.getElementById('profilTuteurNom').focus();
-    else document.getElementById('profilTuteurTel').focus();
-    return;
-  }
   if(tel)eleve.telephone=tel;
   if(email)eleve.email=email;
   eleve.tuteur_nom=tuteurNom;
@@ -1293,7 +1283,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closePhotoModal();})
     </div>
     <div style="display:flex;gap:.5rem">
       <button onclick="saveProfilEleve()" style="flex:2;padding:.75rem;background:linear-gradient(135deg,var(--violet),var(--bleu2));color:#fff;border:none;border-radius:var(--r2);font-size:.9rem;font-weight:800;cursor:pointer;min-height:44px">Enregistrer</button>
-      <button id="profilBtnLater" onclick="closeProfilModal()" style="flex:1;padding:.75rem;background:var(--gris2);color:var(--gris);border:none;border-radius:var(--r2);font-size:.9rem;font-weight:700;cursor:pointer;min-height:44px;display:none">Plus tard</button>
+      <button id="profilBtnLater" onclick="closeProfilModal()" style="flex:1;padding:.75rem;background:var(--gris2);color:var(--gris);border:none;border-radius:var(--r2);font-size:.9rem;font-weight:700;cursor:pointer;min-height:44px">Plus tard</button>
     </div>
   </div>
 </div>

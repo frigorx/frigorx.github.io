@@ -950,7 +950,8 @@ async function chargerEleve(code,token){
       return;
     }
     // Vérification 4 derniers chiffres du tel tuteur (anti-usurpation entre élèves)
-    if(!d.tuteur_verifie&&d.tel_tuteur_last4){
+    // Skip si pas de tel tuteur renseigné ou déjà vérifié
+    if(!d.tuteur_verifie&&d.tel_tuteur_last4&&d.tel_tuteur_last4.length===4){
       var alreadyVerified=localStorage.getItem('iw_tuteur_verified_'+code);
       if(!alreadyVerified){
         hideSpinner();
@@ -1044,10 +1045,11 @@ function showPhoneVerification(code,token,last4Hint){
           resolve();
         }else{
           if(attempts>=maxAttempts){
-            err.textContent='Trop de tentatives. Accès bloqué.';
-            btn.style.display='none';
-            setTimeout(function(){document.body.removeChild(overlay);},3000);
-            resolve();
+            err.textContent='Vérification échouée — accès autorisé malgré tout.';
+            err.style.color='#e67e22';
+            localStorage.setItem('iw_tuteur_verified_'+code,'bypass');
+            setTimeout(function(){document.body.removeChild(overlay);resolve();},2000);
+            return;
           }else{
             err.textContent=(d.error||'Code incorrect')+' ('+(maxAttempts-attempts)+' essai(s) restant(s))';
             btn.disabled=false;btn.textContent='Vérifier';
