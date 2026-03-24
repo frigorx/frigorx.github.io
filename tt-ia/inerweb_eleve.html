@@ -8,6 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>INERWEB PROG+ — Mon espace élève</title>
 <script src="js/core/inerweb.config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -367,6 +368,17 @@ input, select, textarea, button { font-family:inherit; }
       </div>
       <div id="stageStatus"></div>
     </div>
+    <!-- QR TUTEUR — affiché quand les infos tuteur sont remplies -->
+    <div id="qrTuteurBox" class="card" style="display:none;text-align:center;border-top:3px solid var(--teal,#16a085)">
+      <div style="font-size:.85rem;font-weight:800;color:var(--teal,#16a085);margin-bottom:.5rem">📱 QR Code de ton tuteur</div>
+      <p style="font-size:.75rem;color:var(--gris);margin-bottom:.75rem">Fais scanner ce code à ton maître de stage pour qu'il accède à son espace d'évaluation</p>
+      <div id="qrTuteurCanvas" style="display:inline-block;padding:10px;background:#fff;border-radius:12px;border:2px solid var(--gris3,#dee2e6)"></div>
+      <div id="qrTuteurNom" style="font-size:.8rem;font-weight:700;color:var(--bleu);margin-top:.5rem"></div>
+      <div id="qrTuteurMissing" style="display:none;padding:1rem;background:var(--jaune2,#fef9e7);border-radius:var(--r2,8px);margin-top:.5rem">
+        <div style="font-size:.85rem;font-weight:700;color:var(--orange,#ff6b35)">⚠️ Renseigne les infos de ton tuteur</div>
+        <p style="font-size:.75rem;color:var(--gris);margin-top:.25rem">Clique sur le bouton profil (👤) pour compléter</p>
+      </div>
+    </div>
     <div class="export-box">
       <div class="export-box-ico">📥</div>
       <div class="export-box-txt">Télécharge ton journal complet avec toutes tes photos</div>
@@ -709,6 +721,13 @@ function renderJournalEntry(e){
 function openPhoto(src){openPhotoModal(src);}
 function closePhotoModal(){var m=document.getElementById('photoModal');m.classList.remove('active');m.setAttribute('aria-expanded','false');}
 
+// Empreinte d'appareil unique (anti-usurpation)
+function getDeviceId(){
+  var id=localStorage.getItem('iw_device_id');
+  if(!id){id=typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():'DV-'+Date.now()+'-'+Math.random().toString(36).substr(2,9);localStorage.setItem('iw_device_id',id);}
+  return id;
+}
+
 function doLogin(){
   const token=document.getElementById('tokenInput').value.trim().toUpperCase();
   if(!token){document.getElementById('loginError').style.display='block';return;}
@@ -723,7 +742,7 @@ async function verifyToken(token){
   showSpinner();
   try{
     const apiKey=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():(window.INERWEB_CONFIG?window.INERWEB_CONFIG.API_KEY:'');
-    const p=new URLSearchParams({action:'verifyEleveToken',token,key:apiKey});
+    const p=new URLSearchParams({action:'verifyEleveToken',token,key:apiKey,deviceId:getDeviceId()});
     const r=await fetch(`${cfg.apiUrl}?${p}`,{redirect:'follow'});
     const d=await r.json();
     if(d.success&&d.eleve){eleve=d.eleve;evals=d.evals||{};journal=d.journal||[];saveLocal();startApp();toast('Connecté !','ok');}
@@ -763,14 +782,32 @@ function showProfilModal(){
   if(eleve.tuteur_nom)document.getElementById('profilTuteurNom').value=eleve.tuteur_nom;
   if(eleve.tel_tuteur)document.getElementById('profilTuteurTel').value=eleve.tel_tuteur;
   if(eleve.tuteur_email)document.getElementById('profilTuteurEmail').value=eleve.tuteur_email;
+  if(eleve.entreprise_nom)document.getElementById('profilEntreprise').value=eleve.entreprise_nom;
   var alerte=document.getElementById('profilAlertTuteur');
-  if(!profilTuteurComplet()){alerte.style.display='block';document.getElementById('profilTuteurNom').style.borderColor='var(--orange,#ff6b35)';document.getElementById('profilTuteurTel').style.borderColor='var(--orange,#ff6b35)';}
-  else{alerte.style.display='none';document.getElementById('profilTuteurNom').style.borderColor='';document.getElementById('profilTuteurTel').style.borderColor='';}
+  var btnLater=document.getElementById('profilBtnLater');
+  if(!profilTuteurComplet()){
+    alerte.style.display='block';
+    document.getElementById('profilTuteurNom').style.borderColor='var(--orange,#ff6b35)';
+    document.getElementById('profilTuteurTel').style.borderColor='var(--orange,#ff6b35)';
+    if(btnLater)btnLater.style.display='none';
+  }else{
+    alerte.style.display='none';
+    document.getElementById('profilTuteurNom').style.borderColor='';
+    document.getElementById('profilTuteurTel').style.borderColor='';
+    if(btnLater)btnLater.style.display='';
+  }
 }
 function closeProfilModal(){
+  // Bloquant : impossible de fermer sans avoir renseigné tuteur_nom + tel_tuteur
+  if(!profilTuteurComplet()&&cfg.token!=='DEMO'&&cfg.token!=='PROF'){
+    toast('Renseigne les infos de ton tuteur pour continuer','err');
+    document.getElementById('profilTuteurNom').focus();
+    return;
+  }
   document.getElementById('profilModal').style.display='none';
-  if(profilTuteurComplet())eleve._profilDemande=true;
+  eleve._profilDemande=true;
   saveLocal();
+  renderHome();
 }
 async function saveProfilEleve(){
   var tel=document.getElementById('profilTel').value.trim();
@@ -778,12 +815,21 @@ async function saveProfilEleve(){
   var tuteurNom=document.getElementById('profilTuteurNom').value.trim();
   var tuteurTel=document.getElementById('profilTuteurTel').value.trim();
   var tuteurEmail=document.getElementById('profilTuteurEmail').value.trim();
+  var entrepriseNom=document.getElementById('profilEntreprise').value.trim();
+  // Vérification obligatoire tuteur
+  if(!tuteurNom||!tuteurTel){
+    toast('Le nom et le téléphone du tuteur sont obligatoires','err');
+    if(!tuteurNom)document.getElementById('profilTuteurNom').focus();
+    else document.getElementById('profilTuteurTel').focus();
+    return;
+  }
   if(tel)eleve.telephone=tel;
   if(email)eleve.email=email;
-  if(tuteurNom)eleve.tuteur_nom=tuteurNom;
-  if(tuteurTel)eleve.tel_tuteur=tuteurTel;
+  eleve.tuteur_nom=tuteurNom;
+  eleve.tel_tuteur=tuteurTel;
   if(tuteurEmail)eleve.tuteur_email=tuteurEmail;
-  if(profilTuteurComplet())eleve._profilDemande=true;
+  if(entrepriseNom)eleve.entreprise_nom=entrepriseNom;
+  eleve._profilDemande=true;
   saveLocal();
   document.getElementById('profilModal').style.display='none';
   renderHome();
@@ -791,7 +837,7 @@ async function saveProfilEleve(){
   if(cfg.apiUrl&&cfg.token!=='DEMO'){
     try{
       var apiKey=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():(window.INERWEB_CONFIG?window.INERWEB_CONFIG.API_KEY:'');
-      await fetch(cfg.apiUrl,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateEleveProfil',apiKey:apiKey,token:cfg.token,eleve:eleve.code,telephone:tel,email:email,tuteur_nom:tuteurNom,tel_tuteur:tuteurTel,tuteur_email:tuteurEmail})});
+      await fetch(cfg.apiUrl,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'updateEleveProfil',apiKey:apiKey,token:cfg.token,eleve:eleve.code,telephone:tel,email:email,tuteur_nom:tuteurNom,tel_tuteur:tuteurTel,tuteur_email:tuteurEmail,entreprise_nom:entrepriseNom})});
     }catch(e){console.warn('Sync profil:',e);}
   }
 }
@@ -852,6 +898,30 @@ function renderHome(){
   document.getElementById('stageTuteurTel').textContent=eleve.tel_tuteur||'—';
   document.getElementById('stageDebut').textContent=dateShort(eleve.pfmp_debut);
   document.getElementById('stageFin').textContent=dateShort(eleve.pfmp_fin);
+  // QR Tuteur — affiché si les infos tuteur sont remplies ET token_tuteur disponible
+  var qrBox=document.getElementById('qrTuteurBox');
+  var qrCanvas=document.getElementById('qrTuteurCanvas');
+  var qrMissing=document.getElementById('qrTuteurMissing');
+  if(qrBox){
+    qrBox.style.display='block';
+    if(profilTuteurComplet()&&eleve.token_tuteur){
+      qrMissing.style.display='none';
+      qrCanvas.style.display='inline-block';
+      var base=(window.iwConfig?window.iwConfig.getBaseUrl():'')||'https://frigorx.github.io/tt-ia/';
+      var qrUrl=base+'inerweb_tuteur.html?eleve='+encodeURIComponent(eleve.code)+'&tuteur='+encodeURIComponent(eleve.token_tuteur)+'&role=tuteur';
+      // Ne recréer le QR que si l'URL a changé
+      if(qrCanvas.dataset.url!==qrUrl){
+        qrCanvas.innerHTML='';
+        new QRCode(qrCanvas,{text:qrUrl,width:180,height:180,correctLevel:QRCode.CorrectLevel.M});
+        qrCanvas.dataset.url=qrUrl;
+      }
+      document.getElementById('qrTuteurNom').textContent='Tuteur : '+(eleve.tuteur_nom||'')+(eleve.entreprise_nom?' — '+eleve.entreprise_nom:'');
+    }else{
+      qrCanvas.style.display='none';
+      qrMissing.style.display='block';
+      document.getElementById('qrTuteurNom').textContent='';
+    }
+  }
   const calcPct=(ep,comps)=>{const data=evals[ep]||{};let total=0,acquis=0;comps.forEach(c=>{total++;const niv=data[c.code]||'NE';if(niv==='PM')acquis+=1;else if(niv==='M')acquis+=0.85;else if(niv==='EC')acquis+=0.5;else if(niv==='NA')acquis+=0.15;});return Math.round((acquis/total)*100);};
   const pctE31=calcPct('E31',COMP_E31),pctE32=calcPct('E32',COMP_E32),pctE33=calcPct('E33',COMP_E33);
   document.getElementById('ringE31').style.setProperty('--pct',pctE31);document.getElementById('pctE31').textContent=pctE31+'%';
@@ -1186,7 +1256,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closePhotoModal();})
 <a href="aide.html#eleve" target="_blank" rel="noopener noreferrer" title="Guide d'utilisation — Élève" style="position:fixed;bottom:1.5rem;right:1.5rem;width:52px;height:52px;background:#ff6b35;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:900;text-decoration:none;box-shadow:0 4px 20px rgba(255,107,53,.4);z-index:9999;transition:transform .2s,box-shadow .2s;font-family:'Nunito',sans-serif;" onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 28px rgba(255,107,53,.5)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(255,107,53,.4)'">?</a>
 
 <!-- Modale Profil élève -->
-<div id="profilModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;padding:1rem">
+<div id="profilModal" onclick="if(event.target===this)closeProfilModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;padding:1rem">
   <div style="background:#fff;border-radius:16px;padding:1.5rem;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
     <div style="text-align:center;margin-bottom:1rem">
       <div style="font-size:2.5rem">&#128100;</div>
@@ -1203,14 +1273,18 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closePhotoModal();})
       <input type="email" id="profilEmail" placeholder="prenom.nom@email.fr" style="width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;box-sizing:border-box">
     </div>
     <div style="border-top:2px solid var(--gris3,#e0e0e0);margin:1rem 0 .75rem;padding-top:.75rem">
-      <p style="font-size:.8rem;font-weight:800;color:var(--orange,#ff6b35);margin-bottom:.5rem">🏢 Ton tuteur en entreprise</p>
+      <p style="font-size:.8rem;font-weight:800;color:var(--orange,#ff6b35);margin-bottom:.5rem">🏢 Ton stage en entreprise</p>
     </div>
     <div style="margin-bottom:.75rem">
-      <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Nom du tuteur</label>
+      <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Nom de l'entreprise</label>
+      <input type="text" id="profilEntreprise" placeholder="ex : Climafroid SARL" style="width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:.75rem">
+      <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Nom du tuteur <span style="color:var(--orange)">*</span></label>
       <input type="text" id="profilTuteurNom" placeholder="ex : Jean Martin" style="width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;box-sizing:border-box">
     </div>
     <div style="margin-bottom:.75rem">
-      <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Téléphone du tuteur</label>
+      <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Téléphone du tuteur <span style="color:var(--orange)">*</span></label>
       <input type="tel" id="profilTuteurTel" placeholder="06 xx xx xx xx" style="width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;box-sizing:border-box">
     </div>
     <div style="margin-bottom:1rem">
@@ -1219,7 +1293,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closePhotoModal();})
     </div>
     <div style="display:flex;gap:.5rem">
       <button onclick="saveProfilEleve()" style="flex:2;padding:.75rem;background:linear-gradient(135deg,var(--violet),var(--bleu2));color:#fff;border:none;border-radius:var(--r2);font-size:.9rem;font-weight:800;cursor:pointer;min-height:44px">Enregistrer</button>
-      <button onclick="closeProfilModal()" style="flex:1;padding:.75rem;background:var(--gris2);color:var(--gris);border:none;border-radius:var(--r2);font-size:.9rem;font-weight:700;cursor:pointer;min-height:44px">Plus tard</button>
+      <button id="profilBtnLater" onclick="closeProfilModal()" style="flex:1;padding:.75rem;background:var(--gris2);color:var(--gris);border:none;border-radius:var(--r2);font-size:.9rem;font-weight:700;cursor:pointer;min-height:44px;display:none">Plus tard</button>
     </div>
   </div>
 </div>

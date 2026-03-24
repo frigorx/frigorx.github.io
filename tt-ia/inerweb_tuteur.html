@@ -765,6 +765,13 @@ let telsCount=1,emailsCount=1,tuteursCount=1;
 // Il s'authentifie avec son propre token_tuteur
 const API_URL=(window.iwConfig?window.iwConfig.getApiUrl():'');
 
+// Empreinte d'appareil unique (anti-usurpation élève↔tuteur)
+function getDeviceId(){
+  var id=localStorage.getItem('iw_device_id');
+  if(!id){id=typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():'DV-'+Date.now()+'-'+Math.random().toString(36).substr(2,9);localStorage.setItem('iw_device_id',id);}
+  return id;
+}
+
 /* esc() → fourni par core.js */
 /** JSON.parse protégé — retourne fallback en cas d'erreur */
 function safeParse(str,fallback){
@@ -929,23 +936,36 @@ async function chargerEleve(code,token){
   try{
     // ⚠️ SÉCURITÉ : On utilise verifyTuteurToken, PAS la clé prof
     const apiKey=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():(window.INERWEB_CONFIG?window.INERWEB_CONFIG.API_KEY:'');
-    const p=new URLSearchParams({action:'verifyTuteurToken',eleve:code,tuteur:token,key:apiKey});
+    const p=new URLSearchParams({action:'verifyTuteurToken',eleve:code,tuteur:token,key:apiKey,deviceId:getDeviceId()});
     const r=await fetch(`${API_URL}?${p}`,{redirect:'follow'});
     const d=await r.json();
     if(!d.success){
       hideSpinner();
-      toast(d.error||'Accès refusé','err');
+      // Message spécifique si c'est un appareil élève
+      if(d.error&&d.error.indexOf('appareil élève')!==-1){
+        showDeviceBlockedError(d.error);
+      }else{
+        toast(d.error||'Accès refusé','err');
+      }
       return;
+    }
+    // Vérification 4 derniers chiffres du tel tuteur (anti-usurpation entre élèves)
+    if(!d.tuteur_verifie&&d.tel_tuteur_last4){
+      var alreadyVerified=localStorage.getItem('iw_tuteur_verified_'+code);
+      if(!alreadyVerified){
+        hideSpinner();
+        await showPhoneVerification(code,token,d.tel_tuteur_last4);
+        showSpinner();
+      }
     }
     // Token valide — stocker pour les appels suivants
     eleveCode=code;
     tuteurToken=token;
-    eleveData=d.eleve;
+    eleveData=d.eleveData||d.eleve||{};
     // Sauvegarder la classe pour le mode hors-ligne
     if(eleveData&&eleveData.classe)localStorage.setItem('lastClasse_'+code,eleveData.classe);
     // Charger évaluations tuteur existantes si présentes
     if(d.evalTuteur&&d.evalTuteur.length){
-      // Pré-remplir evalData avec les données existantes
       d.evalTuteur.forEach(ev=>{
         if(ev.competence&&ev.niveau!=null){
           evalData[ev.competence]={niveau:ev.niveau,taches:ev.taches||{},obs:ev.obs||''};
@@ -967,7 +987,6 @@ async function chargerEleve(code,token){
     toast('Hors-ligne — données seront envoyées plus tard','warn');
   }
   behavData={};
-  // Charger les locks et évaluations sauvegardées pour cet élève
   chargerLocksEleve(code);
   hideSpinner();
   renderStagiaireInfo();
@@ -975,6 +994,76 @@ async function chargerEleve(code,token){
   renderBehav();
   renderTuteurDocs();
   goPage('eval');
+}
+
+/* ═══ SÉCURITÉ — Blocage appareil élève ═══ */
+function showDeviceBlockedError(msg){
+  document.getElementById('page-bienvenue').querySelector('.page-inner').innerHTML=`
+    <div style="text-align:center;padding:3rem 1.5rem;max-width:400px;margin:0 auto">
+      <div style="font-size:3rem;margin-bottom:.5rem">🚫</div>
+      <h2 style="color:#c0390f;margin-bottom:.5rem">Accès refusé</h2>
+      <p style="color:#666;font-size:.9rem;margin-bottom:1rem">${msg||'Ce téléphone est déjà enregistré comme appareil élève.'}</p>
+      <p style="font-size:.8rem;color:#999;background:#f8f8f8;padding:.75rem;border-radius:8px">Le tuteur doit scanner le QR code depuis <strong>son propre téléphone</strong>, pas celui de l'élève.</p>
+    </div>`;
+}
+
+/* ═══ SÉCURITÉ — Vérification téléphone tuteur (4 derniers chiffres) ═══ */
+function showPhoneVerification(code,token,last4Hint){
+  return new Promise(function(resolve){
+    var attempts=0;
+    var maxAttempts=3;
+    var overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem';
+    overlay.innerHTML=`
+      <div style="background:#fff;border-radius:16px;padding:1.5rem;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+        <div style="text-align:center;margin-bottom:1rem">
+          <div style="font-size:2.5rem">🔐</div>
+          <h2 style="font-size:1rem;font-weight:900;color:#1b3a63;margin-top:.5rem">Vérification d'identité</h2>
+          <p style="font-size:.8rem;color:#6c757d;margin-top:.5rem">Pour confirmer que vous êtes bien le tuteur, saisissez les <strong>4 derniers chiffres</strong> de votre numéro de téléphone.</p>
+        </div>
+        <input type="tel" id="phoneVerifInput" maxlength="4" placeholder="ex : 5678" style="width:100%;padding:.85rem;font-size:1.4rem;text-align:center;letter-spacing:.5rem;border:2px solid #dee2e6;border-radius:8px;font-family:monospace;box-sizing:border-box">
+        <div id="phoneVerifError" style="color:#e74c3c;font-size:.78rem;text-align:center;margin-top:.5rem;min-height:1.2rem"></div>
+        <button id="phoneVerifBtn" style="width:100%;padding:.75rem;background:linear-gradient(135deg,#16a085,#1b3a63);color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:800;cursor:pointer;margin-top:.5rem;min-height:44px">Vérifier</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    var inp=document.getElementById('phoneVerifInput');
+    var btn=document.getElementById('phoneVerifBtn');
+    var err=document.getElementById('phoneVerifError');
+    inp.focus();
+    function doVerify(){
+      var digits=inp.value.trim().replace(/\D/g,'');
+      if(digits.length!==4){err.textContent='Saisissez exactement 4 chiffres';return;}
+      attempts++;
+      btn.disabled=true;btn.textContent='Vérification...';
+      var apiKey=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():(window.INERWEB_CONFIG?window.INERWEB_CONFIG.API_KEY:'');
+      var p=new URLSearchParams({action:'verifyTuteurPhone',eleve:code,tuteur:token,digits:digits,key:apiKey});
+      fetch(API_URL+'?'+p,{redirect:'follow'}).then(function(r){return r.json();}).then(function(d){
+        if(d.ok||d.verified||d.skipped){
+          localStorage.setItem('iw_tuteur_verified_'+code,'1');
+          document.body.removeChild(overlay);
+          resolve();
+        }else{
+          if(attempts>=maxAttempts){
+            err.textContent='Trop de tentatives. Accès bloqué.';
+            btn.style.display='none';
+            setTimeout(function(){document.body.removeChild(overlay);},3000);
+            resolve();
+          }else{
+            err.textContent=(d.error||'Code incorrect')+' ('+(maxAttempts-attempts)+' essai(s) restant(s))';
+            btn.disabled=false;btn.textContent='Vérifier';
+            inp.value='';inp.focus();
+          }
+        }
+      }).catch(function(){
+        // Hors-ligne → on laisse passer
+        localStorage.setItem('iw_tuteur_verified_'+code,'1');
+        document.body.removeChild(overlay);
+        resolve();
+      });
+    }
+    btn.onclick=doVerify;
+    inp.onkeypress=function(e){if(e.key==='Enter')doVerify();};
+  });
 }
 
 /* ═══ AFFICHAGE STAGIAIRE ═══ */
