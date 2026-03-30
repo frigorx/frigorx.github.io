@@ -580,6 +580,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
       <div class="eleves-tb" style="flex-wrap:wrap">
         <button class="btn btn-primary btn-sm" onclick="showAddEleve()">➕ Ajouter</button>
         <button class="btn btn-ghost btn-sm" onclick="contactClasse()">📣 Contacter la classe</button>
+        <button class="btn btn-ghost btn-sm" onclick="contactTuteurs()" style="color:var(--teal)">🏢 Contacter tuteurs</button>
         <button class="btn btn-ghost btn-sm" onclick="lienInscription()" style="color:var(--violet)">🎓 Lien inscription</button>
         <button class="btn btn-ghost btn-sm" onclick="pushStudentsToBackend(students)" style="color:var(--teal)">☁️ Envoyer au serveur</button>
         <button class="btn btn-ghost btn-sm" onclick="showImportModal()">📥 Import</button>
@@ -4047,6 +4048,82 @@ function contactClasseSMS(){
   var nums=students.filter(s=>s.tel_eleve).map(s=>formatWA(s.tel_eleve)).join(',');
   if(nums)window.open('sms:'+nums+'?body='+encodeURIComponent('Bonjour, message de votre enseignant inerWeb TT.'),'_blank');
   else toast('Aucun numéro élève enregistré','err');
+}
+/* ═══ CONTACTER TOUS LES TUTEURS ═══ */
+function contactTuteurs(){
+  var els=students.filter(s=>s.statut!=='inactif');
+  var base=cfg.baseUrl||'';
+  var portailUrl=base+'tuteur-portail.html';
+  // Stats
+  var avecTel=els.filter(s=>s.tel_tuteur||s.tuteur_tel);
+  var avecEmail=els.filter(s=>s.tuteur_email||s.email_tuteur);
+  var avecNom=els.filter(s=>s.tuteur_nom||s.nom_tuteur);
+  var sansTel=els.filter(s=>!(s.tel_tuteur||s.tuteur_tel));
+
+  var html='<div style="max-height:60vh;overflow-y:auto">';
+  // Résumé
+  html+='<div class="alert al-info" style="margin-bottom:.75rem">'+avecTel.length+' tuteur(s) avec téléphone · '+avecEmail.length+' avec email · '+sansTel.length+' sans contact</div>';
+  // Boutons d'action groupée
+  html+='<div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem">';
+  html+='<button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;min-height:44px" onclick="contactTuteursBulkWA()">📱 WhatsApp tous les tuteurs</button>';
+  html+='<button class="btn btn-sm" style="background:#0088cc;color:#fff;border:none;min-height:44px" onclick="contactTuteursBulkSMS()">💬 SMS tous les tuteurs</button>';
+  html+='<button class="btn btn-sm" style="background:#ea4335;color:#fff;border:none;min-height:44px" onclick="contactTuteursBulkEmail()">📧 Email tous les tuteurs</button>';
+  html+='</div>';
+  // Lien portail
+  html+='<div style="background:var(--teal2);border-radius:var(--r2);padding:.65rem;margin-bottom:.75rem;font-size:.78rem">';
+  html+='<strong>🔗 Lien portail tuteur :</strong><br>';
+  html+='<span style="font-size:.7rem;word-break:break-all;font-family:monospace">'+esc(portailUrl)+'</span><br>';
+  html+='<button class="btn btn-ghost btn-sm" style="margin-top:.3rem" onclick="navigator.clipboard.writeText(\''+portailUrl+'\');toast(\'Lien copié\',\'ok\')">📋 Copier le lien</button>';
+  html+='</div>';
+  // Tableau détaillé
+  html+='<table style="width:100%;font-size:.75rem;border-collapse:collapse"><thead><tr>';
+  html+='<th style="text-align:left;padding:.3rem">Stagiaire</th>';
+  html+='<th style="text-align:left;padding:.3rem">Tuteur / Entreprise</th>';
+  html+='<th style="text-align:center">💬</th><th style="text-align:center">📱</th><th style="text-align:center">📧</th>';
+  html+='</tr></thead><tbody>';
+  els.forEach(function(s){
+    var tel=s.tel_tuteur||s.tuteur_tel||'';
+    var email=s.tuteur_email||s.email_tuteur||'';
+    var nom=s.tuteur_nom||s.nom_tuteur||'';
+    var ent=s.entreprise_nom||s.entreprise||'';
+    var lienTuteur=base+'inerweb_tuteur.html?eleve='+s.code+'&tuteur='+(s.token_tuteur||'')+'&role=tuteur';
+    var msgWA='Bonjour'+(nom?' '+nom:'')+',\nVoici votre lien tuteur pour le suivi de '+s.nom+' '+s.prenom+' :\n'+lienTuteur;
+    html+='<tr style="border-bottom:1px solid var(--gris3)">';
+    html+='<td style="padding:.3rem;font-weight:700">'+esc(s.nom)+' '+esc(s.prenom||'')+'</td>';
+    html+='<td style="padding:.3rem;font-size:.7rem">'+(nom?esc(nom):'<span style="color:var(--rouge)">?</span>')+(ent?' · '+esc(ent):'')+'</td>';
+    // SMS individuel
+    html+='<td style="text-align:center">'+(tel?'<a href="sms:+'+formatWA(tel)+'?body='+encodeURIComponent(msgWA)+'" title="SMS '+esc(nom)+'">💬</a>':'—')+'</td>';
+    // WhatsApp individuel
+    html+='<td style="text-align:center">'+(tel?'<a href="https://wa.me/'+formatWA(tel)+'?text='+encodeURIComponent(msgWA)+'" target="_blank" title="WhatsApp '+esc(nom)+'">📱</a>':'—')+'</td>';
+    // Email individuel
+    html+='<td style="text-align:center">'+(email?'<a href="mailto:'+esc(email)+'?subject='+encodeURIComponent('Suivi de stage — '+s.nom+' '+s.prenom)+'&body='+encodeURIComponent(msgWA)+'" title="Email '+esc(nom)+'">📧</a>':'—')+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  showModal('🏢 Contacter les tuteurs',html,'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+}
+function contactTuteursBulkSMS(){
+  var base=cfg.baseUrl||'';
+  var portailUrl=base+'tuteur-portail.html';
+  var nums=students.filter(s=>s.statut!=='inactif'&&(s.tel_tuteur||s.tuteur_tel)).map(s=>formatWA(s.tel_tuteur||s.tuteur_tel)).join(',');
+  if(!nums){toast('Aucun numéro tuteur enregistré','err');return;}
+  var msg='Bonjour,\nVoici le lien pour accéder à votre espace tuteur inerWeb :\n'+portailUrl+'\nSélectionnez votre stagiaire et connectez-vous.\nCordialement, '+cfg.nomProf;
+  window.open('sms:'+nums+'?body='+encodeURIComponent(msg),'_blank');
+}
+function contactTuteursBulkWA(){
+  var base=cfg.baseUrl||'';
+  var portailUrl=base+'tuteur-portail.html';
+  var msg='Bonjour,\nVoici le lien pour accéder à votre espace tuteur inerWeb :\n'+portailUrl+'\nSélectionnez votre stagiaire et connectez-vous.\nCordialement, '+cfg.nomProf;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+function contactTuteursBulkEmail(){
+  var base=cfg.baseUrl||'';
+  var portailUrl=base+'tuteur-portail.html';
+  var emails=students.filter(s=>s.statut!=='inactif'&&(s.tuteur_email||s.email_tuteur)).map(s=>s.tuteur_email||s.email_tuteur);
+  if(!emails.length){toast('Aucun email tuteur enregistré','err');return;}
+  var bcc=emails.join(',');
+  var msg='Bonjour,\n\nVoici le lien pour accéder à votre espace tuteur inerWeb (suivi de stage) :\n'+portailUrl+'\n\nSélectionnez votre stagiaire, puis connectez-vous avec votre code tuteur.\n\nCordialement,\n'+cfg.nomProf;
+  window.open('mailto:?bcc='+encodeURIComponent(bcc)+'&subject='+encodeURIComponent('Suivi de stage — Espace tuteur inerWeb')+'&body='+encodeURIComponent(msg),'_blank');
 }
 function showAddEleve(){
   showModal('➕ Ajouter un élève',`
