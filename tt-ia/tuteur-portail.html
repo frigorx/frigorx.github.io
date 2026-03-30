@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>INERWEB — Portail Tuteur</title>
+<script src="js/core/inerweb.config.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bleu:#1b3a63;--bleu2:#2d5a8c;--bleu3:#e8f0f8;
+  --orange:#ff6b35;--vert:#27ae60;--vert2:#d4f4e2;
+  --rouge:#e74c3c;--rouge2:#fde8e6;
+  --teal:#16a085;--teal2:#d0f0ea;
+  --gris:#6c757d;--gris2:#f0f2f5;--gris3:#dee2e6;
+  --texte:#1a2332;
+  --r:14px;--r2:8px;
+  --ombre:0 4px 24px rgba(27,58,99,.12);
+  --ombre2:0 2px 8px rgba(27,58,99,.08);
+  --t:all .2s cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;background:linear-gradient(135deg,var(--teal) 0%,var(--bleu2) 50%,var(--bleu) 100%);min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:1rem;}
+.card{background:#fff;border-radius:20px;padding:1.8rem;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.logo{text-align:center;margin-bottom:1.5rem;}
+.logo-icon{font-size:3rem;margin-bottom:.25rem;}
+.logo-title{font-size:1.4rem;font-weight:900;color:var(--bleu);}
+.logo-title span{color:var(--teal);}
+.logo-sub{font-size:.78rem;color:var(--gris);margin-top:.25rem;}
+.step{display:none;}.step.active{display:block;}
+.fr{margin-bottom:.75rem;}
+.fr label{display:block;font-size:.8rem;font-weight:700;color:var(--bleu);margin-bottom:.25rem;}
+.fr input{width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;font-family:inherit;transition:border-color .2s;}
+.fr input:focus{outline:none;border-color:var(--teal);}
+.btn{width:100%;padding:.85rem;border:none;border-radius:var(--r2);font-size:1rem;font-weight:800;cursor:pointer;transition:all .2s;min-height:48px;font-family:inherit;}
+.btn-primary{background:linear-gradient(135deg,var(--teal),var(--bleu2));color:#fff;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(22,160,133,.4);}
+.btn-primary:disabled{background:var(--gris3);color:var(--gris);cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-ghost{background:var(--gris2);color:var(--gris);margin-top:.5rem;}
+.alert{padding:.75rem;border-radius:var(--r2);font-size:.82rem;margin-bottom:.75rem;line-height:1.5;}
+.al-info{background:var(--teal2);color:#0d6b56;border-left:4px solid var(--teal);}
+.al-ok{background:var(--vert2);color:var(--vert);border-left:4px solid var(--vert);}
+.al-warn{background:#fff3ee;color:#c0390f;border-left:4px solid var(--orange);}
+.al-err{background:var(--rouge2);color:var(--rouge);border-left:4px solid var(--rouge);}
+.spinner-wrap{text-align:center;padding:1.5rem;}
+.spinner-icon{font-size:2rem;animation:spin 1s linear infinite;display:inline-block;}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.suggestion{padding:.7rem .85rem;border-bottom:1px solid var(--gris3);cursor:pointer;font-size:.9rem;transition:background .15s;}
+.suggestion:hover,.suggestion.selected{background:var(--teal2);}
+.suggestion .s-nom{font-weight:800;color:var(--bleu);}
+.suggestion .s-meta{font-size:.72rem;color:var(--gris);margin-top:.1rem;}
+.suggestions-box{border:2px solid var(--gris3);border-radius:var(--r2);max-height:220px;overflow-y:auto;display:none;margin-bottom:.75rem;}
+.suggestions-box.active{display:block;}
+.hint{font-size:.72rem;color:var(--gris);margin-top:.25rem;}
+.selected-info{background:var(--teal2);border-radius:var(--r2);padding:.85rem;margin-bottom:.75rem;display:none;border-left:4px solid var(--teal);}
+.selected-info.active{display:block;}
+.selected-info .si-nom{font-weight:900;color:var(--bleu);font-size:1.05rem;}
+.selected-info .si-meta{font-size:.78rem;color:var(--gris);margin-top:.15rem;}
+.footer-info{text-align:center;font-size:.65rem;color:var(--gris);margin-top:1.2rem;opacity:.6;}
+
+/* Mode accès direct (déjà inscrit) */
+.access-card{background:var(--gris2);border-radius:var(--r2);padding:1rem;margin-bottom:.75rem;border:2px solid var(--gris3);}
+.access-card .ac-label{font-size:.72rem;color:var(--gris);font-weight:700;margin-bottom:.3rem;}
+.access-card input{width:100%;padding:.65rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1.1rem;font-family:'JetBrains Mono',monospace;text-align:center;letter-spacing:2px;text-transform:uppercase;}
+.access-card input:focus{outline:none;border-color:var(--teal);}
+
+.divider{display:flex;align-items:center;gap:.75rem;margin:.75rem 0;font-size:.78rem;color:var(--gris);font-weight:700;}
+.divider::before,.divider::after{content:'';flex:1;border-top:2px solid var(--gris3);}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">🏢</div>
+    <div class="logo-title">iner<span>Web</span> TT</div>
+    <div class="logo-sub">Espace Tuteur d'entreprise</div>
+  </div>
+
+  <!-- BLOCAGE APPAREIL ÉLÈVE -->
+  <div class="step" id="step-blocked">
+    <div style="text-align:center;padding:1rem 0">
+      <div style="font-size:3rem;margin-bottom:.5rem">🚫</div>
+      <h2 style="font-size:1.1rem;font-weight:900;color:var(--rouge);margin-bottom:.75rem">Accès réservé aux tuteurs</h2>
+      <div class="alert al-err">Cet appareil est identifié comme un téléphone d'élève. Le tuteur doit se connecter depuis <strong>son propre téléphone</strong>, pas celui du stagiaire.</div>
+      <p style="font-size:.78rem;color:var(--gris);margin-top:.75rem">Si vous êtes bien le tuteur, ouvrez ce lien sur votre téléphone personnel.</p>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 1 : Chargement -->
+  <div class="step active" id="step-load">
+    <div class="spinner-wrap">
+      <div class="spinner-icon">⏳</div>
+      <div style="margin-top:.5rem;font-size:.85rem;color:var(--gris)">Chargement...</div>
+    </div>
+    <div id="loadError" style="display:none"></div>
+  </div>
+
+  <!-- ÉTAPE 2 : Accès direct (déjà inscrit) ou inscription -->
+  <div class="step" id="step-home">
+    <div class="alert al-info">Bienvenue ! Vous êtes tuteur d'un stagiaire en formation professionnelle.</div>
+
+    <!-- Accès direct si déjà inscrit -->
+    <div class="access-card">
+      <div class="ac-label">Vous avez déjà un code tuteur ?</div>
+      <div style="display:flex;gap:.4rem;margin-top:.4rem">
+        <div class="fr" style="flex:1;margin-bottom:0"><input type="text" id="directCode" placeholder="Code élève" style="font-size:.85rem;letter-spacing:1px"></div>
+        <div class="fr" style="flex:1;margin-bottom:0"><input type="text" id="directToken" placeholder="Token tuteur" style="font-size:.85rem;letter-spacing:1px"></div>
+      </div>
+      <button class="btn btn-primary" onclick="accesDirectTuteur()" style="margin-top:.5rem;font-size:.88rem">🔓 Se connecter</button>
+    </div>
+
+    <div class="divider">Première visite ?</div>
+
+    <button class="btn btn-primary" onclick="goStep('step-search')" style="background:linear-gradient(135deg,var(--orange),#e85d26)">📝 Demander mon accès tuteur</button>
+    <p style="font-size:.72rem;color:var(--gris);text-align:center;margin-top:.4rem">Votre enseignant validera votre demande et vous enverra vos codes.</p>
+  </div>
+
+  <!-- ÉTAPE 3 : Recherche du stagiaire -->
+  <div class="step" id="step-search">
+    <div class="alert al-info">🔍 Recherchez le nom de votre stagiaire (3 lettres minimum)</div>
+    <div class="fr">
+      <label>Nom du stagiaire</label>
+      <input type="text" id="searchInput" placeholder="Tapez le nom du stagiaire..." autocomplete="off">
+      <div class="hint" id="searchHint">Minimum 3 lettres</div>
+    </div>
+    <div class="suggestions-box" id="suggestions"></div>
+    <button class="btn btn-ghost" onclick="goStep('step-home')">← Retour</button>
+  </div>
+
+  <!-- ÉTAPE 4 : Formulaire inscription tuteur -->
+  <div class="step" id="step-form">
+    <div class="selected-info active" id="selectedInfo">
+      <div class="si-nom" id="siNom"></div>
+      <div class="si-meta" id="siMeta"></div>
+    </div>
+
+    <div class="alert al-warn">📋 Renseignez vos coordonnées pour recevoir votre accès tuteur.</div>
+
+    <div class="fr">
+      <label>Votre nom complet *</label>
+      <input type="text" id="inNom" placeholder="ex : Jean DUPONT">
+    </div>
+    <div class="fr">
+      <label>Entreprise *</label>
+      <input type="text" id="inEntreprise" placeholder="ex : Climafroid SARL">
+    </div>
+    <div class="fr">
+      <label>Téléphone *</label>
+      <input type="tel" id="inTel" placeholder="06 12 34 56 78">
+    </div>
+    <div class="fr">
+      <label>Email (facultatif)</label>
+      <input type="email" id="inEmail" placeholder="jean.dupont@entreprise.fr">
+    </div>
+
+    <button class="btn btn-primary" onclick="validerInscription()">✅ Envoyer ma demande</button>
+    <button class="btn btn-ghost" onclick="goStep('step-search')">← Retour</button>
+  </div>
+
+  <!-- ÉTAPE 5 : Confirmation -->
+  <div class="step" id="step-done">
+    <div style="text-align:center;padding:1rem 0">
+      <div style="font-size:3rem;margin-bottom:.5rem">✅</div>
+      <h2 style="font-size:1.15rem;font-weight:900;color:var(--vert);margin-bottom:.5rem">Demande envoyée !</h2>
+      <p style="font-size:.85rem;color:var(--gris);margin-bottom:1rem;line-height:1.6">Votre enseignant va valider votre inscription et vous envoyer votre code d'accès par SMS.</p>
+      <div class="alert al-ok">
+        <strong>En attendant :</strong> gardez votre téléphone à portée de main. Vous recevrez un message avec votre code et un lien pour accéder à votre espace d'évaluation.
+      </div>
+      <div id="doneInfo" style="margin-top:.75rem;background:var(--gris2);border-radius:var(--r2);padding:.75rem;font-size:.82rem;color:var(--texte);text-align:left"></div>
+    </div>
+  </div>
+
+  <div class="footer-info">INERWEB PROG+ — Portail Tuteur<br>Les données sont traitées de manière sécurisée.</div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ═══ CONFIG ═══
+  var API_URL = '';
+  var API_KEY = '';
+  var BASE_URL = '';
+
+  (function(){
+    var h = location.hash;
+    if(h.indexOf('#cfg=') === 0){
+      try{
+        var d = JSON.parse(atob(decodeURIComponent(h.substring(5))));
+        if(d.apiUrl) API_URL = d.apiUrl;
+        if(d.apiKey) API_KEY = d.apiKey;
+        if(d.baseUrl) BASE_URL = d.baseUrl;
+        localStorage.setItem('iw_tuteur_portail_cfg', JSON.stringify({apiUrl:API_URL,apiKey:API_KEY,baseUrl:BASE_URL}));
+        history.replaceState(null, '', location.pathname + location.search);
+        return;
+      }catch(e){}
+    }
+    try{
+      var saved = JSON.parse(localStorage.getItem('iw_tuteur_portail_cfg') || '{}');
+      if(saved.apiUrl){ API_URL = saved.apiUrl; API_KEY = saved.apiKey; BASE_URL = saved.baseUrl; return; }
+    }catch(e){}
+    try{
+      var sc = JSON.parse(localStorage.getItem('inerweb-tt-fe-cfg') || '{}');
+      if(sc.apiUrl){ API_URL = sc.apiUrl; API_KEY = sc.apiKey; BASE_URL = sc.baseUrl || ''; return; }
+    }catch(e){}
+    if(window.INERWEB_CONFIG){
+      API_URL = window.INERWEB_CONFIG.API_URL || '';
+      API_KEY = window.INERWEB_CONFIG.API_KEY || '';
+      BASE_URL = window.INERWEB_CONFIG.BASE_URL || '';
+    }
+  })();
+
+  if(!BASE_URL) BASE_URL = location.href.replace(/\/[^\/]*$/, '/');
+  if(!BASE_URL.endsWith('/')) BASE_URL += '/';
+
+  var allStudents = [];
+  var selectedStudent = null;
+  var _searchResults = [];
+
+  // ═══ ANTI-TRICHE : Détection appareil élève ═══
+  function isStudentDevice(){
+    try{
+      // Vérifier les traces de session élève dans localStorage
+      for(var i = 0; i < localStorage.length; i++){
+        var key = localStorage.key(i);
+        if(key && (
+          key.indexOf('iw_eleve_') === 0 ||
+          key.indexOf('iw_student_') === 0 ||
+          key.indexOf('iwEleveToken') === 0 ||
+          key.indexOf('iw_token_eleve') === 0
+        )){
+          return true;
+        }
+      }
+      // Vérifier si une session élève est active via sessionStorage
+      if(sessionStorage.getItem('iw_role') === 'eleve') return true;
+    }catch(e){}
+    return false;
+  }
+
+  // Device ID unique (persistant)
+  function getDeviceId(){
+    var id = localStorage.getItem('iw_device_id');
+    if(!id){
+      id = 'D' + Date.now().toString(36) + Math.random().toString(36).substring(2,8);
+      localStorage.setItem('iw_device_id', id);
+    }
+    return id;
+  }
+
+  // ═══ NAVIGATION ═══
+  window.goStep = function(id){
+    document.querySelectorAll('.step').forEach(function(s){ s.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    if(id === 'step-search') document.getElementById('searchInput').focus();
+  };
+
+  // ═══ NORMALISATION ═══
+  function normalize(s){
+    return String(s||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  }
+
+  function esc(s){
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // ═══ CHARGEMENT ═══
+  async function init(){
+    // 1. Vérifier si c'est un appareil élève
+    if(isStudentDevice()){
+      document.getElementById('step-load').classList.remove('active');
+      document.getElementById('step-blocked').classList.add('active');
+      return;
+    }
+
+    // 2. Charger les élèves
+    if(!API_URL){
+      showLoadError('Configuration manquante. Utilisez le lien QR fourni par l\'enseignant.');
+      return;
+    }
+
+    try{
+      var url = new URL(API_URL);
+      url.searchParams.set('action', 'getDashboard');
+      url.searchParams.set('key', API_KEY);
+      var r = await fetch(url.toString(), {method:'GET', redirect:'follow'});
+      var data = await r.json();
+      if(!Array.isArray(data) || data.length === 0){
+        showLoadError('Aucun stagiaire trouvé. Contactez l\'enseignant.');
+        return;
+      }
+      allStudents = data.filter(function(s){ return s.statut !== 'inactif'; });
+      if(!allStudents.length){
+        showLoadError('Aucun stagiaire actif trouvé.');
+        return;
+      }
+      allStudents.sort(function(a,b){ return (a.nom||'').localeCompare(b.nom||''); });
+      goStep('step-home');
+    }catch(e){
+      console.error('[PORTAIL]', e);
+      showLoadError('Erreur de connexion. Vérifiez votre connexion internet.');
+    }
+  }
+
+  function showLoadError(msg){
+    document.querySelector('#step-load .spinner-wrap').style.display = 'none';
+    var el = document.getElementById('loadError');
+    el.style.display = 'block';
+    el.innerHTML = '<div class="alert al-err">' + esc(msg) + '</div><button class="btn btn-ghost" onclick="location.reload()">🔄 Réessayer</button>';
+  }
+
+  // ═══ ACCÈS DIRECT (déjà inscrit) ═══
+  window.accesDirectTuteur = function(){
+    var code = (document.getElementById('directCode').value || '').trim().toUpperCase();
+    var token = (document.getElementById('directToken').value || '').trim().toUpperCase();
+    if(!code || !token){ alert('Saisissez le code élève et le token tuteur.'); return; }
+    var url = BASE_URL + 'inerweb_tuteur.html?eleve=' + encodeURIComponent(code) + '&tuteur=' + encodeURIComponent(token) + '&role=tuteur';
+    var cfgStr = btoa(JSON.stringify({apiUrl:API_URL, apiKey:API_KEY, baseUrl:BASE_URL}));
+    url += '#cfg=' + encodeURIComponent(cfgStr);
+    window.location.href = url;
+  };
+
+  // ═══ RECHERCHE STAGIAIRE ═══
+  document.getElementById('searchInput').addEventListener('input', function(){
+    var query = normalize(this.value);
+    var box = document.getElementById('suggestions');
+    var hint = document.getElementById('searchHint');
+
+    if(query.length < 3){
+      box.classList.remove('active');
+      box.innerHTML = '';
+      hint.textContent = 'Minimum 3 lettres';
+      return;
+    }
+
+    var results = allStudents.filter(function(s){
+      var nom = normalize(s.nom);
+      var prenom = normalize(s.prenom);
+      return nom.indexOf(query) === 0 || prenom.indexOf(query) === 0 ||
+             (nom+' '+prenom).indexOf(query) === 0 || (prenom+' '+nom).indexOf(query) === 0;
+    });
+
+    _searchResults = results;
+
+    if(!results.length){
+      box.classList.remove('active');
+      hint.textContent = 'Aucun résultat. Vérifiez l\'orthographe.';
+      return;
+    }
+
+    hint.textContent = results.length + ' résultat(s)';
+    box.classList.add('active');
+    box.innerHTML = results.map(function(s, i){
+      var meta = s.classe || '';
+      if(s.entreprise_nom || s.entreprise) meta += ' — ' + (s.entreprise_nom || s.entreprise);
+      return '<div class="suggestion" onclick="selectionner('+i+')">'+
+        '<div class="s-nom">' + esc(s.nom) + ' ' + esc(s.prenom||'') + '</div>'+
+        (meta ? '<div class="s-meta">' + esc(meta) + '</div>' : '') +
+        '</div>';
+    }).join('');
+  });
+
+  window.selectionner = function(idx){
+    var s = _searchResults[idx];
+    if(!s) return;
+    selectedStudent = s;
+
+    document.getElementById('siNom').textContent = s.nom + ' ' + (s.prenom || '');
+    var meta = s.classe || '';
+    if(s.entreprise_nom || s.entreprise) meta += ' — ' + (s.entreprise_nom || s.entreprise);
+    document.getElementById('siMeta').textContent = meta;
+
+    // Pré-remplir l'entreprise si connue
+    if(s.entreprise_nom || s.entreprise){
+      document.getElementById('inEntreprise').value = s.entreprise_nom || s.entreprise;
+    }
+    if(s.tuteur_nom || s.nom_tuteur){
+      document.getElementById('inNom').value = s.tuteur_nom || s.nom_tuteur;
+    }
+
+    goStep('step-form');
+  };
+
+  // ═══ VALIDATION INSCRIPTION ═══
+  window.validerInscription = async function(){
+    var nom = (document.getElementById('inNom').value || '').trim();
+    var entreprise = (document.getElementById('inEntreprise').value || '').trim();
+    var tel = (document.getElementById('inTel').value || '').trim();
+    var email = (document.getElementById('inEmail').value || '').trim();
+
+    if(!nom){ alert('Votre nom est obligatoire.'); return; }
+    if(!entreprise){ alert('Le nom de l\'entreprise est obligatoire.'); return; }
+    if(!tel){ alert('Le numéro de téléphone est obligatoire.'); return; }
+
+    var telClean = tel.replace(/[\s.\-]/g, '');
+    if(!/^0[67]\d{8}$/.test(telClean) && !/^\+33[67]\d{8}$/.test(telClean)){
+      alert('Le numéro doit être un mobile français (06 ou 07).');
+      return;
+    }
+
+    // Vérifier que le tel tuteur != tel élève (anti-triche)
+    if(selectedStudent.tel_eleve){
+      var telEleveClean = selectedStudent.tel_eleve.replace(/[\s.\-+]/g, '');
+      if(telClean.replace(/^\+33/, '0') === telEleveClean.replace(/^\+33/, '0')){
+        alert('Ce numéro est déjà enregistré comme téléphone de l\'élève. Le tuteur doit utiliser son propre numéro.');
+        return;
+      }
+    }
+
+    // Envoyer au backend
+    try{
+      var url = new URL(API_URL);
+      url.searchParams.set('action', 'updateEleveProfil');
+      var resp = await fetch(url.toString(), {
+        method: 'POST',
+        redirect: 'follow',
+        headers: {'Content-Type': 'text/plain'},
+        body: JSON.stringify({
+          key: API_KEY,
+          code: selectedStudent.code,
+          tuteur_nom: nom,
+          entreprise_nom: entreprise,
+          tel_tuteur: tel,
+          tuteur_email: email
+        })
+      });
+      var result = await resp.json();
+      if(result.error){
+        alert('Erreur : ' + result.error);
+        return;
+      }
+    }catch(e){
+      console.warn('[PORTAIL] Erreur envoi:', e);
+      alert('Erreur de connexion. Vérifiez votre internet et réessayez.');
+      return;
+    }
+
+    // Confirmation
+    document.getElementById('doneInfo').innerHTML =
+      '<strong>Récapitulatif :</strong><br>' +
+      '👤 Tuteur : ' + esc(nom) + '<br>' +
+      '🏢 Entreprise : ' + esc(entreprise) + '<br>' +
+      '📞 Téléphone : ' + esc(tel) + '<br>' +
+      '🎓 Stagiaire : ' + esc(selectedStudent.nom + ' ' + (selectedStudent.prenom||'')) + '<br>' +
+      (email ? '📧 Email : ' + esc(email) + '<br>' : '');
+
+    goStep('step-done');
+  };
+
+  // ═══ LANCEMENT ═══
+  init();
+
+})();
+</script>
+
+</body>
+</html>
