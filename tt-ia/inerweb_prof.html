@@ -581,8 +581,11 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
         <button class="btn btn-primary btn-sm" onclick="showAddEleve()">➕ Ajouter</button>
         <button class="btn btn-ghost btn-sm" onclick="contactClasse()">📣 Contacter la classe</button>
         <button class="btn btn-ghost btn-sm" onclick="contactTuteurs()" style="color:var(--teal)">🏢 Contacter tuteurs</button>
-        <button class="btn btn-ghost btn-sm" onclick="showUploadAnnexes()" style="color:var(--orange)">📄 Annexes 3 → Drive</button>
-        <button class="btn btn-ghost btn-sm" onclick="envoyerAnnexesTuteurs()" style="color:var(--orange)">📤 Envoyer annexes aux tuteurs</button>
+        <button class="btn btn-ghost btn-sm" onclick="showUploadDocs('annexe3','Annexes 3')" style="color:var(--orange)">📄 Annexes 3</button>
+        <button class="btn btn-ghost btn-sm" onclick="showUploadDocs('convention_vierge','Conventions vierges')" style="color:var(--orange)">📄 Conv. vierges</button>
+        <button class="btn btn-ghost btn-sm" onclick="showUploadDocs('convention_remplie','Conventions remplies')" style="color:var(--orange)">📄 Conv. remplies</button>
+        <button class="btn btn-ghost btn-sm" onclick="showUploadDocs('attestation','Attestations')" style="color:var(--orange)">📄 Attestations</button>
+        <button class="btn btn-ghost btn-sm" onclick="envoyerDocsTuteurs()" style="color:var(--orange)">📤 Envoyer docs aux tuteurs</button>
         <button class="btn btn-ghost btn-sm" onclick="lienInscription()" style="color:var(--violet)">🎓 Lien inscription</button>
         <button class="btn btn-ghost btn-sm" onclick="pushStudentsToBackend(students)" style="color:var(--teal)">☁️ Envoyer au serveur</button>
         <button class="btn btn-ghost btn-sm" onclick="showImportModal()">📥 Import</button>
@@ -4118,16 +4121,18 @@ function contactTuteursBulkWA(){
   var msg='Bonjour,\nVoici le lien pour accéder à votre espace tuteur inerWeb :\n'+portailUrl+'\nSélectionnez votre stagiaire et connectez-vous.\nCordialement, '+cfg.nomProf;
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
-/* ═══ ANNEXES 3 → DRIVE ═══ */
-function showUploadAnnexes(){
+/* ═══ DOCUMENTS → DRIVE (générique) ═══ */
+var _currentDocType='';
+function showUploadDocs(docType,label){
+  _currentDocType=docType;
   var html='<div style="max-height:60vh;overflow-y:auto">';
-  html+='<div class="alert al-info" style="margin-bottom:.75rem">Sélectionnez les PDF des annexes 3. Le nom du fichier doit contenir le nom de l\'élève pour le matching automatique.<br><em>Ex : PFMP_CAP_IFCA_DUPONT_Martin.pdf</em></div>';
+  html+='<div class="alert al-info" style="margin-bottom:.75rem">Sélectionnez les PDF. Le nom du fichier doit contenir le nom de l\'élève pour le matching automatique.<br><em>Ex : PFMP_CAP_IFCA_DUPONT_Martin.pdf</em></div>';
   html+='<input type="file" id="annexeFiles" accept=".pdf" multiple style="margin-bottom:.75rem;font-size:.85rem">';
   html+='<div id="annexePreview" style="margin-bottom:.75rem"></div>';
-  html+='<button class="btn btn-primary" onclick="doUploadAnnexes()" id="btnUploadAnnexes" disabled>📤 Envoyer sur le Drive des élèves</button>';
+  html+='<button class="btn btn-primary" onclick="doUploadDocs()" id="btnUploadAnnexes" disabled>📤 Envoyer sur le Drive des élèves</button>';
   html+='<div id="annexeProgress" style="margin-top:.75rem;font-size:.8rem;color:var(--gris)"></div>';
   html+='</div>';
-  showModal('📄 Upload Annexes 3 sur Google Drive',html,'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+  showModal('📄 '+esc(label)+' → Google Drive',html,'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
   setTimeout(function(){
     document.getElementById('annexeFiles').addEventListener('change',function(){
       var files=this.files;
@@ -4162,9 +4167,12 @@ function matchFileToStudent(filename){
   });
   return bestScore>=3?best:null;
 }
-async function doUploadAnnexes(){
+async function doUploadDocs(){
   var files=document.getElementById('annexeFiles').files;
   if(!files.length){toast('Aucun fichier sélectionné','err');return;}
+  var docType=_currentDocType||'document';
+  var labelMap={annexe3:'Annexe3',convention_vierge:'Convention_vierge',convention_remplie:'Convention_remplie',attestation:'Attestation'};
+  var prefix=labelMap[docType]||'Document';
   var prog=document.getElementById('annexeProgress');
   var btn=document.getElementById('btnUploadAnnexes');
   btn.disabled=true;btn.textContent='⏳ Envoi en cours...';
@@ -4176,18 +4184,17 @@ async function doUploadAnnexes(){
     prog.innerHTML='📤 '+esc(f.name)+' → '+esc(match.nom)+' ('+match.code+') — '+(i+1)+'/'+files.length;
     try{
       var base64=await readFileAsBase64(f);
-      var r=await apiCall({action:'uploadDocument',eleve:match.code,fileName:'Annexe3_'+match.nom+'_'+(match.prenom||'')+'.pdf',base64:base64,mime:'application/pdf',docType:'annexe3'});
+      var r=await apiCall({action:'uploadDocument',eleve:match.code,fileName:prefix+'_'+match.nom+'_'+(match.prenom||'')+'.pdf',base64:base64,mime:'application/pdf',docType:docType});
       if(r&&r.ok){
         ok++;
-        // Stocker le lien dans l'objet élève local
         if(!match.documents)match.documents=[];
-        match.documents.push({type:'annexe3',url:r.url,fileName:r.fileName,date:new Date().toISOString()});
+        match.documents.push({type:docType,url:r.url,fileName:r.fileName,date:new Date().toISOString()});
       }else{err++;prog.innerHTML+=' ❌ '+(r?.error||'Erreur');}
     }catch(e){err++;console.warn('[upload]',f.name,e);}
   }
   btn.textContent='📤 Envoyer sur le Drive des élèves';btn.disabled=false;
   prog.innerHTML='<strong>Terminé :</strong> ✅ '+ok+' envoyé(s)' + (err?' · ❌ '+err+' erreur(s)':'') + (skip?' · ⏭️ '+skip+' ignoré(s)':'');
-  if(ok)toast('✓ '+ok+' annexe(s) uploadée(s) sur Drive','ok');
+  if(ok)toast('✓ '+ok+' document(s) uploadé(s) sur Drive','ok');
   saveLocal();
 }
 function readFileAsBase64(file){
@@ -4203,12 +4210,11 @@ function readFileAsBase64(file){
     reader.readAsDataURL(file);
   });
 }
-/* ═══ ENVOYER ANNEXES AUX TUTEURS ═══ */
-async function envoyerAnnexesTuteurs(){
+/* ═══ ENVOYER DOCUMENTS AUX TUTEURS ═══ */
+async function envoyerDocsTuteurs(){
   var base=cfg.baseUrl||'';
-  var els=students.filter(s=>s.statut!=='inactif'&&(s.tel_tuteur||s.tuteur_tel||s.tuteur_email||s.email_tuteur));
-  if(!els.length){toast('Aucun tuteur avec coordonnées','err');return;}
-  // Récupérer les documents de chaque élève depuis le Drive
+  var els=students.filter(s=>s.statut!=='inactif');
+  if(!els.length){toast('Aucun élève actif','err');return;}
   showSpinner();
   var docsMap={};
   for(var i=0;i<els.length;i++){
@@ -4219,37 +4225,60 @@ async function envoyerAnnexesTuteurs(){
       url.searchParams.set('eleve',els[i].code);
       var r=await fetch(url.toString(),{method:'GET',redirect:'follow'});
       var d=await r.json();
-      if(d.ok&&d.documents)docsMap[els[i].code]=d.documents.filter(function(doc){return doc.name&&doc.name.toLowerCase().indexOf('annex')!==-1;});
+      if(d.ok&&d.documents)docsMap[els[i].code]=d.documents;
     }catch(e){}
   }
   hideSpinner();
+  var docTypes=[{key:'annexe3',label:'Annexe 3'},{key:'convention_vierge',label:'Conv. vierge'},{key:'convention_remplie',label:'Conv. remplie'},{key:'attestation',label:'Attestation'}];
   var html='<div style="max-height:60vh;overflow-y:auto">';
-  html+='<div class="alert al-info" style="margin-bottom:.75rem">Envoyez l\'annexe 3 à chaque tuteur. Cliquez sur le moyen de contact de votre choix.</div>';
-  html+='<table style="width:100%;font-size:.75rem;border-collapse:collapse"><thead><tr>';
+  html+='<div class="alert al-info" style="margin-bottom:.75rem">Documents disponibles sur le Drive de chaque élève. Cliquez pour envoyer au tuteur.</div>';
+  html+='<table style="width:100%;font-size:.72rem;border-collapse:collapse"><thead><tr>';
   html+='<th style="text-align:left;padding:.3rem">Stagiaire</th>';
   html+='<th style="text-align:left;padding:.3rem">Tuteur</th>';
-  html+='<th style="text-align:center">Annexe</th>';
-  html+='<th style="text-align:center">💬</th><th style="text-align:center">📱</th><th style="text-align:center">📧</th>';
+  docTypes.forEach(function(dt){html+='<th style="text-align:center;padding:.3rem;font-size:.65rem">'+dt.label+'</th>';});
+  html+='<th style="text-align:center;padding:.3rem">Envoyer</th>';
   html+='</tr></thead><tbody>';
   els.forEach(function(s){
     var tel=s.tel_tuteur||s.tuteur_tel||'';
     var email=s.tuteur_email||s.email_tuteur||'';
     var nom=s.tuteur_nom||s.nom_tuteur||'';
-    var docs=docsMap[s.code]||[];
-    var annexeUrl=docs.length?docs[0].url:'';
-    var hasDoc=!!annexeUrl;
-    var msg='Bonjour'+(nom?' '+nom:'')+',\nVoici l\'annexe 3 (document de stage) de '+s.nom+' '+s.prenom+' :\n'+(annexeUrl||'[document non encore uploadé]')+'\nCordialement, '+cfg.nomProf;
+    var allDocs=docsMap[s.code]||[];
     html+='<tr style="border-bottom:1px solid var(--gris3)">';
     html+='<td style="padding:.3rem;font-weight:700">'+esc(s.nom)+' '+esc(s.prenom||'')+'</td>';
-    html+='<td style="padding:.3rem;font-size:.7rem">'+esc(nom||'?')+'</td>';
-    html+='<td style="text-align:center">'+(hasDoc?'<a href="'+annexeUrl+'" target="_blank" style="color:var(--vert);font-weight:700">✅</a>':'<span style="color:var(--rouge)">❌</span>')+'</td>';
-    html+='<td style="text-align:center">'+(tel&&hasDoc?'<a href="sms:+'+formatWA(tel)+'?body='+encodeURIComponent(msg)+'">💬</a>':'—')+'</td>';
-    html+='<td style="text-align:center">'+(tel&&hasDoc?'<a href="https://wa.me/'+formatWA(tel)+'?text='+encodeURIComponent(msg)+'" target="_blank">📱</a>':'—')+'</td>';
-    html+='<td style="text-align:center">'+(email&&hasDoc?'<a href="mailto:'+esc(email)+'?subject='+encodeURIComponent('Annexe 3 — Stage '+s.nom+' '+s.prenom)+'&body='+encodeURIComponent(msg)+'">📧</a>':'—')+'</td>';
+    html+='<td style="padding:.3rem;font-size:.68rem">'+esc(nom||'?')+'</td>';
+    var docLinks=[];
+    docTypes.forEach(function(dt){
+      var found=allDocs.filter(function(d){return d.name&&d.name.toLowerCase().indexOf(dt.key.replace('_',' '))!==-1||d.name&&d.name.toLowerCase().indexOf(dt.key)!==-1;});
+      if(!found.length)found=allDocs.filter(function(d){
+        var n=d.name?d.name.toLowerCase():'';
+        if(dt.key==='annexe3')return n.indexOf('annex')!==-1;
+        if(dt.key==='convention_vierge')return n.indexOf('convention')!==-1&&n.indexOf('vierge')!==-1;
+        if(dt.key==='convention_remplie')return (n.indexOf('convention')!==-1&&n.indexOf('rempli')!==-1)||(n.indexOf('convention')!==-1&&n.indexOf('vierge')===-1&&n.indexOf('annex')===-1);
+        if(dt.key==='attestation')return n.indexOf('attestation')!==-1;
+        return false;
+      });
+      if(found.length){
+        html+='<td style="text-align:center"><a href="'+found[0].url+'" target="_blank" style="color:var(--vert)">✅</a></td>';
+        docLinks.push(dt.label+' : '+found[0].url);
+      }else{
+        html+='<td style="text-align:center"><span style="color:var(--gris)">—</span></td>';
+      }
+    });
+    // Boutons envoi
+    if(docLinks.length&&(tel||email)){
+      var msg='Bonjour'+(nom?' '+nom:'')+',\nVoici les documents de stage de '+s.nom+' '+s.prenom+' :\n\n'+docLinks.join('\n')+'\n\nCordialement, '+cfg.nomProf;
+      var btns='';
+      if(tel)btns+='<a href="sms:+'+formatWA(tel)+'?body='+encodeURIComponent(msg)+'" style="margin:0 1px">💬</a>';
+      if(tel)btns+='<a href="https://wa.me/'+formatWA(tel)+'?text='+encodeURIComponent(msg)+'" target="_blank" style="margin:0 1px">📱</a>';
+      if(email)btns+='<a href="mailto:'+esc(email)+'?subject='+encodeURIComponent('Documents de stage — '+s.nom+' '+s.prenom)+'&body='+encodeURIComponent(msg)+'" style="margin:0 1px">📧</a>';
+      html+='<td style="text-align:center">'+btns+'</td>';
+    }else{
+      html+='<td style="text-align:center;font-size:.65rem;color:var(--gris)">'+(docLinks.length?'pas de contact':'—')+'</td>';
+    }
     html+='</tr>';
   });
   html+='</tbody></table></div>';
-  showModal('📤 Envoyer les annexes 3 aux tuteurs',html,'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+  showModal('📤 Envoyer les documents aux tuteurs',html,'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
 }
 function contactTuteursBulkEmail(){
   var base=cfg.baseUrl||'';
