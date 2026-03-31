@@ -583,16 +583,16 @@ function saveLocal(){
     }
   });
   try{
-    localStorage.setItem(SK,JSON.stringify({cfg,eleve,journal,evals,eleveDocs}));
+    localStorage.setItem(SK,JSON.stringify({cfg,eleve,journal,evals,eleveDocs,sharedDocs}));
   }catch(e){
     // localStorage plein → purger les anciennes entrées synced sans photos
     console.warn('localStorage plein, purge des anciennes entrées...');
     var synced=journal.filter(function(j){return j.synced;});
     if(synced.length>20){journal=journal.filter(function(j){return!j.synced;}).concat(synced.slice(-20));}
-    try{localStorage.setItem(SK,JSON.stringify({cfg,eleve,journal,evals,eleveDocs}));}catch(e2){console.error('localStorage critique',e2);}
+    try{localStorage.setItem(SK,JSON.stringify({cfg,eleve,journal,evals,eleveDocs,sharedDocs}));}catch(e2){console.error('localStorage critique',e2);}
   }
 }
-function loadLocal(){const d=localStorage.getItem(SK);if(!d)return false;try{const p=safeParse(d,null);if(!p)return false;cfg=p.cfg||{};if(cfg.apiUrl&&cfg.apiUrl.includes('AKfycbybJxLLb3p0h'))cfg.apiUrl='';if(!cfg.apiUrl&&window.iwConfig)cfg.apiUrl=window.iwConfig.getApiUrl();eleve=p.eleve||null;journal=p.journal||[];evals=p.evals||{};eleveDocs=p.eleveDocs||[];
+function loadLocal(){const d=localStorage.getItem(SK);if(!d)return false;try{const p=safeParse(d,null);if(!p)return false;cfg=p.cfg||{};if(cfg.apiUrl&&cfg.apiUrl.includes('AKfycbybJxLLb3p0h'))cfg.apiUrl='';if(!cfg.apiUrl&&window.iwConfig)cfg.apiUrl=window.iwConfig.getApiUrl();eleve=p.eleve||null;journal=p.journal||[];evals=p.evals||{};eleveDocs=p.eleveDocs||[];sharedDocs=p.sharedDocs||[];
 // Anti-bug : si un token est dans l'URL, ne PAS charger le cache d'un autre élève
 const urlToken=(new URLSearchParams(window.location.search)).get('token')||(new URLSearchParams(window.location.search)).get('eleve');
 if(urlToken&&cfg.token&&urlToken!==cfg.token){localStorage.removeItem(SK);eleve=null;return false;}
@@ -745,7 +745,7 @@ async function verifyToken(token){
     const p=new URLSearchParams({action:'verifyEleveToken',token,key:apiKey,deviceId:getDeviceId()});
     const r=await fetch(`${cfg.apiUrl}?${p}`,{redirect:'follow'});
     const d=await r.json();
-    if(d.success&&d.eleve){eleve=d.eleve;evals=d.evals||{};journal=d.journal||[];saveLocal();startApp();toast('Connecté !','ok');}
+    if(d.success&&d.eleve){eleve=d.eleve;evals=d.evals||{};journal=d.journal||[];saveLocal();startApp();toast('Connecté !','ok');loadSharedDocs();}
     else{document.getElementById('loginError').style.display='block';toast('Code non reconnu','err');}
   }catch(err){console.error(err);document.getElementById('loginError').textContent='Erreur réseau. Utilise DEMO pour tester.';document.getElementById('loginError').style.display='block';}
   hideSpinner();
@@ -834,7 +834,7 @@ async function saveProfilEleve(){
 function profilTuteurComplet(){return !!(eleve.tuteur_nom&&eleve.tuteur_nom.trim()&&eleve.tel_tuteur&&eleve.tel_tuteur.trim());}
 function startApp(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('appContainer').classList.add('active');renderAll();if(cfg.token!=='DEMO'&&!profilTuteurComplet())setTimeout(showProfilModal,800);
 // Auto-sync au démarrage pour libérer les base64 en attente
-if(cfg.token&&cfg.token!=='DEMO'&&cfg.token!=='PROF'&&cfg.token!=='TEST'){setTimeout(function(){var pending=journal.filter(function(j){return!j.synced;});if(pending.length)syncCloud();},2000);}}
+if(cfg.token&&cfg.token!=='DEMO'&&cfg.token!=='PROF'&&cfg.token!=='TEST'){setTimeout(function(){var pending=journal.filter(function(j){return!j.synced;});if(pending.length)syncCloud();},2000);setTimeout(loadSharedDocs,3000);}}
 
 async function syncCloud(){
   if(!cfg.apiUrl||cfg.token==='DEMO'){journal.forEach(j=>j.synced=true);renderJournal();return;}
@@ -1099,13 +1099,14 @@ function renderDocsEleve(){
       const ext=(d.filename||d.nom).split('.').pop().toLowerCase();
       const ico=EXT_ICO[ext]||'📄';
       const sz=d.taille?d.taille<1024*1024?(Math.round(d.taille/1024)+'Ko'):(Math.round(d.taille/1024/1024*10)/10+'Mo'):'';
+      var actionIco=d.url?'📂':'⬇️';
       return `<div class="card" style="padding:.8rem 1rem;display:flex;align-items:center;gap:.75rem;cursor:pointer" onclick="telechargerDocEleve(${sharedDocs.indexOf(d)},'shared')">
         <span style="font-size:1.5rem">${ico}</span>
         <div style="flex:1;min-width:0">
           <div style="font-size:.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(d.nom)}</div>
           <div style="font-size:.7rem;color:var(--gris)">${DOC_CAT_ICO[d.categorie]||''} ${d.categorie==='convention'?'Convention':d.categorie==='rapport-type'?'Rapport type':d.categorie==='support'?'Support':d.categorie==='guide'?'Guide':'Document'}${sz?' · '+sz:''}</div>
         </div>
-        <span style="font-size:1.1rem;color:var(--teal)">⬇️</span>
+        <span style="font-size:1.1rem;color:var(--teal)">${actionIco}</span>
       </div>`;
     }).join('');
   }
@@ -1135,10 +1136,31 @@ function renderDocsEleve(){
 
 function telechargerDocEleve(idx,type){
   const doc=type==='shared'?sharedDocs[idx]:eleveDocs[idx];
-  if(!doc||!doc.dataUrl)return;
+  if(!doc)return;
+  if(doc.url){window.open(doc.url,'_blank');return;}
+  if(!doc.dataUrl)return;
   const a=document.createElement('a');
   a.href=doc.dataUrl;a.download=doc.filename||doc.nom;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+async function loadSharedDocs(){
+  if(!cfg.apiUrl||cfg.token==='DEMO')return;
+  try{
+    var apiKey=(window.iwApi&&window.iwApi.getKey)?window.iwApi.getKey():(window.INERWEB_CONFIG?window.INERWEB_CONFIG.API_KEY:'');
+    var url=new URL(cfg.apiUrl);
+    url.searchParams.set('action','getDocuments');
+    url.searchParams.set('key',apiKey);
+    url.searchParams.set('eleve',eleve.code);
+    var r=await fetch(url.toString(),{method:'GET',redirect:'follow'});
+    var d=await r.json();
+    if(d.ok&&d.documents){
+      sharedDocs=d.documents.filter(function(doc){return doc.type==='document';}).map(function(doc){
+        return {id:doc.id,nom:doc.name,filename:doc.name,url:doc.url,date:doc.date,categorie:'autre',taille:0};
+      });
+      saveLocal();renderDocsEleve();
+    }
+  }catch(e){console.warn('loadSharedDocs:',e);}
 }
 
 function ajouterDocEleve(input){
@@ -1246,44 +1268,45 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closePhotoModal();})
 <a href="aide.html#eleve" target="_blank" rel="noopener noreferrer" title="Guide d'utilisation — Élève" style="position:fixed;bottom:1.5rem;right:1.5rem;width:52px;height:52px;background:#ff6b35;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:900;text-decoration:none;box-shadow:0 4px 20px rgba(255,107,53,.4);z-index:9999;transition:transform .2s,box-shadow .2s;font-family:'Nunito',sans-serif;" onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 28px rgba(255,107,53,.5)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(255,107,53,.4)'">?</a>
 
 <!-- Modale Profil élève -->
-<div id="profilModal" onclick="if(event.target===this)closeProfilModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;padding:1rem">
-  <div style="background:#fff;border-radius:16px;padding:1.5rem;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
-    <div style="text-align:center;margin-bottom:1rem">
-      <div style="font-size:2.5rem">&#128100;</div>
-      <h2 style="font-size:1.1rem;font-weight:900;color:var(--bleu);margin-top:.25rem">Complète ton profil</h2>
-      <p style="font-size:.78rem;color:var(--gris);margin-top:.25rem">Ces infos restent confidentielles et permettent à ton prof de te contacter</p>
-      <p id="profilAlertTuteur" style="display:none;font-size:.75rem;color:var(--orange,#ff6b35);font-weight:700;margin-top:.5rem;background:#fff3e0;padding:.5rem;border-radius:8px">&#9888;&#65039; Renseigne les infos de ton tuteur ! Elles sont indispensables pour ton dossier de fin de stage.</p>
+<div id="profilModal" onclick="if(event.target===this)closeProfilModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:flex-start;justify-content:center;padding:.5rem;overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <div style="background:#fff;border-radius:16px;padding:1.25rem;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);margin:auto;position:relative">
+    <button onclick="closeProfilModal()" style="position:absolute;top:.5rem;right:.5rem;background:var(--gris2,#f0f2f5);border:none;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gris,#6c757d);z-index:1" aria-label="Fermer">&times;</button>
+    <div style="text-align:center;margin-bottom:.75rem">
+      <div style="font-size:1.8rem">&#128100;</div>
+      <h2 style="font-size:1rem;font-weight:900;color:var(--bleu);margin-top:.15rem">Complète ton profil</h2>
+      <p style="font-size:.72rem;color:var(--gris);margin-top:.2rem">Ces infos restent confidentielles et permettent à ton prof de te contacter</p>
+      <p id="profilAlertTuteur" style="display:none;font-size:.72rem;color:var(--orange,#ff6b35);font-weight:700;margin-top:.4rem;background:#fff3e0;padding:.4rem;border-radius:8px">&#9888;&#65039; Renseigne les infos de ton tuteur ! Elles sont indispensables pour ton dossier de fin de stage.</p>
+    </div>
+    <div style="margin-bottom:.5rem">
+      <label style="font-size:.75rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.15rem">Téléphone (optionnel)</label>
+      <input type="tel" id="profilTel" placeholder="06 12 34 56 78" pattern="0[67]\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{2}" style="width:100%;padding:.6rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.9rem;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:.5rem">
+      <label style="font-size:.75rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.15rem">Email (optionnel)</label>
+      <input type="email" id="profilEmail" placeholder="prenom.nom@email.fr" style="width:100%;padding:.6rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.9rem;box-sizing:border-box">
+    </div>
+    <div style="border-top:2px solid var(--gris3,#e0e0e0);margin:.5rem 0 .5rem;padding-top:.5rem">
+      <p style="font-size:.75rem;font-weight:800;color:var(--orange,#ff6b35);margin-bottom:.4rem">🏢 Ton stage en entreprise</p>
+    </div>
+    <div style="margin-bottom:.5rem">
+      <label style="font-size:.75rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.15rem">Nom de l'entreprise</label>
+      <input type="text" id="profilEntreprise" placeholder="ex : Climafroid SARL" style="width:100%;padding:.6rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.9rem;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:.5rem">
+      <label style="font-size:.75rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.15rem">Nom du tuteur <span style="color:var(--orange)">*</span></label>
+      <input type="text" id="profilTuteurNom" placeholder="ex : Jean Martin" style="width:100%;padding:.6rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.9rem;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:.5rem">
+      <label style="font-size:.75rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.15rem">Téléphone du tuteur <span style="color:var(--orange)">*</span></label>
+      <input type="tel" id="profilTuteurTel" placeholder="06 xx xx xx xx" style="width:100%;padding:.6rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.9rem;box-sizing:border-box">
     </div>
     <div style="margin-bottom:.75rem">
-      <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Téléphone (optionnel)</label>
-      <input type="tel" id="profilTel" placeholder="06 12 34 56 78" pattern="0[67]\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{2}" style="width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;box-sizing:border-box">
+      <label style="font-size:.75rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.15rem">Email du tuteur (optionnel)</label>
+      <input type="email" id="profilTuteurEmail" placeholder="tuteur@entreprise.fr" style="width:100%;padding:.6rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.9rem;box-sizing:border-box">
     </div>
-    <div style="margin-bottom:1rem">
-      <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Email (optionnel)</label>
-      <input type="email" id="profilEmail" placeholder="prenom.nom@email.fr" style="width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;box-sizing:border-box">
-    </div>
-    <div style="border-top:2px solid var(--gris3,#e0e0e0);margin:1rem 0 .75rem;padding-top:.75rem">
-      <p style="font-size:.8rem;font-weight:800;color:var(--orange,#ff6b35);margin-bottom:.5rem">🏢 Ton stage en entreprise</p>
-    </div>
-    <div style="margin-bottom:.75rem">
-      <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Nom de l'entreprise</label>
-      <input type="text" id="profilEntreprise" placeholder="ex : Climafroid SARL" style="width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;box-sizing:border-box">
-    </div>
-    <div style="margin-bottom:.75rem">
-      <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Nom du tuteur <span style="color:var(--orange)">*</span></label>
-      <input type="text" id="profilTuteurNom" placeholder="ex : Jean Martin" style="width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;box-sizing:border-box">
-    </div>
-    <div style="margin-bottom:.75rem">
-      <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Téléphone du tuteur <span style="color:var(--orange)">*</span></label>
-      <input type="tel" id="profilTuteurTel" placeholder="06 xx xx xx xx" style="width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;box-sizing:border-box">
-    </div>
-    <div style="margin-bottom:1rem">
-      <label style="font-size:.8rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.25rem">Email du tuteur (optionnel)</label>
-      <input type="email" id="profilTuteurEmail" placeholder="tuteur@entreprise.fr" style="width:100%;padding:.75rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:1rem;box-sizing:border-box">
-    </div>
-    <div style="display:flex;gap:.5rem">
-      <button onclick="saveProfilEleve()" style="flex:2;padding:.75rem;background:linear-gradient(135deg,var(--violet),var(--bleu2));color:#fff;border:none;border-radius:var(--r2);font-size:.9rem;font-weight:800;cursor:pointer;min-height:44px">Enregistrer</button>
-      <button id="profilBtnLater" onclick="closeProfilModal()" style="flex:1;padding:.75rem;background:var(--gris2);color:var(--gris);border:none;border-radius:var(--r2);font-size:.9rem;font-weight:700;cursor:pointer;min-height:44px">Plus tard</button>
+    <div style="display:flex;gap:.5rem;position:sticky;bottom:0;background:#fff;padding-top:.5rem">
+      <button onclick="saveProfilEleve()" style="flex:2;padding:.7rem;background:linear-gradient(135deg,var(--violet),var(--bleu2));color:#fff;border:none;border-radius:var(--r2);font-size:.85rem;font-weight:800;cursor:pointer;min-height:44px">Enregistrer</button>
+      <button id="profilBtnLater" onclick="closeProfilModal()" style="flex:1;padding:.7rem;background:var(--gris2);color:var(--gris);border:none;border-radius:var(--r2);font-size:.85rem;font-weight:700;cursor:pointer;min-height:44px">Plus tard</button>
     </div>
   </div>
 </div>
