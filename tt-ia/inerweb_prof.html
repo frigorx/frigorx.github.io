@@ -131,6 +131,7 @@ body.show-app #screen-app{display:flex;}
 .sync-dot.offline{background:var(--rouge);}
 .sync-dot.syncing{background:var(--jaune);animation:pulse 1s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes pendingPulse{0%,100%{opacity:1}50%{opacity:.5}}
 .top-nav{background:#fff;border-bottom:2px solid var(--gris3);display:flex;box-shadow:0 4px 16px rgba(0,0,0,.08);overflow-x:auto;scrollbar-width:none;}
 .top-nav::-webkit-scrollbar{display:none;}
 .top-nav{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 12px,#000 calc(100% - 12px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 12px,#000 calc(100% - 12px),transparent 100%);}
@@ -1917,15 +1918,87 @@ function setSyncState(s){
   else if(s==='syncing'){d.classList.add('syncing');l.textContent='Sauvegarde...';}
   else{l.textContent='✓ Sauvegardé';}
 }
-/* pushVal → js/core/utils.js (copie locale conservée) */
+/* pushVal — avec protection anti-perte (v7.13.2) */
 async function pushVal(data){
   const entry={...data,evaluateur:cfg.nomProf||'Prof',timestamp:new Date().toISOString(),phase:curPhase};
   if(!validations[cur]) validations[cur]=[];
   validations[cur].push(entry); saveLocal(); updateAll();
-  toast('✓ Enregistré','ok');
-  // Sync vers le backend en arrière-plan (silencieux)
-  try{await apiCall({action:'saveValidation',eleve:cur,data:entry});}catch(e){console.warn('[pushVal] sync:',e.message);}
+
+  // Toujours sauvegarder en pending AVANT de tenter l'envoi
+  var pendingKey='inerweb-prof-pending-validations';
+  var pending=[];try{pending=JSON.parse(localStorage.getItem(pendingKey)||'[]');}catch(e){}
+  var pendingItem={eleve:cur,data:entry,ts:Date.now()};
+  pending.push(pendingItem);
+  localStorage.setItem(pendingKey,JSON.stringify(pending));
+  _updateProfPendingUI();
+
+  try{
+    await apiCall({action:'saveValidation',eleve:cur,data:entry});
+    // Succès → retirer du pending
+    pending=[];try{pending=JSON.parse(localStorage.getItem(pendingKey)||'[]');}catch(e){}
+    pending=pending.filter(function(p){return p.ts!==pendingItem.ts;});
+    localStorage.setItem(pendingKey,JSON.stringify(pending));
+    _updateProfPendingUI();
+    toast('✅ Enregistré et synchronisé','ok');
+  }catch(e){
+    console.warn('[pushVal] sync échoué:',e.message);
+    _updateProfPendingUI();
+    toast('⚠️ Enregistré localement — sync en attente','warn');
+  }
 }
+
+/* ═══ PROTECTION ANTI-PERTE PROF ═══ */
+function _updateProfPendingUI(){
+  var pending=[];try{pending=JSON.parse(localStorage.getItem('inerweb-prof-pending-validations')||'[]');}catch(e){}
+  var n=pending.length;
+  var badge=document.getElementById('profPendingBadge');
+  if(!badge){
+    badge=document.createElement('span');
+    badge.id='profPendingBadge';
+    badge.style.cssText='display:none;background:#e74c3c;color:#fff;font-size:.6rem;font-weight:900;padding:.15rem .5rem;border-radius:12px;animation:pendingPulse 1.5s infinite;margin-left:.5rem;';
+    var hdr=document.querySelector('.app-header')||document.querySelector('header');
+    if(hdr)hdr.appendChild(badge);
+  }
+  badge.style.display=n>0?'inline':'none';
+  badge.textContent='⏳ '+n+' en attente';
+}
+async function _retryProfPending(){
+  var pendingKey='inerweb-prof-pending-validations';
+  var pending=[];try{pending=JSON.parse(localStorage.getItem(pendingKey)||'[]');}catch(e){}
+  if(!pending.length)return;
+  var restant=[];
+  for(var i=0;i<pending.length;i++){
+    try{
+      await apiCall({action:'saveValidation',eleve:pending[i].eleve,data:pending[i].data});
+    }catch(e){restant.push(pending[i]);}
+  }
+  localStorage.setItem(pendingKey,JSON.stringify(restant));
+  _updateProfPendingUI();
+  if(!restant.length&&pending.length)toast('✅ '+pending.length+' évaluation(s) synchronisée(s)','ok');
+  else if(restant.length)toast('⚠️ '+restant.length+' évaluation(s) encore en attente','warn');
+}
+window.addEventListener('online',function(){_retryProfPending();});
+window.addEventListener('focus',function(){_retryProfPending();});
+setInterval(function(){
+  var p=[];try{p=JSON.parse(localStorage.getItem('inerweb-prof-pending-validations')||'[]');}catch(e){}
+  if(p.length>0&&navigator.onLine)_retryProfPending();
+},15000);
+window.addEventListener('beforeunload',function(e){
+  var p=[];try{p=JSON.parse(localStorage.getItem('inerweb-prof-pending-validations')||'[]');}catch(e2){}
+  if(p.length>0){
+    if(navigator.sendBeacon){
+      p.forEach(function(item){
+        try{
+          var url=new URL(cfg.apiUrl||window.INERWEB_CONFIG.API_URL);
+          url.searchParams.set('action','saveValidation');
+          var blob=new Blob([JSON.stringify({key:cfg.apiKey||window.INERWEB_CONFIG.API_KEY,eleve:item.eleve,data:item.data})],{type:'text/plain'});
+          navigator.sendBeacon(url.toString(),blob);
+        }catch(ex){}
+      });
+    }
+    e.preventDefault();e.returnValue='Des évaluations n\'ont pas été synchronisées.';return e.returnValue;
+  }
+});
 
 /* ═══ [D0] PHASE 13 — NAVIGATION MULTI-CLASSE ═══ */
 window.iwState = {
@@ -5651,6 +5724,9 @@ async function initApp(){
   if(window.fusionModule) fusionModule.renderDropZone(document.getElementById('fusionDropZone'));
   // [Phase 3] Deep-link : ?eleve=ELV-001&mode=e31
   handleDeepLink();
+  // Protection anti-perte : afficher les pending et lancer le retry
+  _updateProfPendingUI();
+  if(navigator.onLine)_retryProfPending();
 }
 
 /* ═══ [N2] ÉVALS TUTEURS ═══ */
