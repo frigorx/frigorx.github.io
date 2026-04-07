@@ -330,6 +330,12 @@ input, select, textarea, button { font-family:inherit; }
   </header>
 
   <div class="page active" id="page-home">
+    <!-- Bannière nouveaux documents -->
+    <div id="homeDocsBanner" style="display:none;background:linear-gradient(135deg,#e74c3c,#c0392b);border-radius:var(--r);padding:1rem;margin-bottom:1rem;cursor:pointer;box-shadow:var(--ombre);color:#fff;text-align:center;animation:pulse 2s infinite" onclick="switchPage('docs')">
+      <div style="font-size:1.5rem;margin-bottom:.3rem">📢</div>
+      <div style="font-weight:900;font-size:1rem" id="homeDocsBannerText">Nouveaux documents !</div>
+      <div style="font-size:.78rem;opacity:.9;margin-top:.2rem">Ton enseignant t'a envoyé des documents importants. Appuie ici pour les consulter.</div>
+    </div>
     <!-- Accès rapide Journal + Photo -->
     <div onclick="switchPage('journal')" style="background:linear-gradient(135deg,var(--violet),var(--bleu2));border-radius:var(--r);padding:1.25rem;margin-bottom:1rem;cursor:pointer;box-shadow:var(--ombre);display:flex;align-items:center;gap:1rem;color:#fff;transition:var(--t)">
       <div style="font-size:3rem;flex-shrink:0">📸</div>
@@ -1097,18 +1103,46 @@ function renderDocsEleve(){
   if(!sharedDocs.length){
     cShared.innerHTML='<div class="card"><div style="text-align:center;padding:1rem;color:var(--gris)"><div style="font-size:2rem;margin-bottom:.5rem">📭</div>Aucun document partagé par ton prof pour le moment</div></div>';
   }else{
-    cShared.innerHTML=sharedDocs.map(d=>{
+    // Bannière d'alerte pour les nouveaux documents
+    var seenKey='iw_docs_seen_'+(eleve?eleve.code:'');
+    var seen=JSON.parse(localStorage.getItem(seenKey)||'[]');
+    var newDocs=sharedDocs.filter(function(d){return seen.indexOf(d.id)===-1;});
+    var bannerHtml='';
+    if(newDocs.length){
+      bannerHtml='<div style="background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;padding:.85rem 1rem;border-radius:12px;margin-bottom:.75rem;text-align:center;animation:pulse 2s infinite">'
+        +'<div style="font-size:1.3rem;margin-bottom:.3rem">📢</div>'
+        +'<div style="font-weight:900;font-size:.95rem">'+newDocs.length+' nouveau(x) document(s) !</div>'
+        +'<div style="font-size:.78rem;opacity:.9;margin-top:.2rem">Ton enseignant t\'a envoyé des documents importants. Ouvre-les ci-dessous.</div>'
+        +'</div>';
+    }
+    var tuteurEmail=(eleve&&(eleve.tuteur_email||eleve.email_tuteur))||'';
+    var tuteurNom=(eleve&&eleve.tuteur_nom)||'';
+    cShared.innerHTML=bannerHtml+sharedDocs.map(d=>{
       const ext=(d.filename||d.nom).split('.').pop().toLowerCase();
       const ico=EXT_ICO[ext]||'📄';
       const sz=d.taille?d.taille<1024*1024?(Math.round(d.taille/1024)+'Ko'):(Math.round(d.taille/1024/1024*10)/10+'Mo'):'';
-      var actionIco=d.url?'📂':'⬇️';
-      return `<div class="card" style="padding:.8rem 1rem;display:flex;align-items:center;gap:.75rem;cursor:pointer" onclick="telechargerDocEleve(${sharedDocs.indexOf(d)},'shared')">
-        <span style="font-size:1.5rem">${ico}</span>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(d.nom)}</div>
-          <div style="font-size:.7rem;color:var(--gris)">${DOC_CAT_ICO[d.categorie]||''} ${d.categorie==='convention'?'Convention':d.categorie==='rapport-type'?'Rapport type':d.categorie==='support'?'Support':d.categorie==='guide'?'Guide':'Document'}${sz?' · '+sz:''}</div>
+      const isAttestation=/attestation/i.test(d.nom);
+      const idx=sharedDocs.indexOf(d);
+      var mailBtn='';
+      if(isAttestation&&d.url){
+        var sujet=encodeURIComponent('Attestation de stage — '+(eleve?eleve.prenom+' '+eleve.nom:''));
+        var corps=encodeURIComponent('Bonjour'+(tuteurNom?' '+tuteurNom:'')+',\n\nVeuillez trouver ci-dessous le lien vers mon attestation de stage :\n'+d.url+'\n\nCe document est nécessaire pour le versement de mon indemnité de stage. Pourriez-vous le compléter, le signer et le retourner à mon enseignant ?\n\nMerci beaucoup !\n'+(eleve?eleve.prenom+' '+eleve.nom:''));
+        var mailto=tuteurEmail?'mailto:'+encodeURIComponent(tuteurEmail)+'?subject='+sujet+'&body='+corps:'mailto:?subject='+sujet+'&body='+corps;
+        mailBtn='<div style="display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap">'
+          +'<a href="'+mailto+'" style="display:inline-flex;align-items:center;gap:.3rem;background:#3498db;color:#fff;padding:.4rem .7rem;border-radius:6px;font-size:.72rem;font-weight:700;text-decoration:none;min-height:36px" onclick="event.stopPropagation()">📧 Envoyer par mail au tuteur</a>'
+          +'<a href="'+d.url+'" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;background:var(--teal);color:#fff;padding:.4rem .7rem;border-radius:6px;font-size:.72rem;font-weight:700;text-decoration:none;min-height:36px" onclick="event.stopPropagation()">📂 Ouvrir</a>'
+          +'</div>';
+      }
+      return `<div class="card" style="padding:.8rem 1rem;${isAttestation?'border-left:4px solid #e74c3c;':''}" onclick="${d.url?"window.open('"+esc(d.url)+"','_blank')":"telechargerDocEleve("+idx+",'shared')"}">
+        <div style="display:flex;align-items:center;gap:.75rem;cursor:pointer">
+          <span style="font-size:1.5rem">${ico}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(d.nom)}</div>
+            <div style="font-size:.7rem;color:var(--gris)">${DOC_CAT_ICO[d.categorie]||''} ${d.categorie==='convention'?'Convention':d.categorie==='rapport-type'?'Rapport type':d.categorie==='support'?'Support':d.categorie==='guide'?'Guide':'Document'}${sz?' · '+sz:''}</div>
+          </div>
+          <span style="font-size:1.1rem;color:var(--teal)">${d.url?'📂':'⬇️'}</span>
         </div>
-        <span style="font-size:1.1rem;color:var(--teal)">${actionIco}</span>
+        ${mailBtn}
       </div>`;
     }).join('');
   }
@@ -1168,7 +1202,9 @@ async function loadSharedDocs(){
       if(newDocs.length){
         var badge=document.getElementById('docsBadge');
         if(badge){badge.style.display='inline-block';badge.textContent=newDocs.length;}
-        toast('📁 '+newDocs.length+' nouveau(x) document(s) dans ton espace !','ok');
+        var homeBanner=document.getElementById('homeDocsBanner');
+        if(homeBanner){homeBanner.style.display='block';document.getElementById('homeDocsBannerText').textContent=newDocs.length+' nouveau(x) document(s) !';}
+        toast('📢 '+newDocs.length+' nouveau(x) document(s) — consulte tes Documents !','ok');
       }
       saveLocal();renderDocsEleve();
     }
@@ -1182,6 +1218,9 @@ function markDocsSeen(){
   localStorage.setItem(seenKey,JSON.stringify(ids));
   var badge=document.getElementById('docsBadge');
   if(badge)badge.style.display='none';
+  var homeBanner=document.getElementById('homeDocsBanner');
+  if(homeBanner)homeBanner.style.display='none';
+  renderDocsEleve();
 }
 
 function ajouterDocEleve(input){

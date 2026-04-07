@@ -586,6 +586,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
         <button class="btn btn-ghost btn-sm" onclick="showUploadDocs('convention_remplie','Conventions remplies')" style="color:var(--orange)">📄 Conv. remplies</button>
         <button class="btn btn-ghost btn-sm" onclick="showUploadDocs('attestation','Attestations')" style="color:var(--orange)">📄 Attestations</button>
         <button class="btn btn-ghost btn-sm" onclick="envoyerDocsTuteurs()" style="color:var(--orange)">📤 Envoyer docs aux tuteurs</button>
+        <button class="btn btn-sm" onclick="envoyerAttestations()" style="background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;border:none;font-weight:800">📨 Envoyer attestations</button>
         <button class="btn btn-ghost btn-sm" onclick="lienInscription()" style="color:var(--violet)">🎓 Lien inscription</button>
         <button class="btn btn-ghost btn-sm" onclick="pushStudentsToBackend(students)" style="color:var(--teal)">☁️ Envoyer au serveur</button>
         <button class="btn btn-ghost btn-sm" onclick="showImportModal()">📥 Import</button>
@@ -4210,6 +4211,103 @@ function readFileAsBase64(file){
     reader.readAsDataURL(file);
   });
 }
+/* ═══ ENVOYER ATTESTATIONS (WhatsApp élèves + Mail tuteurs) ═══ */
+async function envoyerAttestations(){
+  var els=students.filter(s=>s.statut!=='inactif');
+  if(!els.length){toast('Aucun élève actif','err');return;}
+
+  // Récupérer les docs de chaque élève pour trouver l'attestation
+  showSpinner();
+  var attestations=[];
+  for(var i=0;i<els.length;i++){
+    var s=els[i];
+    try{
+      var url=new URL(cfg.apiUrl);
+      url.searchParams.set('action','getDocuments');
+      url.searchParams.set('key',cfg.apiKey);
+      url.searchParams.set('eleve',s.code);
+      var r=await fetch(url.toString(),{method:'GET',redirect:'follow'});
+      var d=await r.json();
+      if(d.ok&&d.documents){
+        var att=d.documents.find(function(doc){return /attestation/i.test(doc.name)&&doc.type==='document';});
+        if(att) attestations.push({code:s.code,nom:s.nom,prenom:s.prenom||'',tel:s.tel_eleve||s.tel_tuteur||'',tuteurEmail:s.tuteur_email||s.email_tuteur||'',tuteurNom:s.tuteur_nom||'',url:att.url||('https://drive.google.com/file/d/'+att.id+'/view')});
+      }
+    }catch(e){}
+  }
+  hideSpinner();
+
+  if(!attestations.length){toast('Aucune attestation trouvée sur le Drive','err');return;}
+
+  // Construire la modale récapitulative
+  var html='<div style="max-height:60vh;overflow-y:auto">';
+  html+='<div class="alert al-info" style="margin-bottom:.75rem"><strong>'+attestations.length+' attestation(s)</strong> trouvée(s) sur le Drive. Choisissez le mode d\'envoi.</div>';
+
+  // Liste récap
+  html+='<div style="margin-bottom:.75rem">';
+  var nbTel=0,nbEmail=0;
+  attestations.forEach(function(a){
+    var tel=String(a.tel).replace(/[\s.\-+]/g,'');
+    if(tel.length>=9)nbTel++;
+    if(a.tuteurEmail)nbEmail++;
+    html+='<div style="display:flex;align-items:center;gap:.4rem;padding:.3rem .5rem;border-bottom:1px solid var(--gris3);font-size:.78rem">';
+    html+='<span style="font-weight:700">'+esc(a.nom)+' '+esc(a.prenom)+'</span>';
+    html+='<span style="flex:1;font-size:.65rem;color:var(--gris)">'+esc(a.code)+'</span>';
+    html+=(tel.length>=9?'<span title="'+esc(tel)+'">📱</span>':'<span style="opacity:.3">📱</span>');
+    html+=(a.tuteurEmail?'<span title="'+esc(a.tuteurEmail)+'">📧</span>':'<span style="opacity:.3">📧</span>');
+    html+='</div>';
+  });
+  html+='</div>';
+
+  html+='<div style="display:flex;flex-direction:column;gap:.5rem">';
+  html+='<div class="alert al-ok" style="margin:0"><strong>📱 WhatsApp élèves :</strong> '+nbTel+' élève(s) avec numéro</div>';
+  html+='<div class="alert al-ok" style="margin:0"><strong>📧 Mail tuteurs :</strong> '+nbEmail+' tuteur(s) avec email</div>';
+  html+='</div>';
+
+  html+='<div style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap">';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttWhatsApp()" style="min-height:44px;flex:1;background:#25D366;border-color:#25D366">📱 WhatsApp élèves</button>';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttMailTuteurs()" style="min-height:44px;flex:1">📧 Mail tuteurs</button>';
+  html+='</div>';
+  html+='</div>';
+
+  // Stocker pour les sous-fonctions
+  window._attestations=attestations;
+  showModal('📨 Envoyer les attestations de stage',html,'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+}
+
+function doEnvoyerAttWhatsApp(){
+  var atts=window._attestations||[];
+  var count=0;
+  atts.forEach(function(a){
+    var tel=String(a.tel).replace(/[\s.\-+]/g,'');
+    if(tel.length<9)return;
+    if(!tel.startsWith('33'))tel=tel.startsWith('0')?'33'+tel.slice(1):'33'+tel;
+    var msg='Bonjour '+a.prenom+',\n\nTon attestation de stage est disponible ici :\n'+a.url+'\n\nTransmets ce document à ton tuteur pour qu\'il le complète et le signe. C\'est indispensable pour ton indemnité de stage.\n\nM. Henninot';
+    window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
+    count++;
+  });
+  toast(count+' message(s) WhatsApp ouverts','ok');
+}
+
+function doEnvoyerAttMailTuteurs(){
+  var atts=window._attestations||[];
+  var count=0;
+  atts.forEach(function(a){
+    if(!a.tuteurEmail)return;
+    var sujet='Attestation de stage — '+a.prenom+' '+a.nom;
+    var corps='Bonjour'+(a.tuteurNom?' '+a.tuteurNom:'')+',\n\n'
+      +'Au nom du lycée et de l\'équipe pédagogique, je vous remercie sincèrement d\'avoir accueilli '+a.prenom+' '+a.nom+' au sein de votre entreprise pour sa période de formation en milieu professionnel.\n\n'
+      +'Vous trouverez ci-dessous le lien vers l\'attestation de stage de votre stagiaire :\n'+a.url+'\n\n'
+      +'Ce document est indispensable pour déclencher le versement de l\'indemnité de stage de l\'élève.\n\n'
+      +'Pourriez-vous, s\'il vous plaît, compléter et signer ce document, puis me le retourner par mail ?\n\n'
+      +'Je reste à votre disposition pour toute question.\n\n'
+      +'Bien cordialement,\nFranck HENNINOT\nEnseignant — CAP Installateur en Froid et Conditionnement d\'Air';
+    window.open('mailto:'+encodeURIComponent(a.tuteurEmail)+'?subject='+encodeURIComponent(sujet)+'&body='+encodeURIComponent(corps),'_blank');
+    count++;
+  });
+  if(!count)toast('Aucun tuteur avec email renseigné','err');
+  else toast(count+' mail(s) ouverts','ok');
+}
+
 /* ═══ ENVOYER DOCUMENTS AUX TUTEURS ═══ */
 async function envoyerDocsTuteurs(){
   var base=cfg.baseUrl||'';
