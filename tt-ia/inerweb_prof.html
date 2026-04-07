@@ -4383,7 +4383,13 @@ async function envoyerAttestations(){
 
   html+='<div style="display:flex;flex-direction:column;gap:.5rem;margin-top:1rem">';
 
-  html+='<div style="font-size:.72rem;font-weight:800;color:var(--bleu);text-transform:uppercase;letter-spacing:1px">Envoyer aux élèves</div>';
+  // Bouton principal : envoi automatique par le serveur
+  html+='<button class="btn btn-sm" onclick="doEnvoyerAttEmailsAuto(\'tous\')" style="min-height:50px;width:100%;background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;border:none;font-weight:900;font-size:.95rem">📨 Envoyer par email — attestation personnalisée à chaque élève + tuteur</button>';
+  html+='<div style="font-size:.68rem;color:var(--gris);text-align:center;margin-bottom:.5rem">Chaque destinataire reçoit un email avec le lien vers SON attestation</div>';
+
+  html+='<div style="font-size:.72rem;font-weight:800;color:var(--bleu);text-transform:uppercase;letter-spacing:1px">Ou envoyer manuellement</div>';
+
+  html+='<div style="font-size:.72rem;font-weight:800;color:var(--bleu);text-transform:uppercase;letter-spacing:1px">Aux élèves</div>';
   html+='<div style="display:flex;gap:.4rem;flex-wrap:wrap">';
   html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttSmsEleves()" style="min-height:44px;flex:1;background:var(--bleu);border-color:var(--bleu)">💬 SMS ('+numsEleves.length+')</button>';
   html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttWhatsApp()" style="min-height:44px;flex:1;background:#25D366;border-color:#25D366">📱 WhatsApp</button>';
@@ -4475,6 +4481,40 @@ function doEnvoyerAttWhatsAppTuteurs(){
   });
   if(!count)toast('Aucun tuteur avec numéro','err');
   else toast(count+' WhatsApp tuteur ouverts','ok');
+}
+
+async function doEnvoyerAttEmailsAuto(cibles){
+  var msgEleve=document.getElementById('attSmsEleve').value;
+  var msgTuteur=document.getElementById('attSmsTuteur').value;
+  showSpinner();
+  toast('Envoi des emails en cours... (le serveur envoie chaque attestation personnalisée)','inf');
+  try{
+    var r=await apiCall({
+      action:'sendAttestationEmails',
+      cibles:cibles,
+      msgEleve:'Bonjour {prenom},\n\nTon attestation de stage est disponible en cliquant sur le bouton ci-dessous.\n\nCe document est INDISPENSABLE pour le versement de ton indemnité de stage.\n\nTransmets-le à {tuteur} pour qu\'il le complète, le signe et le retourne à ton enseignant.\n\nMerci !',
+      msgTuteur:'Bonjour {tuteur},\n\nAu nom du lycée et de l\'équipe pédagogique, je vous remercie sincèrement d\'avoir accueilli {prenom} {nom} au sein de votre entreprise.\n\nVous trouverez ci-dessous le lien vers l\'attestation de stage de votre stagiaire.\n\nCe document est indispensable pour déclencher le versement de l\'indemnité de stage de l\'élève.\n\nPourriez-vous, s\'il vous plaît, compléter et signer ce document, puis me le retourner par mail ?\n\nJe reste à votre disposition pour toute question.\n\nBien cordialement',
+      sujetEleve:'Ton attestation de stage',
+      sujetTuteur:'Attestation de stage',
+      expediteur:'M. Henninot — CAP IFCA'
+    });
+    hideSpinner();
+    if(r.ok){
+      var msg='✅ Emails envoyés !\n• '+r.envoyesEleve+' élève(s)\n• '+r.envoyesTuteur+' tuteur(s)';
+      if(r.ignores)msg+='\n• '+r.ignores+' sans attestation (ignorés)';
+      if(r.erreurs&&r.erreurs.length)msg+='\n• '+r.erreurs.length+' erreur(s)';
+      msg+='\n\nQuota email restant : '+r.quotaRestant;
+      toast(msg,'ok');
+      alert(msg);
+    }else{
+      toast('Erreur : '+(r.error||'inconnue'),'err');
+      alert('Erreur : '+(r.error||'inconnue'));
+    }
+  }catch(e){
+    hideSpinner();
+    toast('Erreur : '+e.message,'err');
+    alert('Erreur : '+e.message);
+  }
 }
 
 function doEnvoyerGmailEleves(){
