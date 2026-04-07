@@ -587,6 +587,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
         <button class="btn btn-ghost btn-sm" onclick="showUploadDocs('attestation','Attestations')" style="color:var(--orange)">📄 Attestations</button>
         <button class="btn btn-ghost btn-sm" onclick="envoyerDocsTuteurs()" style="color:var(--orange)">📤 Envoyer docs aux tuteurs</button>
         <button class="btn btn-sm" onclick="envoyerAttestations()" style="background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;border:none;font-weight:800">📨 Envoyer attestations</button>
+        <button class="btn btn-sm" onclick="rappelInfosTuteur()" style="background:#25D366;color:#fff;border:none;font-weight:800">📱 Rappel infos tuteur</button>
         <button class="btn btn-ghost btn-sm" onclick="lienInscription()" style="color:var(--violet)">🎓 Lien inscription</button>
         <button class="btn btn-ghost btn-sm" onclick="pushStudentsToBackend(students)" style="color:var(--teal)">☁️ Envoyer au serveur</button>
         <button class="btn btn-ghost btn-sm" onclick="showImportModal()">📥 Import</button>
@@ -4211,6 +4212,59 @@ function readFileAsBase64(file){
     reader.readAsDataURL(file);
   });
 }
+/* ═══ RAPPEL INFOS TUTEUR PAR WHATSAPP ═══ */
+function rappelInfosTuteur(){
+  var els=students.filter(s=>s.statut!=='inactif');
+  // Ceux qui n'ont PAS encore renseigné email tuteur
+  var incomplets=els.filter(s=>!s.tuteur_email&&!s.email_tuteur);
+  var avecTel=incomplets.filter(s=>{var t=String(s.tel_eleve||'').replace(/[\s.\-+]/g,'');return t.length>=9;});
+  var base=cfg.baseUrl||'https://frigorx.github.io/tt-ia/';
+
+  var html='<div style="max-height:60vh;overflow-y:auto">';
+  html+='<div class="alert al-info" style="margin-bottom:.75rem"><strong>'+incomplets.length+'</strong> élève(s) n\'ont pas encore renseigné l\'email de leur tuteur.<br><strong>'+avecTel.length+'</strong> contactable(s) par WhatsApp.</div>';
+
+  // Liste
+  incomplets.forEach(function(s){
+    var t=String(s.tel_eleve||'').replace(/[\s.\-+]/g,'');
+    var hasTel=t.length>=9;
+    html+='<div style="display:flex;align-items:center;gap:.4rem;padding:.3rem .5rem;border-bottom:1px solid var(--gris3);font-size:.78rem">';
+    html+='<span style="font-weight:700;flex:1">'+esc(s.nom)+' '+esc(s.prenom||'')+'</span>';
+    html+='<span style="font-size:.65rem;color:var(--gris)">'+(s.tuteur_nom?'👤 '+esc(s.tuteur_nom):'❌ pas de tuteur')+'</span>';
+    html+=(hasTel?'<span style="color:#25D366">📱</span>':'<span style="opacity:.3">📱</span>');
+    html+='</div>';
+  });
+
+  html+='<button class="btn btn-primary btn-sm" onclick="doRappelWhatsApp()" style="margin-top:1rem;min-height:44px;background:#25D366;border-color:#25D366;width:100%">📱 Envoyer WhatsApp aux '+avecTel.length+' élèves</button>';
+  html+='</div>';
+
+  window._rappelIncomplets=avecTel;
+  showModal('📱 Rappel — Renseigner infos tuteur',html,'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+}
+
+function doRappelWhatsApp(){
+  var base=cfg.baseUrl||'https://frigorx.github.io/tt-ia/';
+  var atts=window._rappelIncomplets||[];
+  var count=0;
+  atts.forEach(function(s){
+    var t=String(s.tel_eleve||'').replace(/[\s.\-+]/g,'');
+    if(t.length<9)return;
+    if(!t.startsWith('33'))t=t.startsWith('0')?'33'+t.slice(1):'33'+t;
+    var lien=base+'inerweb_eleve.html?token='+encodeURIComponent(s.token_eleve||'');
+    var msg='Bonjour '+esc(s.prenom||s.nom)+',\n\n'
+      +'Connecte-toi sur inerWeb et renseigne OBLIGATOIREMENT les informations de ton tuteur de stage :\n'
+      +'- Nom du tuteur\n'
+      +'- Numéro de téléphone\n'
+      +'- Adresse email\n\n'
+      +'C\'est indispensable pour que je puisse envoyer ton attestation de stage à ton tuteur.\n\n'
+      +'👉 '+lien+'\n\n'
+      +'Merci de le faire dès maintenant.\n'
+      +'M. Henninot';
+    window.open('https://wa.me/'+t+'?text='+encodeURIComponent(msg),'_blank');
+    count++;
+  });
+  toast(count+' message(s) WhatsApp ouverts','ok');
+}
+
 /* ═══ ENVOYER ATTESTATIONS (WhatsApp élèves + Mail tuteurs) ═══ */
 async function envoyerAttestations(){
   var els=students.filter(s=>s.statut!=='inactif');
