@@ -4307,18 +4307,20 @@ async function envoyerAttestations(){
 
   // Récupérer les docs de chaque élève pour trouver l'attestation
   showSpinner();
+  toast('Scan des drives en cours — '+els.length+' élèves...','inf');
   var attestations=[];
   for(var i=0;i<els.length;i++){
     var s=els[i];
+    document.getElementById('syncLbl').textContent='Scan '+(i+1)+'/'+els.length+' — '+s.nom;
     try{
       var d=await apiCall({action:'getDocuments',eleve:s.code});
       if(d.ok&&d.documents){
         var att=d.documents.find(function(doc){return /attestation/i.test(doc.name)&&doc.type==='document';});
-        if(att) attestations.push({code:s.code,nom:s.nom,prenom:s.prenom||'',tel:s.tel_eleve||s.tel_tuteur||'',tuteurEmail:s.tuteur_email||s.email_tuteur||'',tuteurNom:s.tuteur_nom||'',url:att.url||('https://drive.google.com/file/d/'+att.id+'/view')});
+        if(att) attestations.push({code:s.code,nom:s.nom,prenom:s.prenom||'',tel:s.tel_eleve||s.tel_tuteur||'',eleveEmail:s.email_eleve||s.email||'',tuteurEmail:s.tuteur_email||s.email_tuteur||'',tuteurNom:s.tuteur_nom||'',url:att.url||('https://drive.google.com/file/d/'+att.id+'/view')});
       }
     }catch(e){console.warn('[attestations] Erreur pour',s.code,e.message);}
   }
-  hideSpinner();
+  hideSpinner();setSyncState('ok');
 
   if(!attestations.length){toast('Aucune attestation trouvée sur le Drive','err');return;}
 
@@ -4328,28 +4330,32 @@ async function envoyerAttestations(){
 
   // Liste récap
   html+='<div style="margin-bottom:.75rem">';
-  var nbTel=0,nbEmail=0;
+  var nbTel=0,nbEmailTut=0,nbEmailElv=0;
   attestations.forEach(function(a){
     var tel=String(a.tel).replace(/[\s.\-+]/g,'');
     if(tel.length>=9)nbTel++;
-    if(a.tuteurEmail)nbEmail++;
+    if(a.tuteurEmail)nbEmailTut++;
+    if(a.eleveEmail)nbEmailElv++;
     html+='<div style="display:flex;align-items:center;gap:.4rem;padding:.3rem .5rem;border-bottom:1px solid var(--gris3);font-size:.78rem">';
-    html+='<span style="font-weight:700">'+esc(a.nom)+' '+esc(a.prenom)+'</span>';
+    html+='<span style="font-weight:700;min-width:100px">'+esc(a.nom)+' '+esc(a.prenom)+'</span>';
     html+='<span style="flex:1;font-size:.65rem;color:var(--gris)">'+esc(a.code)+'</span>';
-    html+=(tel.length>=9?'<span title="'+esc(tel)+'">📱</span>':'<span style="opacity:.3">📱</span>');
-    html+=(a.tuteurEmail?'<span title="'+esc(a.tuteurEmail)+'">📧</span>':'<span style="opacity:.3">📧</span>');
+    html+=(tel.length>=9?'<span title="Tel: '+esc(tel)+'">📱</span>':'<span style="opacity:.3">📱</span>');
+    html+=(a.eleveEmail?'<span title="Élève: '+esc(a.eleveEmail)+'" style="color:var(--violet)">📧</span>':'<span style="opacity:.3">📧</span>');
+    html+=(a.tuteurEmail?'<span title="Tuteur: '+esc(a.tuteurEmail)+'" style="color:var(--teal)">🏢</span>':'<span style="opacity:.3">🏢</span>');
     html+='</div>';
   });
   html+='</div>';
 
-  html+='<div style="display:flex;flex-direction:column;gap:.5rem">';
-  html+='<div class="alert al-ok" style="margin:0"><strong>📱 WhatsApp élèves :</strong> '+nbTel+' élève(s) avec numéro</div>';
-  html+='<div class="alert al-ok" style="margin:0"><strong>📧 Mail tuteurs :</strong> '+nbEmail+' tuteur(s) avec email</div>';
+  html+='<div style="display:flex;flex-direction:column;gap:.4rem">';
+  html+='<div class="alert al-ok" style="margin:0"><strong>📱 WhatsApp/SMS élèves :</strong> '+nbTel+' avec numéro</div>';
+  html+='<div class="alert al-ok" style="margin:0"><strong>📧 Mail élèves :</strong> '+nbEmailElv+' avec email</div>';
+  html+='<div class="alert al-ok" style="margin:0"><strong>🏢 Mail tuteurs :</strong> '+nbEmailTut+' avec email</div>';
   html+='</div>';
 
   html+='<div style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap">';
-  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttWhatsApp()" style="min-height:44px;flex:1;background:#25D366;border-color:#25D366">📱 WhatsApp élèves</button>';
-  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttMailTuteurs()" style="min-height:44px;flex:1">📧 Mail tuteurs</button>';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttWhatsApp()" style="min-height:44px;flex:1;background:#25D366;border-color:#25D366">📱 WhatsApp</button>';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttMailEleves()" style="min-height:44px;flex:1;background:var(--violet);border-color:var(--violet)">📧 Mail élèves</button>';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttMailTuteurs()" style="min-height:44px;flex:1;background:var(--teal);border-color:var(--teal)">🏢 Mail tuteurs</button>';
   html+='</div>';
   html+='</div>';
 
@@ -4389,7 +4395,29 @@ function doEnvoyerAttMailTuteurs(){
     count++;
   });
   if(!count)toast('Aucun tuteur avec email renseigné','err');
-  else toast(count+' mail(s) ouverts','ok');
+  else toast(count+' mail(s) tuteur ouverts','ok');
+}
+
+function doEnvoyerAttMailEleves(){
+  var atts=window._attestations||[];
+  var count=0;
+  atts.forEach(function(a){
+    if(!a.eleveEmail)return;
+    var sujet='Ton attestation de stage — à transmettre à ton tuteur';
+    var corps='Bonjour '+a.prenom+',\n\n'
+      +'Ton attestation de stage est disponible ici :\n'+a.url+'\n\n'
+      +'Ce document est INDISPENSABLE pour le versement de ton indemnité de stage.\n\n'
+      +'Ce que tu dois faire :\n'
+      +'1. Ouvrir le document\n'
+      +'2. L\'envoyer à ton tuteur ('+( a.tuteurNom||'ton tuteur')+')\n'
+      +'3. Lui demander de le compléter, signer et le retourner à ton enseignant\n\n'
+      +'Si tu as besoin d\'aide, demande à M. Henninot.\n\n'
+      +'Merci !';
+    window.open('mailto:'+encodeURIComponent(a.eleveEmail)+'?subject='+encodeURIComponent(sujet)+'&body='+encodeURIComponent(corps),'_blank');
+    count++;
+  });
+  if(!count)toast('Aucun élève avec email renseigné','err');
+  else toast(count+' mail(s) élève ouverts','ok');
 }
 
 /* ═══ ENVOYER DOCUMENTS AUX TUTEURS ═══ */
