@@ -61,9 +61,10 @@ input, select, textarea, button { font-family:inherit; }
 .hdr-sync { background:rgba(255,255,255,.15); border:none; color:#fff; padding:.4rem .6rem; border-radius:var(--r2); font-size:1rem; cursor:pointer; min-height:44px; min-width:44px; }
 .hdr-sync.syncing { animation:spin 1s linear infinite; }
 @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
 .bottom-nav { position:fixed; bottom:0; left:0; right:0; background:#fff; display:flex; box-shadow:0 -2px 20px rgba(0,0,0,.1); z-index:100; padding-bottom:env(safe-area-inset-bottom); }
-.nav-item { flex:1; padding:.75rem .5rem; text-align:center; border:none; background:none; cursor:pointer; transition:var(--t); color:var(--gris); min-height:44px; }
+.nav-item { flex:1; padding:.75rem .5rem; text-align:center; border:none; background:none; cursor:pointer; transition:var(--t); color:var(--gris); min-height:44px; position:relative; }
 .nav-item.active { color:var(--violet); }
 .nav-ico { font-size:1.3rem; display:block; margin-bottom:.15rem; }
 .nav-lbl { font-size:.65rem; font-weight:700; }
@@ -489,7 +490,7 @@ input, select, textarea, button { font-family:inherit; }
     <button class="nav-item active" data-page="home"><span class="nav-ico">🏠</span><span class="nav-lbl">Accueil</span></button>
     <button class="nav-item" data-page="progress"><span class="nav-ico">📊</span><span class="nav-lbl">Compétences</span></button>
     <button class="nav-item" data-page="calendrier"><span class="nav-ico">📅</span><span class="nav-lbl">Calendrier</span></button>
-    <button class="nav-item" data-page="docs"><span class="nav-ico">📁</span><span class="nav-lbl">Documents</span></button>
+    <button class="nav-item" data-page="docs"><span class="nav-ico">📁</span><span class="nav-lbl">Documents</span><span id="docsBadge" style="display:none;position:absolute;top:2px;right:8px;background:#e74c3c;color:#fff;font-size:.55rem;font-weight:900;padding:1px 5px;border-radius:10px;animation:pulse 1.5s infinite">NEW</span></button>
     <button class="nav-item" data-page="journal"><span class="nav-ico">📓</span><span class="nav-lbl">Journal</span></button>
   </nav>
 </div>
@@ -871,6 +872,7 @@ function switchPage(page){
   document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
   if(page==='journal')updatePhotoCounter();
   if(page==='calendrier')renderCalendrier();
+  if(page==='docs')markDocsSeen();
 }
 
 /* ═══ EVENT LISTENER DELEGUE (Phase 11) ═══ */
@@ -1155,12 +1157,31 @@ async function loadSharedDocs(){
     var r=await fetch(url.toString(),{method:'GET',redirect:'follow'});
     var d=await r.json();
     if(d.ok&&d.documents){
+      var oldIds=sharedDocs.map(function(x){return x.id;});
       sharedDocs=d.documents.filter(function(doc){return doc.type==='document';}).map(function(doc){
         return {id:doc.id,nom:doc.name,filename:doc.name,url:doc.url,date:doc.date,categorie:'autre',taille:0};
       });
+      // Détecter les nouveaux documents
+      var seenKey='iw_docs_seen_'+eleve.code;
+      var seen=JSON.parse(localStorage.getItem(seenKey)||'[]');
+      var newDocs=sharedDocs.filter(function(doc){return seen.indexOf(doc.id)===-1;});
+      if(newDocs.length){
+        var badge=document.getElementById('docsBadge');
+        if(badge){badge.style.display='inline-block';badge.textContent=newDocs.length;}
+        toast('📁 '+newDocs.length+' nouveau(x) document(s) dans ton espace !','ok');
+      }
       saveLocal();renderDocsEleve();
     }
   }catch(e){console.warn('loadSharedDocs:',e);}
+}
+// Marquer les documents comme vus quand on ouvre l'onglet Documents
+function markDocsSeen(){
+  if(!eleve||!eleve.code)return;
+  var seenKey='iw_docs_seen_'+eleve.code;
+  var ids=sharedDocs.map(function(d){return d.id;});
+  localStorage.setItem(seenKey,JSON.stringify(ids));
+  var badge=document.getElementById('docsBadge');
+  if(badge)badge.style.display='none';
 }
 
 function ajouterDocEleve(input){
