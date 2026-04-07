@@ -244,6 +244,11 @@ video{width:100%;border-radius:var(--r);background:#000;display:block;}
 :focus-visible{outline:3px solid var(--orange);outline-offset:2px;}
 .skip-link{position:absolute;top:-40px;left:0;background:var(--bleu);color:#fff;padding:8px 16px;z-index:10000;font-size:14px;transition:top .2s;}
 .skip-link:focus{top:0;}
+
+/* ═══ SÉCURITÉ SYNC — Pastille + Bandeau ═══ */
+@keyframes pendingPulse{0%,100%{opacity:1}50%{opacity:.5}}
+#pendingBanner{display:none;position:fixed;bottom:0;left:0;right:0;background:#e74c3c;color:#fff;padding:.6rem 1rem;font-size:.78rem;font-weight:800;text-align:center;z-index:9999;box-shadow:0 -2px 12px rgba(231,76,60,.4);animation:pendingPulse 2s infinite;}
+#pendingBanner button{background:#fff;color:#e74c3c;border:none;border-radius:6px;padding:.35rem .8rem;font-weight:900;font-size:.75rem;cursor:pointer;margin-left:.5rem;}
 </style>
 </head>
 <body>
@@ -262,6 +267,7 @@ video{width:100%;border-radius:var(--r);background:#000;display:block;}
     <div class="hdr-txt"><p style="margin:0;font-size:.7rem;opacity:.8">Espace tuteur</p></div>
   </div>
   <span class="hdr-badge" id="hdrBadge">Filière Énergétique</span>
+  <span id="pendingBadge" style="display:none;background:#e74c3c;color:#fff;font-size:.6rem;font-weight:900;padding:.15rem .5rem;border-radius:12px;animation:pendingPulse 1.5s infinite">⏳ <span id="pendingCount">0</span> en attente</span>
 </header>
 
 <!-- ═══ PAGE 0 : BIENVENUE ═══ -->
@@ -581,6 +587,7 @@ video{width:100%;border-radius:var(--r);background:#000;display:block;}
   </div>
 </div>
 
+<div id="pendingBanner">⚠️ <span id="pendingBannerMsg">Évaluation(s) non envoyée(s)</span> <button onclick="retryPending()">🔄 Réessayer</button></div>
 <div class="toast-c" id="toastC" aria-live="polite"></div>
 <div class="spin-ov" id="spinOv"><div class="spinner"></div></div>
 
@@ -1328,8 +1335,12 @@ async function envoyerConfirme(){
     if(d.error){
       throw new Error(d.error);
     }
+    if(!d.ok && !d.success){
+      throw new Error(d.error || 'Réponse serveur inattendue');
+    }
     hideSpinner();
-    toast('Évaluation envoyée — en attente validation prof','ok');
+    toast('✅ Évaluation envoyée avec succès !','ok');
+    updatePendingUI();
     setTimeout(()=>{
       ouvrirModale('Évaluer un autre stagiaire ?',()=>goPage('scan'));
     },1500);
@@ -1341,7 +1352,10 @@ async function envoyerConfirme(){
     if(existIdx>=0){pending[existIdx]={eleve:eleveCode,tuteur:tuteurToken,payload};}
     else{pending.push({eleve:eleveCode,tuteur:tuteurToken,payload});}
     localStorage.setItem('inerweb-tt-fe-tuteur-pending',JSON.stringify(pending));
-    toast('Sauvegardé hors-ligne — envoi au prochain réseau','warn');
+    updatePendingUI();
+    toast('⚠️ Échec envoi — sauvegardé localement, nouvel essai automatique','warn');
+    // Lancer un retry immédiat après 3s
+    setTimeout(function(){ if(navigator.onLine) retryPending(); }, 3000);
   }
 }
 
@@ -1436,9 +1450,24 @@ function loadTuteurDemo(){
 }
 
 /* ═══ RETRY PENDING — Renvoi automatique des évaluations en attente ═══ */
-async function retryPending(){
+var _pendingSending=false;
+
+function updatePendingUI(){
   var pending=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-pending'),[])||[];
-  if(!pending||!pending.length) return;
+  var n=pending.length;
+  var badge=document.getElementById('pendingBadge');
+  var banner=document.getElementById('pendingBanner');
+  var countEl=document.getElementById('pendingCount');
+  var bannerMsg=document.getElementById('pendingBannerMsg');
+  if(badge){badge.style.display=n>0?'inline':'none';if(countEl)countEl.textContent=n;}
+  if(banner){banner.style.display=n>0?'block':'none';if(bannerMsg)bannerMsg.textContent=n+' évaluation(s) non envoyée(s) — ne fermez pas cette page';}
+}
+
+async function retryPending(){
+  if(_pendingSending) return;
+  _pendingSending=true;
+  var pending=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-pending'),[])||[];
+  if(!pending||!pending.length){_pendingSending=false;updatePendingUI();return;}
   var restant=[];
   for(var i=0;i<pending.length;i++){
     try{
@@ -1454,17 +1483,35 @@ async function retryPending(){
       });
       var d=await r.json();
       if(d.error) throw new Error(d.error);
-      toast('Évaluation en attente envoyée pour '+p.eleve,'ok');
+      toast('✅ Évaluation en attente envoyée pour '+p.eleve,'ok');
     }catch(e){
       restant.push(pending[i]);
     }
   }
   localStorage.setItem('inerweb-tt-fe-tuteur-pending',JSON.stringify(restant));
-  if(restant.length) toast(restant.length+' évaluation(s) en attente de connexion','warn');
+  _pendingSending=false;
+  updatePendingUI();
+  if(restant.length) toast(restant.length+' évaluation(s) encore en attente','warn');
 }
 
-// Retry automatique au retour en ligne
+// ═══ SÉCURITÉ 1 : Bloquer la fermeture si des envois sont en attente ═══
+window.addEventListener('beforeunload',function(e){
+  var pending=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-pending'),[])||[];
+  if(pending.length>0){
+    e.preventDefault();
+    e.returnValue='Des évaluations n\'ont pas encore été envoyées. Quitter quand même ?';
+    return e.returnValue;
+  }
+});
+
+// ═══ SÉCURITÉ 2 : Retry agressif (retour réseau + toutes les 10s) ═══
 window.addEventListener('online',function(){ retryPending(); });
+window.addEventListener('focus',function(){ retryPending(); });
+setInterval(function(){
+  var pending=safeParse(localStorage.getItem('inerweb-tt-fe-tuteur-pending'),[])||[];
+  if(pending.length>0 && navigator.onLine) retryPending();
+  updatePendingUI();
+},10000);
 
 /* ═══ EVENT LISTENERS DELEGUES (Phase 11) ═══ */
 // Navigation par pages — délégation sur le body
@@ -1484,7 +1531,8 @@ document.body.addEventListener('change',function(e){
 addTel();addEmail();addTuteur();
 // Charger données sauvegardées
 chargerLocal();
-// Retry des évaluations en attente au chargement
+// Retry des évaluations en attente au chargement + indicateur visuel
+updatePendingUI();
 if(navigator.onLine) retryPending();
 // Deep-link
 const _p=new URLSearchParams(window.location.search);
