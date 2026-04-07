@@ -4377,18 +4377,30 @@ async function envoyerAttestations(){
   html+='<textarea id="attSmsTuteur" rows="5" style="width:100%;padding:.5rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.82rem;font-family:inherit;resize:vertical">Bonjour, merci d\'avoir accueilli notre élève en stage. Une attestation vous a été transmise par votre stagiaire ou est disponible sur l\'appli inerWeb. Pourriez-vous la compléter, la signer et me la retourner ? Ce document est indispensable pour l\'indemnité de stage de l\'élève. Merci ! — F. Henninot</textarea>';
   html+='</div>';
 
+  // Emails pour Gmail
+  var emailsEleves=attestations.filter(function(a){return a.eleveEmail;}).map(function(a){return a.eleveEmail;});
+  var emailsTuteurs=attestations.filter(function(a){return a.tuteurEmail;}).map(function(a){return a.tuteurEmail;});
+
   html+='<div style="display:flex;flex-direction:column;gap:.5rem;margin-top:1rem">';
+
   html+='<div style="font-size:.72rem;font-weight:800;color:var(--bleu);text-transform:uppercase;letter-spacing:1px">Envoyer aux élèves</div>';
-  html+='<div style="display:flex;gap:.5rem">';
-  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttSmsEleves()" style="min-height:44px;flex:1;background:var(--bleu);border-color:var(--bleu)">💬 SMS groupé ('+numsEleves.length+')</button>';
-  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttWhatsApp()" style="min-height:44px;flex:1;background:#25D366;border-color:#25D366">📱 WhatsApp (1 par 1)</button>';
+  html+='<div style="display:flex;gap:.4rem;flex-wrap:wrap">';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttSmsEleves()" style="min-height:44px;flex:1;background:var(--bleu);border-color:var(--bleu)">💬 SMS ('+numsEleves.length+')</button>';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttWhatsApp()" style="min-height:44px;flex:1;background:#25D366;border-color:#25D366">📱 WhatsApp</button>';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerGmailEleves()" style="min-height:44px;flex:1;background:#EA4335;border-color:#EA4335">📧 Gmail ('+emailsEleves.length+')</button>';
   html+='</div>';
+
   html+='<div style="font-size:.72rem;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-top:.5rem">Envoyer aux tuteurs</div>';
-  html+='<div style="display:flex;gap:.5rem">';
-  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttSmsTuteurs()" style="min-height:44px;flex:1;background:var(--teal);border-color:var(--teal)">💬 SMS groupé ('+numsTuteurs.length+')</button>';
-  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttWhatsAppTuteurs()" style="min-height:44px;flex:1;background:#25D366;border-color:#25D366">📱 WhatsApp tuteurs</button>';
+  html+='<div style="display:flex;gap:.4rem;flex-wrap:wrap">';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttSmsTuteurs()" style="min-height:44px;flex:1;background:var(--teal);border-color:var(--teal)">💬 SMS ('+numsTuteurs.length+')</button>';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttWhatsAppTuteurs()" style="min-height:44px;flex:1;background:#25D366;border-color:#25D366">📱 WhatsApp</button>';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerGmailTuteurs()" style="min-height:44px;flex:1;background:#EA4335;border-color:#EA4335">📧 Gmail ('+emailsTuteurs.length+')</button>';
   html+='</div>';
+
   html+='</div>';
+
+  window._attEmailsEleves=emailsEleves;
+  window._attEmailsTuteurs=emailsTuteurs;
 
   window._attNumsEleves=numsEleves;
   window._attNumsTuteurs=numsTuteurs;
@@ -4463,6 +4475,26 @@ function doEnvoyerAttWhatsAppTuteurs(){
   });
   if(!count)toast('Aucun tuteur avec numéro','err');
   else toast(count+' WhatsApp tuteur ouverts','ok');
+}
+
+function doEnvoyerGmailEleves(){
+  var emails=window._attEmailsEleves||[];
+  if(!emails.length){toast('Aucun élève avec email','err');return;}
+  var msg=document.getElementById('attSmsEleve').value;
+  var sujet='Attestation de stage — à transmettre à ton tuteur';
+  var url='https://mail.google.com/mail/?view=cm&bcc='+encodeURIComponent(emails.join(','))+'&su='+encodeURIComponent(sujet)+'&body='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+  toast('Gmail ouvert — '+emails.length+' élèves en BCC','ok');
+}
+
+function doEnvoyerGmailTuteurs(){
+  var emails=window._attEmailsTuteurs||[];
+  if(!emails.length){toast('Aucun tuteur avec email','err');return;}
+  var msg=document.getElementById('attSmsTuteur').value;
+  var sujet='Attestation de stage — merci de compléter et retourner';
+  var url='https://mail.google.com/mail/?view=cm&bcc='+encodeURIComponent(emails.join(','))+'&su='+encodeURIComponent(sujet)+'&body='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+  toast('Gmail ouvert — '+emails.length+' tuteurs en BCC','ok');
 }
 
 function doEnvoyerAttMailEleves(){
