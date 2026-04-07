@@ -4316,7 +4316,7 @@ async function envoyerAttestations(){
       var d=await apiCall({action:'getDocuments',eleve:s.code});
       if(d.ok&&d.documents){
         var att=d.documents.find(function(doc){return /attestation/i.test(doc.name)&&doc.type==='document';});
-        if(att) attestations.push({code:s.code,nom:s.nom,prenom:s.prenom||'',tel:s.tel_eleve||s.tel_tuteur||'',eleveEmail:s.email_eleve||s.email||'',tuteurEmail:s.tuteur_email||s.email_tuteur||'',tuteurNom:s.tuteur_nom||'',url:att.url||('https://drive.google.com/file/d/'+att.id+'/view')});
+        if(att) attestations.push({code:s.code,nom:s.nom,prenom:s.prenom||'',tel:s.tel_eleve||'',tuteurTel:s.tel_tuteur||'',eleveEmail:s.email_eleve||s.email||'',tuteurEmail:s.tuteur_email||s.email_tuteur||'',tuteurNom:s.tuteur_nom||'',url:att.url||('https://drive.google.com/file/d/'+att.id+'/view')});
       }
     }catch(e){console.warn('[attestations] Erreur pour',s.code,e.message);}
   }
@@ -4346,17 +4346,52 @@ async function envoyerAttestations(){
   });
   html+='</div>';
 
+  // Numéros élèves pour SMS groupé
+  var numsEleves=[];
+  attestations.forEach(function(a){
+    var t=String(a.tel).replace(/[\s.\-+]/g,'');
+    if(t.length>=9){if(!t.startsWith('0'))t='0'+t;numsEleves.push(t);}
+  });
+  // Numéros tuteurs pour SMS groupé
+  var numsTuteurs=[];
+  attestations.forEach(function(a){
+    if(!a.tuteurTel)return;
+    var t=String(a.tuteurTel).replace(/[\s.\-+]/g,'');
+    if(t.length>=9){if(!t.startsWith('0'))t='0'+t;numsTuteurs.push(t);}
+  });
+
   html+='<div style="display:flex;flex-direction:column;gap:.4rem">';
-  html+='<div class="alert al-ok" style="margin:0"><strong>📱 WhatsApp/SMS élèves :</strong> '+nbTel+' avec numéro</div>';
-  html+='<div class="alert al-ok" style="margin:0"><strong>📧 Mail élèves :</strong> '+nbEmailElv+' avec email</div>';
-  html+='<div class="alert al-ok" style="margin:0"><strong>🏢 Mail tuteurs :</strong> '+nbEmailTut+' avec email</div>';
+  html+='<div class="alert al-ok" style="margin:0"><strong>📱 Élèves :</strong> '+nbTel+' avec numéro</div>';
+  html+='<div class="alert al-ok" style="margin:0"><strong>🏢 Tuteurs :</strong> '+nbEmailTut+' avec email · '+numsTuteurs.length+' avec tél</div>';
   html+='</div>';
 
-  html+='<div style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap">';
-  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttWhatsApp()" style="min-height:44px;flex:1;background:#25D366;border-color:#25D366">📱 WhatsApp</button>';
-  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttMailEleves()" style="min-height:44px;flex:1;background:var(--violet);border-color:var(--violet)">📧 Mail élèves</button>';
-  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttMailTuteurs()" style="min-height:44px;flex:1;background:var(--teal);border-color:var(--teal)">🏢 Mail tuteurs</button>';
+  // Message SMS élèves éditable
+  html+='<div style="margin-top:.75rem;background:var(--gris2);border-radius:var(--r2);padding:.75rem">';
+  html+='<div style="font-size:.75rem;font-weight:800;color:var(--bleu);margin-bottom:.3rem">💬 Message élèves :</div>';
+  html+='<textarea id="attSmsEleve" rows="4" style="width:100%;padding:.5rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.82rem;font-family:inherit;resize:vertical">Salut ! Ton attestation de stage est dispo sur l\'appli inerWeb dans tes Documents. Transmets-la à ton tuteur pour qu\'il la remplisse et la signe. C\'est obligatoire pour ton indemnité. Merci ! — M. Henninot</textarea>';
   html+='</div>';
+
+  // Message SMS tuteurs éditable
+  html+='<div style="margin-top:.5rem;background:var(--teal2);border-radius:var(--r2);padding:.75rem">';
+  html+='<div style="font-size:.75rem;font-weight:800;color:var(--teal);margin-bottom:.3rem">🏢 Message tuteurs :</div>';
+  html+='<textarea id="attSmsTuteur" rows="5" style="width:100%;padding:.5rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.82rem;font-family:inherit;resize:vertical">Bonjour, merci d\'avoir accueilli notre élève en stage. Une attestation vous a été transmise par votre stagiaire ou est disponible sur l\'appli inerWeb. Pourriez-vous la compléter, la signer et me la retourner ? Ce document est indispensable pour l\'indemnité de stage de l\'élève. Merci ! — F. Henninot</textarea>';
+  html+='</div>';
+
+  html+='<div style="display:flex;flex-direction:column;gap:.5rem;margin-top:1rem">';
+  html+='<div style="font-size:.72rem;font-weight:800;color:var(--bleu);text-transform:uppercase;letter-spacing:1px">Envoyer aux élèves</div>';
+  html+='<div style="display:flex;gap:.5rem">';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttSmsEleves()" style="min-height:44px;flex:1;background:var(--bleu);border-color:var(--bleu)">💬 SMS groupé ('+numsEleves.length+')</button>';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttWhatsApp()" style="min-height:44px;flex:1;background:#25D366;border-color:#25D366">📱 WhatsApp (1 par 1)</button>';
+  html+='</div>';
+  html+='<div style="font-size:.72rem;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-top:.5rem">Envoyer aux tuteurs</div>';
+  html+='<div style="display:flex;gap:.5rem">';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttSmsTuteurs()" style="min-height:44px;flex:1;background:var(--teal);border-color:var(--teal)">💬 SMS groupé ('+numsTuteurs.length+')</button>';
+  html+='<button class="btn btn-primary btn-sm" onclick="doEnvoyerAttWhatsAppTuteurs()" style="min-height:44px;flex:1;background:#25D366;border-color:#25D366">📱 WhatsApp tuteurs</button>';
+  html+='</div>';
+  html+='</div>';
+
+  window._attNumsEleves=numsEleves;
+  window._attNumsTuteurs=numsTuteurs;
   html+='</div>';
 
   // Stocker pour les sous-fonctions
@@ -4366,13 +4401,13 @@ async function envoyerAttestations(){
 
 function doEnvoyerAttWhatsApp(){
   var atts=window._attestations||[];
+  var msgTpl=document.getElementById('attSmsEleve').value;
   var count=0;
   atts.forEach(function(a){
     var tel=String(a.tel).replace(/[\s.\-+]/g,'');
     if(tel.length<9)return;
     if(!tel.startsWith('33'))tel=tel.startsWith('0')?'33'+tel.slice(1):'33'+tel;
-    var msg='Bonjour '+a.prenom+',\n\nTon attestation de stage est disponible ici :\n'+a.url+'\n\nTransmets ce document à ton tuteur pour qu\'il le complète et le signe. C\'est indispensable pour ton indemnité de stage.\n\nM. Henninot';
-    window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
+    window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msgTpl),'_blank');
     count++;
   });
   toast(count+' message(s) WhatsApp ouverts','ok');
@@ -4396,6 +4431,38 @@ function doEnvoyerAttMailTuteurs(){
   });
   if(!count)toast('Aucun tuteur avec email renseigné','err');
   else toast(count+' mail(s) tuteur ouverts','ok');
+}
+
+function doEnvoyerAttSmsEleves(){
+  var nums=window._attNumsEleves||[];
+  var msg=document.getElementById('attSmsEleve').value;
+  if(!nums.length){toast('Aucun numéro élève disponible','err');return;}
+  window.open('sms:'+nums.join(',')+'?body='+encodeURIComponent(msg),'_blank');
+  toast('SMS groupé ouvert — '+nums.length+' élèves','ok');
+}
+
+function doEnvoyerAttSmsTuteurs(){
+  var nums=window._attNumsTuteurs||[];
+  var msg=document.getElementById('attSmsTuteur').value;
+  if(!nums.length){toast('Aucun numéro tuteur disponible','err');return;}
+  window.open('sms:'+nums.join(',')+'?body='+encodeURIComponent(msg),'_blank');
+  toast('SMS groupé ouvert — '+nums.length+' tuteurs','ok');
+}
+
+function doEnvoyerAttWhatsAppTuteurs(){
+  var atts=window._attestations||[];
+  var msg=document.getElementById('attSmsTuteur').value;
+  var count=0;
+  atts.forEach(function(a){
+    if(!a.tuteurTel)return;
+    var t=String(a.tuteurTel).replace(/[\s.\-+]/g,'');
+    if(t.length<9)return;
+    if(!t.startsWith('33'))t=t.startsWith('0')?'33'+t.slice(1):'33'+t;
+    window.open('https://wa.me/'+t+'?text='+encodeURIComponent(msg),'_blank');
+    count++;
+  });
+  if(!count)toast('Aucun tuteur avec numéro','err');
+  else toast(count+' WhatsApp tuteur ouverts','ok');
 }
 
 function doEnvoyerAttMailEleves(){
