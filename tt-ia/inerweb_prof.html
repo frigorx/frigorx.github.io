@@ -2905,7 +2905,7 @@ function renderSuivi(){
         <button class="btn btn-teal btn-xs" onclick="viewJournalDetail('${s.code}')">📓 Journal</button>
         <button class="btn btn-ghost btn-xs" onclick="viewStagePhotos('${s.code}')">📷 Photos</button>
         <button class="btn btn-ghost btn-xs" onclick="showQR('${s.code}')">📱 QR</button>
-        <button class="btn btn-orange btn-xs" onclick="voirEvalTuteur('${s.code}')">🏢 Éval tuteur</button>
+        <button class="btn btn-xs" onclick="voirEvalTuteur('${s.code}')" style="background:${s.hasEvalTuteur?'var(--vert)':'var(--orange)'};color:#fff;border:none">${s.hasEvalTuteur?'✅':'🏢'} Éval tuteur</button>
         <button class="btn btn-ghost btn-xs" onclick="previewPageEleve('${s.code}')" title="Voir ce que voit l'élève">👁️ Élève</button>
         <button class="btn btn-ghost btn-xs" onclick="previewPageTuteur('${s.code}')" title="Voir ce que voit le tuteur">👁️ Tuteur</button>
       </div>
@@ -5757,7 +5757,13 @@ function afficherEvalTuteur(code){
     });
     html+='</div>';
   } else {
+    const st=students.find(x=>x.code===code)||{};
+    const lienTuteur=(cfg.baseUrl||'https://frigorx.github.io/tt-ia/')+'inerweb_tuteur.html?eleve='+encodeURIComponent(code)+'&tuteur='+encodeURIComponent(st.token_tuteur||'')+'&role=tuteur';
     html+='<div class="alert al-info" style="margin-bottom:.75rem">Aucune évaluation tuteur reçue pour cet élève.</div>';
+    html+='<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">';
+    html+='<button class="btn btn-sm" onclick="evaluerCommeTuteur(\''+code+'\')" style="min-height:44px;background:var(--teal);color:#fff;border:none;font-weight:800">📝 Évaluer à la place du tuteur</button>';
+    html+='<button class="btn btn-sm" onclick="navigator.clipboard.writeText(\''+lienTuteur+'\');toast(\'Lien copié !\',\'ok\')" style="min-height:44px;background:var(--gris2);color:var(--bleu);border:none;font-weight:700">🔗 Copier lien tuteur</button>';
+    html+='</div>';
   }
 
   // ── SECTION PROF — Mon évaluation stage ──
@@ -5801,6 +5807,15 @@ function afficherEvalTuteur(code){
   html+=`</div></div>`;
 
   c.innerHTML=html;
+}
+
+function evaluerCommeTuteur(code){
+  var s=students.find(x=>x.code===code)||{};
+  var base=cfg.baseUrl||'https://frigorx.github.io/tt-ia/';
+  var lien=base+'inerweb_tuteur.html?eleve='+encodeURIComponent(code)+'&tuteur='+encodeURIComponent(s.token_tuteur||'')+'&role=tuteur';
+  // Ouvrir la page tuteur avec la config
+  var cfgB64=encodeURIComponent(btoa(JSON.stringify({apiUrl:cfg.apiUrl,apiKey:cfg.apiKey,baseUrl:base})));
+  window.open(lien+'#cfg='+cfgB64,'_blank');
 }
 
 function _getTuteurNiv(valsTuteur,compCode){
