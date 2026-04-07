@@ -834,6 +834,7 @@ async function saveProfilEleve(){
   var tuteurEmail=document.getElementById('profilTuteurEmail').value.trim();
   var entrepriseNom=document.getElementById('profilEntreprise').value.trim();
   // Validation obligatoire
+  if(!email||!email.includes('@')){toast('Ton email est obligatoire','err');document.getElementById('profilEmail').focus();return;}
   if(!tuteurNom){toast('Le nom du tuteur est obligatoire','err');document.getElementById('profilTuteurNom').focus();return;}
   if(!tuteurTel){toast('Le téléphone du tuteur est obligatoire','err');document.getElementById('profilTuteurTel').focus();return;}
   if(!tuteurEmail||!tuteurEmail.includes('@')){toast('L\'email du tuteur est obligatoire (pour envoyer l\'attestation)','err');document.getElementById('profilTuteurEmail').focus();return;}
@@ -855,7 +856,7 @@ async function saveProfilEleve(){
     }catch(e){console.warn('Sync profil:',e);}
   }
 }
-function profilTuteurComplet(){return !!(eleve.tuteur_nom&&eleve.tuteur_nom.trim()&&eleve.tel_tuteur&&String(eleve.tel_tuteur).trim()&&eleve.tuteur_email&&eleve.tuteur_email.trim()&&eleve.tuteur_email.includes('@'));}
+function profilTuteurComplet(){return !!(eleve.tuteur_nom&&eleve.tuteur_nom.trim()&&eleve.tel_tuteur&&String(eleve.tel_tuteur).trim()&&eleve.tuteur_email&&eleve.tuteur_email.trim()&&eleve.tuteur_email.includes('@')&&eleve.email&&eleve.email.trim()&&eleve.email.includes('@'));}
 function startApp(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('appContainer').classList.add('active');renderAll();if(cfg.token!=='DEMO'&&!profilTuteurComplet())setTimeout(showProfilModal,800);
 // Auto-sync au démarrage pour libérer les base64 en attente
 if(cfg.token&&cfg.token!=='DEMO'&&cfg.token!=='PROF'&&cfg.token!=='TEST'){setTimeout(function(){var pending=journal.filter(function(j){return!j.synced;});if(pending.length)syncCloud();},2000);setTimeout(loadSharedDocs,3000);}}
@@ -1352,14 +1353,14 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closePhotoModal();})
       <div style="font-size:1.8rem">&#128100;</div>
       <h2 style="font-size:1rem;font-weight:900;color:var(--bleu);margin-top:.15rem">Complète ton profil</h2>
       <p style="font-size:.72rem;color:var(--gris);margin-top:.2rem">Ces infos restent confidentielles et permettent à ton prof de te contacter</p>
-      <p id="profilAlertTuteur" style="display:none;font-size:.78rem;color:#c0392b;font-weight:800;margin-top:.5rem;background:#fde8e6;padding:.6rem .75rem;border-radius:8px;border-left:4px solid #e74c3c;text-align:left;line-height:1.5">&#128680; <strong>IMPORTANT</strong> — Pour finaliser ton dossier de stage, tu dois renseigner le <strong>nom</strong>, le <strong>num&eacute;ro de t&eacute;l&eacute;phone</strong> et l'<strong>email</strong> de ton tuteur.<br>Ces informations sont <strong>obligatoires</strong> pour que ton enseignant puisse envoyer l'attestation de stage &agrave; ton tuteur.</p>
+      <p id="profilAlertTuteur" style="display:none;font-size:.78rem;color:#c0392b;font-weight:800;margin-top:.5rem;background:#fde8e6;padding:.6rem .75rem;border-radius:8px;border-left:4px solid #e74c3c;text-align:left;line-height:1.5">&#128680; <strong>IMPORTANT</strong> — Pour finaliser ton dossier de stage, tu dois renseigner :<br>&#10145;&#65039; <strong>Ton email</strong><br>&#10145;&#65039; Le <strong>nom</strong>, le <strong>t&eacute;l&eacute;phone</strong> et l'<strong>email de ton tuteur</strong><br>Ces informations sont <strong>obligatoires</strong> pour l'envoi de ton attestation de stage.</p>
     </div>
     <div style="margin-bottom:.5rem">
       <label style="font-size:.75rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.15rem">Téléphone (optionnel)</label>
       <input type="tel" id="profilTel" placeholder="06 12 34 56 78" pattern="0[67]\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{2}" style="width:100%;padding:.6rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.9rem;box-sizing:border-box">
     </div>
     <div style="margin-bottom:.5rem">
-      <label style="font-size:.75rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.15rem">Email (optionnel)</label>
+      <label style="font-size:.75rem;font-weight:700;color:var(--bleu);display:block;margin-bottom:.15rem">Ton email <span style="color:var(--orange)">*</span></label>
       <input type="email" id="profilEmail" placeholder="prenom.nom@email.fr" style="width:100%;padding:.6rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.9rem;box-sizing:border-box">
     </div>
     <div style="border-top:2px solid var(--gris3,#e0e0e0);margin:.5rem 0 .5rem;padding-top:.5rem">

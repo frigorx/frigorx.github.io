@@ -4212,53 +4212,88 @@ function readFileAsBase64(file){
     reader.readAsDataURL(file);
   });
 }
-/* ═══ RAPPEL INFOS TUTEUR PAR WHATSAPP ═══ */
+/* ═══ RAPPEL INFOS TUTEUR PAR SMS / WHATSAPP ═══ */
 function rappelInfosTuteur(){
   var els=students.filter(s=>s.statut!=='inactif');
-  // Ceux qui n'ont PAS encore renseigné email tuteur
-  var incomplets=els.filter(s=>!s.tuteur_email&&!s.email_tuteur);
+  var incomplets=els.filter(s=>{
+    var hasEmail=s.tuteur_email||s.email_tuteur;
+    var hasEleveEmail=s.email_eleve||s.email;
+    return !hasEmail||!hasEleveEmail;
+  });
   var avecTel=incomplets.filter(s=>{var t=String(s.tel_eleve||'').replace(/[\s.\-+]/g,'');return t.length>=9;});
   var base=cfg.baseUrl||'https://frigorx.github.io/tt-ia/';
 
+  // Message SMS
+  var smsMsg='[inerWeb] Connecte-toi sur l\'appli et renseigne OBLIGATOIREMENT :\n- Ton email\n- Le nom, tel et email de ton tuteur\nC\'est indispensable pour ton attestation de stage.\nM. Henninot';
+
+  // Numéros formatés pour SMS groupé
+  var nums=avecTel.map(function(s){
+    var t=String(s.tel_eleve||'').replace(/[\s.\-+]/g,'');
+    return t.startsWith('0')?t:'0'+t;
+  });
+
   var html='<div style="max-height:60vh;overflow-y:auto">';
-  html+='<div class="alert al-info" style="margin-bottom:.75rem"><strong>'+incomplets.length+'</strong> élève(s) n\'ont pas encore renseigné l\'email de leur tuteur.<br><strong>'+avecTel.length+'</strong> contactable(s) par WhatsApp.</div>';
+  html+='<div class="alert al-info" style="margin-bottom:.75rem"><strong>'+incomplets.length+'</strong> élève(s) n\'ont pas encore renseigné toutes les infos.<br><strong>'+avecTel.length+'</strong> contactable(s) par SMS/WhatsApp.</div>';
 
   // Liste
   incomplets.forEach(function(s){
     var t=String(s.tel_eleve||'').replace(/[\s.\-+]/g,'');
     var hasTel=t.length>=9;
-    html+='<div style="display:flex;align-items:center;gap:.4rem;padding:.3rem .5rem;border-bottom:1px solid var(--gris3);font-size:.78rem">';
-    html+='<span style="font-weight:700;flex:1">'+esc(s.nom)+' '+esc(s.prenom||'')+'</span>';
-    html+='<span style="font-size:.65rem;color:var(--gris)">'+(s.tuteur_nom?'👤 '+esc(s.tuteur_nom):'❌ pas de tuteur')+'</span>';
-    html+=(hasTel?'<span style="color:#25D366">📱</span>':'<span style="opacity:.3">📱</span>');
+    var manque=[];
+    if(!s.email_eleve&&!s.email)manque.push('email élève');
+    if(!s.tuteur_nom)manque.push('nom tuteur');
+    if(!s.tel_tuteur)manque.push('tél tuteur');
+    if(!s.tuteur_email&&!s.email_tuteur)manque.push('email tuteur');
+    html+='<div style="display:flex;align-items:center;gap:.4rem;padding:.35rem .5rem;border-bottom:1px solid var(--gris3);font-size:.78rem">';
+    html+='<span style="font-weight:700;min-width:120px">'+esc(s.nom)+' '+esc(s.prenom||'')+'</span>';
+    html+='<span style="flex:1;font-size:.65rem;color:var(--rouge)">❌ '+manque.join(', ')+'</span>';
+    html+=(hasTel?'<span style="color:var(--vert)">📱</span>':'<span style="opacity:.3">📱</span>');
     html+='</div>';
   });
 
-  html+='<button class="btn btn-primary btn-sm" onclick="doRappelWhatsApp()" style="margin-top:1rem;min-height:44px;background:#25D366;border-color:#25D366;width:100%">📱 Envoyer WhatsApp aux '+avecTel.length+' élèves</button>';
+  // Zone message
+  html+='<div style="margin-top:1rem;background:var(--gris2);border-radius:var(--r2);padding:.75rem">';
+  html+='<div style="font-size:.75rem;font-weight:800;color:var(--bleu);margin-bottom:.4rem">Message :</div>';
+  html+='<textarea id="smsRappelMsg" rows="5" style="width:100%;padding:.5rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.82rem;font-family:inherit;resize:vertical">'+esc(smsMsg)+'</textarea>';
+  html+='</div>';
+
+  // Numéros copiables
+  html+='<div style="margin-top:.75rem;background:var(--gris2);border-radius:var(--r2);padding:.75rem">';
+  html+='<div style="font-size:.75rem;font-weight:800;color:var(--bleu);margin-bottom:.4rem">Numéros ('+nums.length+') — cliquer pour copier :</div>';
+  html+='<div id="smsNumeros" style="font-family:monospace;font-size:.8rem;word-break:break-all;cursor:pointer;color:var(--teal)" onclick="navigator.clipboard.writeText(this.textContent);toast(\'Numéros copiés !\',\'ok\')">'+nums.join(', ')+'</div>';
+  html+='</div>';
+
+  // Boutons
+  html+='<div style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap">';
+  html+='<button class="btn btn-primary btn-sm" onclick="doRappelSMS()" style="min-height:44px;flex:1;background:var(--bleu);border-color:var(--bleu)">💬 SMS groupé</button>';
+  html+='<button class="btn btn-primary btn-sm" onclick="doRappelWhatsApp()" style="min-height:44px;flex:1;background:#25D366;border-color:#25D366">📱 WhatsApp un par un</button>';
+  html+='</div>';
   html+='</div>';
 
   window._rappelIncomplets=avecTel;
+  window._rappelNums=nums;
   showModal('📱 Rappel — Renseigner infos tuteur',html,'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+}
+
+function doRappelSMS(){
+  var nums=window._rappelNums||[];
+  var msg=document.getElementById('smsRappelMsg').value;
+  if(!nums.length){toast('Aucun numéro disponible','err');return;}
+  // SMS groupé via sms: protocol (séparateur , pour iOS, ; pour Android)
+  var numStr=nums.join(',');
+  window.open('sms:'+numStr+'?body='+encodeURIComponent(msg),'_blank');
+  toast('SMS groupé ouvert — '+nums.length+' destinataires','ok');
 }
 
 function doRappelWhatsApp(){
   var base=cfg.baseUrl||'https://frigorx.github.io/tt-ia/';
   var atts=window._rappelIncomplets||[];
+  var msg=document.getElementById('smsRappelMsg').value;
   var count=0;
   atts.forEach(function(s){
     var t=String(s.tel_eleve||'').replace(/[\s.\-+]/g,'');
     if(t.length<9)return;
     if(!t.startsWith('33'))t=t.startsWith('0')?'33'+t.slice(1):'33'+t;
-    var lien=base+'inerweb_eleve.html?token='+encodeURIComponent(s.token_eleve||'');
-    var msg='Bonjour '+esc(s.prenom||s.nom)+',\n\n'
-      +'Connecte-toi sur inerWeb et renseigne OBLIGATOIREMENT les informations de ton tuteur de stage :\n'
-      +'- Nom du tuteur\n'
-      +'- Numéro de téléphone\n'
-      +'- Adresse email\n\n'
-      +'C\'est indispensable pour que je puisse envoyer ton attestation de stage à ton tuteur.\n\n'
-      +'👉 '+lien+'\n\n'
-      +'Merci de le faire dès maintenant.\n'
-      +'M. Henninot';
     window.open('https://wa.me/'+t+'?text='+encodeURIComponent(msg),'_blank');
     count++;
   });
