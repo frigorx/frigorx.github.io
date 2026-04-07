@@ -1748,7 +1748,7 @@ async function apiCall(params){
   if(!cfg.apiUrl){try{var _sc=JSON.parse(localStorage.getItem(SCFG)||'{}');if(_sc.apiUrl){cfg.apiUrl=_sc.apiUrl;cfg.apiKey=_sc.apiKey;}}catch(e){}}
   if(!cfg.apiUrl) throw new Error('no url');
   params.key=cfg.apiKey;
-  const WRITE_ACTIONS=['saveValidation','addEleve','deleteEleve','cloturerEpreuve','addJournalEntry','saveConfig','addUser','deleteUser'];
+  const WRITE_ACTIONS=['saveValidation','addEleve','deleteEleve','cloturerEpreuve','addJournalEntry','saveConfig','addUser','deleteUser','sendAttestationEmails','uploadDocument','updateEleveProfil','saveEvalTuteur'];
   const isWrite=WRITE_ACTIONS.includes(params.action);
   let r;
   if(isWrite){
