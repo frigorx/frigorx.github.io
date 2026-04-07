@@ -4311,17 +4311,12 @@ async function envoyerAttestations(){
   for(var i=0;i<els.length;i++){
     var s=els[i];
     try{
-      var url=new URL(cfg.apiUrl);
-      url.searchParams.set('action','getDocuments');
-      url.searchParams.set('key',cfg.apiKey);
-      url.searchParams.set('eleve',s.code);
-      var r=await fetch(url.toString(),{method:'GET',redirect:'follow'});
-      var d=await r.json();
+      var d=await apiCall({action:'getDocuments',eleve:s.code});
       if(d.ok&&d.documents){
         var att=d.documents.find(function(doc){return /attestation/i.test(doc.name)&&doc.type==='document';});
         if(att) attestations.push({code:s.code,nom:s.nom,prenom:s.prenom||'',tel:s.tel_eleve||s.tel_tuteur||'',tuteurEmail:s.tuteur_email||s.email_tuteur||'',tuteurNom:s.tuteur_nom||'',url:att.url||('https://drive.google.com/file/d/'+att.id+'/view')});
       }
-    }catch(e){}
+    }catch(e){console.warn('[attestations] Erreur pour',s.code,e.message);}
   }
   hideSpinner();
 
