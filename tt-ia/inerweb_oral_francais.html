@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><script>
+(function(){var h=location.hash;if(h.indexOf('#cfg=')===0){try{var d=JSON.parse(atob(decodeURIComponent(h.substring(5))));if(d.apiUrl&&d.apiKey){localStorage.setItem('inerweb-tt-fe-cfg',JSON.stringify(d));history.replaceState(null,'',location.pathname+location.search);}}catch(e){}}})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Oral Fran&ccedil;ais — Jury CCF | inerWeb &Eacute;du</title>
+<style>
+:root{
+  --bleu:#1b3a63;--bleu2:#2d5a8c;--bleu3:#e8f0f8;
+  --orange:#ff6b35;--vert:#27ae60;--vert2:#d4f4e2;
+  --rouge:#e74c3c;--rouge2:#fde8e6;
+  --violet:#8e44ad;--violet2:#f3e5f5;
+  --jaune:#f39c12;--jaune2:#fef9e7;
+  --gris:#6c757d;--gris2:#f0f2f5;--gris3:#dee2e6;
+  --texte:#1a2332;--r:14px;--r2:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',sans-serif;color:var(--texte);background:var(--gris2);min-height:100dvh;}
+input,select,textarea,button{font-family:inherit;}
+
+.hdr{background:linear-gradient(90deg,var(--violet),var(--bleu));color:#fff;padding:.7rem 1rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2);}
+.hdr h1{font-size:.95rem;font-weight:900;}
+.hdr-sub{font-size:.6rem;opacity:.7;}
+.badge{background:rgba(255,255,255,.2);border-radius:20px;padding:.15rem .6rem;font-size:.6rem;font-weight:800;}
+
+.wrap{max-width:650px;margin:0 auto;padding:.75rem;}
+.card{background:#fff;border-radius:var(--r);padding:.75rem;margin-bottom:.6rem;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+
+/* En-tête élève */
+.eleve-bar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem;}
+.eleve-bar select,.eleve-bar input{padding:.4rem .5rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.82rem;font-weight:700;}
+.eleve-bar select{flex:1;min-width:150px;}
+.jury-input{width:80px;text-align:center;}
+
+/* Catégorie */
+.cat{border-radius:var(--r);overflow:hidden;margin-bottom:.6rem;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.cat-head{padding:.55rem .7rem;color:#fff;display:flex;justify-content:space-between;align-items:center;font-weight:900;font-size:.85rem;}
+.cat-head .cat-score{background:rgba(255,255,255,.25);padding:.15rem .6rem;border-radius:20px;font-size:.82rem;}
+.cat-head.ok .cat-score{background:rgba(255,255,255,.4);}
+.cat-head.over{animation:pulse-red 1s infinite;}
+@keyframes pulse-red{0%,100%{background:var(--rouge);}50%{background:#c0392b;}}
+
+.cat-comm .cat-head{background:var(--bleu2);}
+.cat-argu .cat-head{background:var(--violet);}
+.cat-ling .cat-head{background:var(--orange);}
+
+/* Critère */
+.crit{padding:.5rem .7rem;background:#fff;border-bottom:1px solid var(--gris3);display:flex;align-items:center;gap:.5rem;}
+.crit:last-child{border-bottom:none;}
+.crit-label{flex:1;font-size:.78rem;line-height:1.4;}
+.crit-id{font-weight:900;color:var(--bleu2);font-size:.75rem;min-width:24px;}
+
+/* Slider + valeur */
+.crit-input{display:flex;align-items:center;gap:.3rem;min-width:100px;}
+.crit-slider{width:60px;accent-color:var(--bleu2);}
+.crit-val{font-weight:900;font-size:.95rem;min-width:20px;text-align:center;}
+.crit-max{font-size:.7rem;color:var(--gris);}
+
+/* Observation */
+.crit-obs{width:100%;border:1px solid var(--gris3);border-radius:var(--r2);padding:.3rem .4rem;font-size:.72rem;resize:none;min-height:28px;margin-top:.2rem;font-family:inherit;display:none;}
+.crit.show-obs .crit-obs{display:block;}
+.obs-toggle{font-size:.65rem;color:var(--gris);cursor:pointer;text-decoration:underline;}
+
+/* Total */
+.total-bar{background:var(--bleu);color:#fff;border-radius:var(--r);padding:.75rem;text-align:center;margin-bottom:.6rem;}
+.total-big{font-size:2.5rem;font-weight:900;}
+.total-sub{font-size:.78rem;opacity:.8;}
+.total-bar.over{background:var(--rouge);}
+
+/* Boutons */
+.btn{display:inline-flex;align-items:center;gap:.3rem;padding:.5rem 1rem;border:none;border-radius:var(--r2);font-weight:800;font-size:.82rem;cursor:pointer;transition:all .15s;}
+.btn:active{transform:scale(.97);}
+.btn-send{background:var(--vert);color:#fff;font-size:.9rem;padding:.6rem 1.5rem;}
+.btn-pdf{background:var(--bleu2);color:#fff;}
+.btn-ghost{background:var(--gris2);color:var(--texte);}
+
+.toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);padding:.55rem 1.2rem;border-radius:var(--r2);color:#fff;font-weight:700;font-size:.8rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}.toast.ok{background:var(--vert);}.toast.err{background:var(--rouge);}.toast.warn{background:var(--jaune);}
+.actions-bar{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:.5rem;}
+
+@media print{.hdr,.eleve-bar,.actions-bar,.btn,.toast{display:none!important;}.wrap{max-width:100%;padding:0;}.cat,.card{break-inside:avoid;box-shadow:none;border:1px solid #ddd;}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div><h1>&#x1F4DA; Oral Fran&ccedil;ais — Jury CCF</h1><div class="hdr-sub">Grille d'&eacute;valuation retour de stage</div></div>
+  <span class="badge" id="syncBadge">Chargement...</span>
+</div>
+
+<div class="wrap">
+
+  <!-- Sélection élève + jury -->
+  <div class="eleve-bar">
+    <select id="selEleve" onchange="selectEleve(this.value)">
+      <option value="">-- Choisir un &eacute;l&egrave;ve --</option>
+    </select>
+    <input id="juryNum" class="jury-input" placeholder="Jury N&deg;" value="1">
+    <input id="juryNom" placeholder="Examinateur" style="flex:1;min-width:100px;padding:.4rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.82rem;">
+  </div>
+
+  <!-- Total live -->
+  <div class="total-bar" id="totalBar">
+    <div class="total-big" id="totalBig">0 <span style="font-size:1.2rem;">/20</span></div>
+    <div class="total-sub" id="totalSub">S&eacute;lectionnez un &eacute;l&egrave;ve et &eacute;valuez</div>
+  </div>
+
+  <!-- Grille -->
+  <div id="grille"></div>
+
+  <!-- Observation générale -->
+  <div class="card">
+    <div style="font-size:.8rem;font-weight:800;color:var(--bleu);margin-bottom:.3rem;">&#x1F4DD; Observations g&eacute;n&eacute;rales</div>
+    <textarea id="obsGeneral" style="width:100%;border:1px solid var(--gris3);border-radius:var(--r2);padding:.4rem;font-size:.8rem;min-height:60px;resize:vertical;font-family:inherit;" placeholder="Observations libres du jury..."></textarea>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions-bar">
+    <button class="btn btn-send" onclick="envoyer()">&#x2705; Enregistrer &amp; envoyer</button>
+    <button class="btn btn-pdf" onclick="exportPDF()">&#x1F4C4; Export PDF</button>
+    <a href="inerweb_prof.html" class="btn btn-ghost">&#x2190; Retour prof</a>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/core/inerweb.config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+// ═══ GRILLE ═══
+var GRILLE={
+  id:"oral_francais_jury",
+  label:"Oral Fran\u00e7ais \u2014 \u00c9preuve jury",
+  total_max:20,
+  categories:[
+    {id:"communication",label:"Communication",bareme:7,color:'var(--bleu2)',criteres:[
+      {id:"C1",label:"Comportement physique (posture, regard auditoire, utilisation des notes)",max:2},
+      {id:"C2",label:"Expos\u00e9 coh\u00e9rent ~5 min (pr\u00e9sentation + annonce du plan)",max:2},
+      {id:"C3",label:"Expression claire (ton convaincant, voix audible, d\u00e9bit appropri\u00e9)",max:2},
+      {id:"C4",label:"Dialogue, r\u00e9action aux remarques, int\u00e9r\u00eat de l'auditoire",max:1}
+    ]},
+    {id:"argumentation",label:"Argumentation",bareme:10,color:'var(--violet)',criteres:[
+      {id:"A1",label:"Avis argument\u00e9 avec exemples illustratifs pertinents",max:2},
+      {id:"A2",label:"Cherche \u00e0 convaincre \u2014 arguments convaincants",max:2},
+      {id:"A3",label:"R\u00e9agit avec vivacit\u00e9 et pertinence \u2014 raisonnement coh\u00e9rent",max:2},
+      {id:"A4",label:"Rapprochement stage/projet personnel \u2194 parcours de formation",max:2},
+      {id:"A5",label:"Expose son projet d'orientation et/ou r\u00e9flexion sur la question",max:2}
+    ]},
+    {id:"outils_linguistiques",label:"Outils linguistiques",bareme:3,color:'var(--orange)',criteres:[
+      {id:"L1",label:"Langue pr\u00e9cise et correcte (vocabulaire, grammaire, style, niveau adapt\u00e9 \u00e0 l'entreprise)",max:3}
+    ]}
+  ]
+};
+
+// ═══ STATE ═══
+var API_URL='',API_KEY='';
+var students=[];
+var curCode='';
+var scores={}; // {critId: value}
+var obsMap={}; // {critId: text}
+
+// ═══ HELPERS ═══
+function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'ok');setTimeout(function(){e.className='toast';},3500);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ═══ CONFIG ═══
+function initCfg(){
+  try{var s=localStorage.getItem('inerweb-tt-fe-cfg');if(s){var c=JSON.parse(s);API_URL=c.apiUrl||'';API_KEY=c.apiKey||'';}}catch(e){}
+  if(!API_URL&&window.INERWEB_CONFIG){API_URL=window.INERWEB_CONFIG.API_URL;API_KEY=window.INERWEB_CONFIG.API_KEY;}
+}
+
+// ═══ API ═══
+async function apiPost(action,body){
+  var u=new URL(API_URL);u.searchParams.set('action',action);
+  body.apiKey=API_KEY;
+  var r=await fetch(u.toString(),{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)});
+  return r.json();
+}
+
+// ═══ INIT ═══
+async function init(){
+  initCfg();
+  if(!API_URL){toast('API non configur\u00e9e','err');return;}
+  document.getElementById('syncBadge').textContent='Sync...';
+  try{
+    var u=new URL(API_URL);u.searchParams.set('action','getDashboard');u.searchParams.set('key',API_KEY);
+    var r=await fetch(u.toString(),{redirect:'follow'});
+    var d=await r.json();
+    if(Array.isArray(d))students=d;
+    var sel=document.getElementById('selEleve');
+    students.forEach(function(s){
+      var o=document.createElement('option');
+      o.value=s.code;o.textContent=s.nom+' '+(s.prenom||'')+' \u00b7 '+(s.classe||'');
+      sel.appendChild(o);
+    });
+    document.getElementById('syncBadge').textContent='\u2705 '+students.length+' \u00e9l\u00e8ves';
+  }catch(e){toast('Erreur: '+e.message,'err');}
+  renderGrille();
+}
+
+// ═══ SELECT ÉLÈVE ═══
+function selectEleve(code){
+  curCode=code;scores={};obsMap={};
+  renderGrille();updateTotal();
+}
+
+// ═══ RENDER GRILLE ═══
+function renderGrille(){
+  var html='';
+  GRILLE.categories.forEach(function(cat){
+    var cssClass=cat.id==='communication'?'cat-comm':cat.id==='argumentation'?'cat-argu':'cat-ling';
+    html+='<div class="cat '+cssClass+'">';
+    html+='<div class="cat-head" id="catHead_'+cat.id+'"><span>'+esc(cat.label)+' (/'+cat.bareme+')</span><span class="cat-score" id="catScore_'+cat.id+'">0/'+cat.bareme+'</span></div>';
+
+    cat.criteres.forEach(function(cr){
+      var val=scores[cr.id]||0;
+      html+='<div class="crit" id="crit_'+cr.id+'">';
+      html+='<span class="crit-id">'+cr.id+'</span>';
+      html+='<div style="flex:1;">';
+      html+='<div class="crit-label">'+esc(cr.label)+'</div>';
+      html+='<textarea class="crit-obs" id="obs_'+cr.id+'" placeholder="Observation..." oninput="setObs(\''+cr.id+'\',this.value)">'+esc(obsMap[cr.id]||'')+'</textarea>';
+      html+='</div>';
+      html+='<div class="crit-input">';
+      html+='<input type="range" class="crit-slider" min="0" max="'+cr.max+'" step="0.5" value="'+val+'" oninput="setScore(\''+cr.id+'\',parseFloat(this.value))">';
+      html+='<span class="crit-val" id="val_'+cr.id+'">'+val+'</span>';
+      html+='<span class="crit-max">/'+cr.max+'</span>';
+      html+='</div>';
+      html+='<span class="obs-toggle" onclick="toggleObs(\''+cr.id+'\')">obs</span>';
+      html+='</div>';
+    });
+
+    html+='</div>';
+  });
+  document.getElementById('grille').innerHTML=html;
+}
+
+// ═══ SET SCORE ═══
+function setScore(critId,val){
+  scores[critId]=val;
+  document.getElementById('val_'+critId).textContent=val;
+  updateTotal();
+}
+
+function setObs(critId,txt){obsMap[critId]=txt;}
+
+function toggleObs(critId){
+  document.getElementById('crit_'+critId).classList.toggle('show-obs');
+}
+
+// ═══ UPDATE TOTAL ═══
+function updateTotal(){
+  var grandTotal=0;
+  var over=false;
+  GRILLE.categories.forEach(function(cat){
+    var catTotal=0;
+    cat.criteres.forEach(function(cr){catTotal+=(scores[cr.id]||0);});
+    grandTotal+=catTotal;
+    var headEl=document.getElementById('catHead_'+cat.id);
+    var scoreEl=document.getElementById('catScore_'+cat.id);
+    if(scoreEl)scoreEl.textContent=catTotal+'/'+cat.bareme;
+    if(catTotal>cat.bareme){
+      if(headEl){headEl.classList.add('over');headEl.classList.remove('ok');}
+      over=true;
+    }else{
+      if(headEl){headEl.classList.remove('over');headEl.classList.add('ok');}
+    }
+  });
+  var totalBar=document.getElementById('totalBar');
+  document.getElementById('totalBig').innerHTML=grandTotal+' <span style="font-size:1.2rem;">/20</span>';
+  if(over||grandTotal>20){
+    totalBar.classList.add('over');
+    document.getElementById('totalSub').textContent='\u26a0 D\u00e9passement de bar\u00e8me !';
+  }else{
+    totalBar.classList.remove('over');
+    var s=students.find(function(x){return x.code===curCode;});
+    document.getElementById('totalSub').textContent=s?(s.nom+' '+(s.prenom||'')):curCode?'':'S\u00e9lectionnez un \u00e9l\u00e8ve';
+  }
+}
+
+// ═══ ENVOYER ═══
+async function envoyer(){
+  if(!curCode){toast('S\u00e9lectionnez un \u00e9l\u00e8ve','warn');return;}
+  var juryNum=document.getElementById('juryNum').value.trim();
+  var juryNom=document.getElementById('juryNom').value.trim();
+  var obsGen=document.getElementById('obsGeneral').value.trim();
+
+  // Calculer les totaux
+  var totals={};var grandTotal=0;
+  GRILLE.categories.forEach(function(cat){
+    var t=0;cat.criteres.forEach(function(cr){t+=(scores[cr.id]||0);});
+    totals[cat.id]=t;grandTotal+=t;
+  });
+
+  // Construire le payload complet
+  var payload={
+    type:'oral_francais_jury',
+    juryNum:juryNum,
+    examinateur:juryNom,
+    scores:JSON.parse(JSON.stringify(scores)),
+    observations:JSON.parse(JSON.stringify(obsMap)),
+    totaux:totals,
+    total:grandTotal,
+    obsGenerale:obsGen,
+    timestamp:new Date().toISOString()
+  };
+
+  try{
+    // Sauvegarder via saveValidation
+    await apiPost('saveValidation',{eleve:curCode,data:{
+      epreuve:'ORAL_FR',
+      competence:'__oral_francais__',
+      critere:'',
+      niveau:String(grandTotal),
+      observation:obsGen,
+      contexte:'retour_stage',
+      phase:'retour_stage',
+      evaluateur:juryNom||'Prof Fran\u00e7ais',
+      timestamp:payload.timestamp,
+      source:'oral_francais',
+      _payload:payload
+    }});
+
+    // Aussi sauvegarder chaque critère individuellement pour traçabilité
+    var critList=[];
+    GRILLE.categories.forEach(function(cat){cat.criteres.forEach(function(cr){critList.push(cr);});});
+    for(var i=0;i<critList.length;i++){
+      var cr=critList[i];
+      if(scores[cr.id]){
+        await apiPost('saveValidation',{eleve:curCode,data:{
+          epreuve:'ORAL_FR',
+          competence:cr.id,
+          critere:cr.label,
+          niveau:String(scores[cr.id]),
+          observation:obsMap[cr.id]||'',
+          contexte:'retour_stage',
+          phase:'retour_stage',
+          evaluateur:juryNom||'Prof Fran\u00e7ais',
+          timestamp:payload.timestamp,
+          source:'oral_francais'
+        }});
+      }
+    }
+
+    // Sauvegarder aussi en localStorage pour backup
+    var lsKey='oral_fr_'+curCode;
+    var saved=[];try{saved=JSON.parse(localStorage.getItem(lsKey)||'[]');}catch(e){}
+    saved.push(payload);
+    localStorage.setItem(lsKey,JSON.stringify(saved));
+
+    toast('\u2705 Note '+grandTotal+'/20 enregistr\u00e9e et synchronis\u00e9e','ok');
+  }catch(e){
+    // Sauvegarde locale de secours
+    var lsKey2='oral_fr_pending';
+    var pending=[];try{pending=JSON.parse(localStorage.getItem(lsKey2)||'[]');}catch(e2){}
+    pending.push({eleve:curCode,payload:payload,ts:Date.now()});
+    localStorage.setItem(lsKey2,JSON.stringify(pending));
+    toast('\u26a0 Envoi \u00e9chou\u00e9 \u2014 sauvegard\u00e9 localement (sera renvoy\u00e9)','warn');
+  }
+}
+
+// ═══ EXPORT PDF ═══
+function exportPDF(){
+  if(!curCode){toast('S\u00e9lectionnez un \u00e9l\u00e8ve','warn');return;}
+  var s=students.find(function(x){return x.code===curCode;})||{};
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({unit:'mm',format:'a4'});
+  var y=15;var lm=15;var pw=180;
+
+  // En-tête
+  doc.setFontSize(14);doc.setFont(undefined,'bold');
+  doc.text('Oral Fran\u00e7ais \u2014 Grille CCF Jury',lm,y);y+=7;
+  doc.setFontSize(10);doc.setFont(undefined,'normal');
+  doc.text('\u00c9l\u00e8ve : '+(s.nom||'')+' '+(s.prenom||'')+' \u2014 '+(s.classe||''),lm,y);y+=5;
+  doc.text('Jury N\u00b0'+document.getElementById('juryNum').value+' \u2014 Examinateur : '+document.getElementById('juryNom').value,lm,y);y+=5;
+  doc.text('Date : '+new Date().toLocaleDateString('fr-FR'),lm,y);y+=8;
+
+  // Grille
+  GRILLE.categories.forEach(function(cat){
+    var catTotal=0;
+    doc.setFillColor(cat.id==='communication'?45:cat.id==='argumentation'?139:255,cat.id==='communication'?90:cat.id==='argumentation'?68:107,cat.id==='communication'?140:cat.id==='argumentation'?173:53);
+    doc.rect(lm,y-4,pw,6,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(10);doc.setFont(undefined,'bold');
+    doc.text(cat.label+' (/'+cat.bareme+')',lm+2,y);y+=5;
+    doc.setTextColor(0,0,0);
+
+    cat.criteres.forEach(function(cr){
+      var val=scores[cr.id]||0;catTotal+=val;
+      doc.setFontSize(8);doc.setFont(undefined,'bold');
+      doc.text(cr.id,lm+2,y);
+      doc.setFont(undefined,'normal');
+      var lines=doc.splitTextToSize(cr.label,pw-45);
+      doc.text(lines,lm+12,y);
+      doc.setFont(undefined,'bold');
+      doc.text(val+'/'+cr.max,lm+pw-15,y);
+      y+=lines.length*3.5+2;
+      if(obsMap[cr.id]){
+        doc.setFontSize(7);doc.setFont(undefined,'italic');
+        doc.setTextColor(100,100,100);
+        doc.text('Obs: '+obsMap[cr.id],lm+12,y);y+=3;
+        doc.setTextColor(0,0,0);
+      }
+      if(y>270){doc.addPage();y=15;}
+    });
+
+    doc.setFontSize(9);doc.setFont(undefined,'bold');
+    doc.text('Total '+cat.label+' : '+catTotal+'/'+cat.bareme,lm+pw-50,y);y+=6;
+  });
+
+  // Total général
+  var gt=0;GRILLE.categories.forEach(function(cat){cat.criteres.forEach(function(cr){gt+=(scores[cr.id]||0);});});
+  y+=3;
+  doc.setFillColor(27,58,99);doc.rect(lm,y-5,pw,8,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(14);doc.setFont(undefined,'bold');
+  doc.text('TOTAL : '+gt+' / 20',lm+pw/2,y,{align:'center'});y+=10;
+  doc.setTextColor(0,0,0);
+
+  // Observations
+  var obs=document.getElementById('obsGeneral').value.trim();
+  if(obs){
+    doc.setFontSize(9);doc.setFont(undefined,'bold');doc.text('Observations :',lm,y);y+=4;
+    doc.setFont(undefined,'normal');doc.setFontSize(8);
+    var obsLines=doc.splitTextToSize(obs,pw);doc.text(obsLines,lm,y);y+=obsLines.length*3.5;
+  }
+
+  // Signature
+  y+=10;
+  doc.setFontSize(8);doc.setFont(undefined,'normal');
+  doc.text('Signature examinateur :',lm,y);
+  doc.line(lm+40,y,lm+100,y);
+  doc.text('Date :',lm+110,y);
+  doc.line(lm+122,y,lm+170,y);
+
+  doc.save('Oral_FR_'+(s.nom||'eleve')+'_'+(s.prenom||'')+'.pdf');
+  toast('PDF export\u00e9','ok');
+}
+
+// ═══ EXPOSE ═══
+window.selectEleve=selectEleve;
+window.setScore=setScore;
+window.setObs=setObs;
+window.toggleObs=toggleObs;
+window.envoyer=envoyer;
+window.exportPDF=exportPDF;
+
+init();
+})();
+</script>
+</body>
+</html>
