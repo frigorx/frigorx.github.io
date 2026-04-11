@@ -3,35 +3,9 @@
 <head>
 <meta charset="UTF-8"><script>
 // Auto-connect via #cfg= (raccourci bureau/telephone)
-// IMPORTANT: stocker en localStorage ET ne PAS effacer le hash avant que la page soit chargée
-(function(){
-  var h=location.hash;
-  if(h.indexOf('#cfg=')===0){
-    try{
-      var d=JSON.parse(atob(decodeURIComponent(h.substring(5))));
-      if(d.apiUrl&&d.apiKey){
-        localStorage.setItem('inerweb-tt-fe-cfg',JSON.stringify(d));
-        // Ne pas effacer le hash ici — on le fait après DOMContentLoaded
-      }
-    }catch(e){}
-  }
-})();
-// Purge cache service worker (une seule fois par session)
-(function(){
-  try{if(sessionStorage.getItem('iw_purged'))return;}catch(e){return;}
-  if('serviceWorker' in navigator){
-    caches.keys().then(function(k){k.forEach(function(c){caches.delete(c)})});
-    navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(sw){sw.unregister()})});
-  }
-  try{sessionStorage.setItem('iw_purged','1');}catch(e){}
-  // NE PLUS RECHARGER — la purge se fait en arrière-plan sans reload
-})();
-// Nettoyer le hash après chargement complet
-window.addEventListener('load',function(){
-  if(location.hash.indexOf('#cfg=')===0){
-    history.replaceState(null,'',location.pathname+location.search);
-  }
-});
+(function(){var h=location.hash;if(h.indexOf('#cfg=')===0){try{var d=JSON.parse(atob(decodeURIComponent(h.substring(5))));if(d.apiUrl&&d.apiKey){localStorage.setItem('inerweb-tt-fe-cfg',JSON.stringify(d));history.replaceState(null,'',location.pathname+location.search);}}catch(e){}}})();
+// Purge cache service worker
+(function(){try{if(sessionStorage.getItem('iw_purged'))return;}catch(e){return;}if('serviceWorker' in navigator){caches.keys().then(function(k){k.forEach(function(c){caches.delete(c)})});navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(sw){sw.unregister()})});}try{sessionStorage.setItem('iw_purged','1');}catch(e){}setTimeout(function(){location.reload(true)},500);})();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -436,7 +410,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
 .classe-stats{display:flex;justify-content:space-between;font-size:.85rem;color:var(--gris);margin-top:1rem;padding-top:1rem;border-top:1px solid var(--gris3);font-weight:600;}
 </style>
 </head>
-<body class="show-app">
+<body class="show-config">
 <a href="#main-content" class="skip-link">Aller au contenu principal</a>
 
 <!-- ÉCRAN CONFIG -->
@@ -1213,54 +1187,14 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
 
     <!-- EP2 (CAP IFCA) -->
     <div class="tab-pane" id="tab-ep2"><div class="tab-inner">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
-        <span class="badge b-e31" style="font-size:.85rem;">🔧 EP2 — Réalisation d'une installation · CAP IFCA</span>
+      <div class="eval-hdr">
+        <div class="eval-sel-wrap">
+          <select id="selEP2" onchange="selectStudent(this.value,'ep2')" aria-label="Sélection élève EP2"></select>
+          <div class="nav-arrows"><button onclick="navStudent(-1,'ep2')" aria-label="Élève précédent">◀</button><button onclick="navStudent(1,'ep2')" aria-label="Élève suivant">▶</button></div>
+        </div>
+        <span class="badge b-e31">EP2 — Réalisation d'une installation</span>
       </div>
-      <!-- Dashboard élèves EP2 -->
-      <div id="ep2Dashboard"></div>
-      <!-- Détail élève EP2 (caché par défaut) -->
-      <div id="ep2Detail" style="display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:var(--r);padding:.6rem .75rem;margin-bottom:.5rem;box-shadow:var(--ombre2);">
-          <div><div id="ep2DetailNom" style="font-size:1rem;font-weight:900;color:var(--bleu);"></div><div id="ep2DetailInfo" style="font-size:.7rem;color:var(--gris);"></div></div>
-          <button class="btn btn-ghost btn-sm" onclick="ep2ShowDash()">← Retour liste</button>
-        </div>
-        <!-- Jury retour stage -->
-        <div id="ep2JuryBlock" style="background:rgba(255,107,53,.08);border-left:4px solid var(--orange);border-radius:var(--r2);padding:.6rem;margin-bottom:.5rem;">
-          <div style="font-size:.82rem;font-weight:900;color:var(--orange);margin-bottom:.3rem;">👨‍⚖️ Jury retour de stage</div>
-          <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
-            <input id="ep2JuryPro" placeholder="Prof technique" style="flex:1;min-width:100px;padding:.35rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.78rem;">
-            <input id="ep2JuryFr" placeholder="Prof français / général" style="flex:1;min-width:100px;padding:.35rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.78rem;">
-            <input type="date" id="ep2JuryDate" style="padding:.35rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.78rem;">
-          </div>
-        </div>
-        <!-- Grille compétences techniques 3 colonnes -->
-        <div id="ep2CompList"></div>
-
-        <!-- ═══ GRILLE FRANÇAIS — intégrée dans EP2 ═══ -->
-        <div id="ep2FrBlock" style="margin-top:.6rem;border-top:4px solid var(--violet);border-radius:var(--r);overflow:hidden;box-shadow:var(--ombre2);">
-          <div style="background:var(--violet);color:#fff;padding:.5rem .7rem;display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-weight:900;font-size:.85rem;">📚 Oral Français — Retour de stage</span>
-            <span id="ep2FrTotal" style="background:rgba(255,255,255,.25);padding:.15rem .6rem;border-radius:20px;font-weight:900;font-size:.85rem;">0/20</span>
-          </div>
-          <div style="padding:.5rem .6rem;background:#fff;">
-            <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.4rem;">
-              <input id="ep2FrExam" placeholder="Examinateur français" style="flex:1;min-width:120px;padding:.3rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.78rem;">
-            </div>
-            <div id="ep2FrGrille"></div>
-            <div style="margin-top:.3rem;">
-              <textarea id="ep2FrObs" placeholder="Observations prof français..." style="width:100%;border:1px solid var(--gris3);border-radius:var(--r2);padding:.3rem;font-size:.75rem;min-height:35px;resize:vertical;font-family:inherit;"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- Observation globale + Envoi (technique + français ensemble) -->
-        <div style="background:#fff;border-radius:var(--r);padding:.6rem;margin-top:.5rem;box-shadow:var(--ombre2);">
-          <textarea id="ep2Obs" placeholder="Observation globale du jury (technique + français)..." style="width:100%;border:1px solid var(--gris3);border-radius:var(--r2);padding:.4rem;font-size:.78rem;resize:vertical;min-height:45px;font-family:inherit;margin-bottom:.4rem;"></textarea>
-          <div style="text-align:center;">
-            <button class="btn btn-vert btn-sm" id="ep2BtnSend" onclick="ep2Envoyer()" style="padding:.5rem 1.5rem;font-size:.85rem;">✅ Valider et envoyer au serveur (technique + français)</button>
-          </div>
-        </div>
-      </div>
+      <div id="ep2Comps"><div class="empty"><div class="ei">🔧</div><p>Sélectionnez un élève</p></div></div>
     </div></div>
 
     <!-- EP3 (CAP IFCA) -->
@@ -1768,26 +1702,26 @@ function loadDemoMode(){
 /* DEFAULT_CFG → js/core/api.js */
 const DEFAULT_CFG=window.DEFAULT_CFG||{apiUrl:'',apiKey:'',nomProf:'',baseUrl:''};
 function loadConfig(){
-  // 1. Essayer localStorage
-  var s=localStorage.getItem(SCFG);
+  const s=localStorage.getItem(SCFG);
   if(s){
-    try{cfg=JSON.parse(s);}catch{cfg={};}
+    try{cfg=JSON.parse(s);}catch{cfg=Object.assign({},DEFAULT_CFG);return false;}
+    cfg.apiUrl=cleanUrl(cfg.apiUrl||'');
+    const bad=cfg.apiUrl.includes('AKfycbzTMUOk')||cfg.apiUrl.includes('AKfycbybJxLLb3p0h')||cfg.apiUrl.includes('%20')||cfg.apiUrl.length<20;
+    if(bad){cfg.apiUrl='';cfg.apiKey='';localStorage.removeItem(SCFG);}
+    if(cfg.apiUrl&&cfg.apiKey)return true;
+  }
+  // Pas de config sauvée → essayer inerweb.config.js
+  if(window.INERWEB_CONFIG&&window.INERWEB_CONFIG.API_URL&&window.INERWEB_CONFIG.API_KEY){
+    cfg={apiUrl:cleanUrl(window.INERWEB_CONFIG.API_URL),apiKey:window.INERWEB_CONFIG.API_KEY,nomProf:cfg.nomProf||'',baseUrl:window.iwConfig?window.iwConfig.getBaseUrl():''};
     if(cfg.apiUrl&&cfg.apiKey){
-      cfg.apiUrl=cleanUrl(cfg.apiUrl);
-      var bad=cfg.apiUrl.includes('AKfycbzTMUOk')||cfg.apiUrl.includes('AKfycbybJxLLb3p0h')||cfg.apiUrl.includes('%20')||cfg.apiUrl.length<20;
-      if(!bad)return true;
+      // Config auto-détectée, mais il manque le nom prof → écran config pré-rempli
+      if(!cfg.nomProf)return false;
+      localStorage.setItem(SCFG,JSON.stringify(cfg));
+      return true;
     }
   }
-  // 2. Essayer inerweb.config.js
-  if(window.INERWEB_CONFIG&&window.INERWEB_CONFIG.API_URL&&window.INERWEB_CONFIG.API_KEY){
-    cfg={apiUrl:cleanUrl(window.INERWEB_CONFIG.API_URL),apiKey:window.INERWEB_CONFIG.API_KEY,nomProf:window.INERWEB_CONFIG.ENSEIGNANT_DEFAUT||'Enseignant',baseUrl:'https://frigorx.github.io/tt-ia/'};
-    localStorage.setItem(SCFG,JSON.stringify(cfg));
-    return true;
-  }
-  // 3. DERNIER RECOURS — config en dur, ne demande JAMAIS rien à l'utilisateur
-  cfg={apiUrl:'https://script.google.com/macros/s/AKfycbzVvXZRi4975OM4P8AJeoDWvnTbFSfTpVUDErzrNk2R2knfxBxCw-A-kLmKaNzmW35V1A/exec',apiKey:'inerWeb2026fh',nomProf:'Henninot',baseUrl:'https://frigorx.github.io/tt-ia/'};
-  localStorage.setItem(SCFG,JSON.stringify(cfg));
-  return true;
+  cfg=Object.assign({},DEFAULT_CFG);
+  return false;
 }
 function startApp(){
   document.getElementById('screen-config').style.display='none';
@@ -2278,7 +2212,7 @@ function switchTab(tab){
   if(tab==='e31'){popSelects();renderE31();}
   if(tab==='e32'){popSelects();renderE32();}
   if(tab==='e33'){popSelects();renderE33();}
-  if(tab==='ep2'){ep2Init();}
+  if(tab==='ep2'){popSelects();if(typeof renderEP2==='function')renderEP2();else if(typeof renderE31==='function'){/* réutilise le moteur E31 pour EP2 */}}
   if(tab==='ep3'){popSelects();if(typeof renderEP3==='function')renderEP3();}
   if(tab==='modules'){popSelects();if(typeof renderModules==='function')renderModules();}
   if(tab==='bilan'){popSelects();if(cur){renderBilan();renderRadarUnified();}}
@@ -5836,338 +5770,6 @@ async function initApp(){
   if(navigator.onLine)_retryProfPending();
 }
 
-/* ═══ [N1b] EP2 — DASHBOARD + 3 COLONNES + RETOUR STAGE ═══ */
-var _ep2Code='';
-var _ep2Retour={};  // {compCode: niveau} éval jury retour stage
-var _ep2Retenu={};  // {compCode: niveau} niveau retenu final
-var _ep2Tuteur={};  // cache tuteur {code: [evals]}
-
-function ep2Init(){
-  // Charger évals tuteur si pas déjà fait
-  if(Object.keys(_ep2Tuteur).length)return ep2RenderDash();
-  apiCall({action:'getEvalTuteur'}).then(function(d){
-    if(Array.isArray(d))d.forEach(function(e){
-      var c=e.eleveCode;if(!c)return;
-      if(!_ep2Tuteur[c])_ep2Tuteur[c]=[];_ep2Tuteur[c].push(e);
-    });
-    ep2RenderDash();
-  }).catch(function(){ep2RenderDash();});
-}
-
-function ep2RenderDash(){
-  var el=document.getElementById('ep2Dashboard');
-  document.getElementById('ep2Detail').style.display='none';
-  el.style.display='';
-  var cap=students.filter(function(s){return s.classe&&(s.classe.indexOf('CAP')>=0||s.classe.indexOf('IFCA')>=0);});
-  if(!cap.length){el.innerHTML='<div class="empty"><div class="ei">🔧</div><p>Aucun élève CAP IFCA</p></div>';return;}
-  var COMPS=window.FILIERES&&FILIERES.CAP_IFCA?FILIERES.CAP_IFCA.comps.EP2:[];
-  var html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:.5rem;">';
-  cap.forEach(function(s){
-    var stats=_ep2Stats(s.code,COMPS);
-    var pct=stats.total>0?Math.round(stats.done/stats.total*100):0;
-    var clr=pct>=80?'var(--vert)':pct>=40?'var(--jaune)':'var(--rouge)';
-    html+='<div style="background:#fff;border-radius:var(--r);padding:.6rem;cursor:pointer;border:2px solid transparent;box-shadow:var(--ombre2);transition:all .15s;" onmouseover="this.style.borderColor=\'var(--bleu2)\'" onmouseout="this.style.borderColor=\'transparent\'" onclick="ep2ShowDetail(\''+s.code+'\')">';
-    html+='<div style="font-size:.8rem;font-weight:900;color:var(--bleu);">'+esc(s.nom)+' '+esc(s.prenom||'')+'</div>';
-    html+='<div style="font-size:.65rem;color:var(--gris);">'+s.code+'</div>';
-    html+='<canvas id="ep2r_'+s.code+'" style="width:100%;height:80px;margin-top:.3rem;"></canvas>';
-    html+='<div style="font-size:.65rem;font-weight:800;text-align:center;color:'+clr+';">'+pct+'% évalué ('+stats.done+'/'+stats.total+')</div>';
-    html+='</div>';
-  });
-  html+='</div>';
-  el.innerHTML=html;
-  // Dessiner radars
-  cap.forEach(function(s){_ep2Radar(s.code,COMPS);});
-}
-
-function _ep2Stats(code,COMPS){
-  var vals=validations[code]||[];if(!Array.isArray(vals))vals=[];
-  var done=0;
-  COMPS.forEach(function(c){
-    var has=vals.some(function(v){return v.competence===c.code&&v.epreuve==='EP2'&&v.niveau&&v.niveau!=='NE';});
-    if(!has)(_ep2Tuteur[code]||[]).forEach(function(ev){
-      var comp={};try{comp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{});}catch(e){}
-      var n=comp[c.code];var niv=typeof n==='object'?n.niveau:n;
-      if(niv&&niv!=='NE')has=true;
-    });
-    if(has)done++;
-  });
-  return {done:done,total:COMPS.length};
-}
-
-function _ep2Radar(code,COMPS){
-  var canvas=document.getElementById('ep2r_'+code);if(!canvas)return;
-  var ctx=canvas.getContext('2d');
-  var w=canvas.offsetWidth||155,h=canvas.offsetHeight||80;
-  canvas.width=w*2;canvas.height=h*2;ctx.scale(2,2);
-  var cx=w/2,cy=h/2+2,r=Math.min(w,h)/2-8,n=COMPS.length;
-  var nivMap={NE:0,EC:.35,M:.7,PM:1};
-  // Fond
-  ctx.beginPath();
-  for(var i=0;i<n;i++){var a=Math.PI*2*i/n-Math.PI/2;ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}
-  ctx.closePath();ctx.fillStyle='rgba(27,58,99,.06)';ctx.fill();ctx.strokeStyle='#ddd';ctx.lineWidth=.5;ctx.stroke();
-  // Données
-  var vals=validations[code]||[];if(!Array.isArray(vals))vals=[];
-  ctx.beginPath();
-  for(var i=0;i<n;i++){
-    var niv=_ep2Best(code,COMPS[i].code,vals);
-    var v=nivMap[niv]||0;
-    var a=Math.PI*2*i/n-Math.PI/2;
-    ctx.lineTo(cx+r*v*Math.cos(a),cy+r*v*Math.sin(a));
-  }
-  ctx.closePath();ctx.fillStyle='rgba(39,174,96,.2)';ctx.fill();ctx.strokeStyle='#27ae60';ctx.lineWidth=1.5;ctx.stroke();
-}
-
-function _ep2Best(code,compCode,vals){
-  var order={NE:0,EC:1,M:2,PM:3};var best='NE';
-  if(Array.isArray(vals))vals.forEach(function(v){if(v.competence===compCode&&v.epreuve==='EP2'&&v.niveau&&(order[v.niveau]||0)>(order[best]||0))best=v.niveau;});
-  (_ep2Tuteur[code]||[]).forEach(function(ev){
-    var comp={};try{comp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{});}catch(e){}
-    var n=comp[compCode];var niv=typeof n==='object'?n.niveau:n;
-    if(niv&&(order[niv]||0)>(order[best]||0))best=niv;
-  });
-  return best;
-}
-
-// ═══ GRILLE FRANÇAIS ═══
-var FR_GRILLE=[
-  {cat:"communication",label:"Communication",bareme:7,color:'#2d5a8c',criteres:[
-    {id:"C1",label:"Comportement physique (posture, regard, notes)",max:2},
-    {id:"C2",label:"Expos\u00e9 coh\u00e9rent ~5 min (pr\u00e9sentation + plan)",max:2},
-    {id:"C3",label:"Expression claire (ton, voix, d\u00e9bit)",max:2},
-    {id:"C4",label:"Dialogue, r\u00e9action, int\u00e9r\u00eat auditoire",max:1}
-  ]},
-  {cat:"argumentation",label:"Argumentation",bareme:10,color:'#8e44ad',criteres:[
-    {id:"A1",label:"Avis argument\u00e9 avec exemples pertinents",max:2},
-    {id:"A2",label:"Cherche \u00e0 convaincre \u2014 arguments convaincants",max:2},
-    {id:"A3",label:"Vivacit\u00e9 et pertinence \u2014 raisonnement coh\u00e9rent",max:2},
-    {id:"A4",label:"Rapprochement stage/projet \u2194 parcours formation",max:2},
-    {id:"A5",label:"Projet d'orientation / r\u00e9flexion",max:2}
-  ]},
-  {cat:"linguistique",label:"Outils linguistiques",bareme:3,color:'#ff6b35',criteres:[
-    {id:"L1",label:"Langue pr\u00e9cise et correcte (vocabulaire, grammaire, style)",max:3}
-  ]}
-];
-var _ep2FrScores={}; // {critId: value}
-
-function ep2RenderFr(){
-  var html='';
-  FR_GRILLE.forEach(function(cat){
-    var catTotal=0;cat.criteres.forEach(function(cr){catTotal+=(_ep2FrScores[cr.id]||0);});
-    var over=catTotal>cat.bareme;
-    html+='<div style="margin-bottom:.4rem;">';
-    html+='<div style="background:'+cat.color+';color:#fff;padding:.35rem .5rem;border-radius:var(--r2) var(--r2) 0 0;display:flex;justify-content:space-between;font-size:.78rem;font-weight:900;">';
-    html+='<span>'+esc(cat.label)+' (/'+cat.bareme+')</span>';
-    html+='<span style="background:rgba(255,255,255,'+(over?.5:.25)+');padding:.1rem .4rem;border-radius:12px;'+(over?'color:#ff6b6b;':'')+'">'+catTotal+'/'+cat.bareme+'</span>';
-    html+='</div>';
-    html+='<table style="width:100%;border-collapse:collapse;font-size:.75rem;">';
-    cat.criteres.forEach(function(cr){
-      var val=_ep2FrScores[cr.id]||0;
-      html+='<tr style="border-bottom:1px solid var(--gris3);">';
-      html+='<td style="padding:.3rem .4rem;font-weight:800;color:'+cat.color+';width:28px;">'+cr.id+'</td>';
-      html+='<td style="padding:.3rem .2rem;">'+esc(cr.label)+'</td>';
-      html+='<td style="padding:.3rem;width:80px;text-align:right;">';
-      html+='<input type="range" min="0" max="'+cr.max+'" step="0.5" value="'+val+'" style="width:50px;accent-color:'+cat.color+';" oninput="ep2SetFr(\''+cr.id+'\',parseFloat(this.value))">';
-      html+='</td>';
-      html+='<td style="padding:.3rem;width:35px;font-weight:900;text-align:center;">'+val+'<span style="font-size:.6rem;color:var(--gris);">/'+cr.max+'</span></td>';
-      html+='</tr>';
-    });
-    html+='</table></div>';
-  });
-  document.getElementById('ep2FrGrille').innerHTML=html;
-  // Total
-  var total=0;FR_GRILLE.forEach(function(cat){cat.criteres.forEach(function(cr){total+=(_ep2FrScores[cr.id]||0);});});
-  document.getElementById('ep2FrTotal').textContent=total+'/20';
-  document.getElementById('ep2FrTotal').style.background=total>20?'#ff6b6b':'rgba(255,255,255,.25)';
-}
-
-function ep2SetFr(critId,val){
-  _ep2FrScores[critId]=val;
-  ep2RenderFr();
-}
-window.ep2SetFr=ep2SetFr;
-
-function ep2ShowDetail(code){
-  _ep2Code=code;_ep2Retour={};_ep2Retenu={};_ep2FrScores={};
-  document.getElementById('ep2Dashboard').style.display='none';
-  document.getElementById('ep2Detail').style.display='';
-  var s=students.find(function(x){return x.code===code;})||{};
-  document.getElementById('ep2DetailNom').textContent=(s.nom||'')+' '+(s.prenom||'');
-  document.getElementById('ep2DetailInfo').textContent=s.code+' · '+(s.classe||'');
-  document.getElementById('ep2JuryDate').value=new Date().toISOString().slice(0,10);
-  _ep2RenderComps(code);
-  ep2RenderFr();
-}
-
-function ep2ShowDash(){
-  _ep2Code='';
-  document.getElementById('ep2Detail').style.display='none';
-  document.getElementById('ep2Dashboard').style.display='';
-  ep2RenderDash();
-}
-
-function _ep2RenderComps(code){
-  var COMPS=window.FILIERES&&FILIERES.CAP_IFCA?FILIERES.CAP_IFCA.comps.EP2:[];
-  var vals=validations[code]||[];if(!Array.isArray(vals))vals=[];
-  var NIVS=['NE','EC','M','PM'];
-  var NIV_CLR={NE:'#e0e0e0',EC:'#fff3cd',M:'#d4edda',PM:'#cce5ff'};
-  var NIV_TXT={NE:'#666',EC:'#856404',M:'#155724',PM:'#004085'};
-
-  // Collecter les données par compétence
-  var data=COMPS.map(function(c){
-    var atelierVals=vals.filter(function(v){return v.competence===c.code&&v.epreuve==='EP2'&&v.phase!=='tuteur'&&v.phase!=='retour_stage';});
-    var stageVals=[];
-    (_ep2Tuteur[code]||[]).forEach(function(ev){
-      var comp={};try{comp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{});}catch(e){}
-      var n=comp[c.code];var niv=typeof n==='object'?n.niveau:n;
-      if(niv)stageVals.push({niveau:niv,evaluateur:ev.tuteur||'Tuteur',timestamp:ev.timestamp,entreprise:ev.entreprise||''});
-    });
-    var retourVals=vals.filter(function(v){return v.competence===c.code&&v.epreuve==='EP2'&&v.phase==='retour_stage';});
-    return {c:c,atelier:atelierVals,stage:stageVals,retour:retourVals,
-      bestA:_bestOf(atelierVals),bestS:stageVals.length?stageVals.reduce(function(a,b){return ({'NE':0,'EC':1,'M':2,'PM':3}[b.niveau]||0)>({'NE':0,'EC':1,'M':2,'PM':3}[a.niveau]||0)?b:a;}).niveau:'',bestR:_bestOf(retourVals),
-      total:atelierVals.length+stageVals.length+retourVals.length};
-  });
-
-  function nivCell(niv,count,bgOk,clrOk){
-    if(!niv||niv==='NE')return '<td style="text-align:center;background:var(--rouge2);color:var(--rouge);font-weight:700;font-size:.78rem;">—</td>';
-    return '<td style="text-align:center;background:'+NIV_CLR[niv]+';color:'+NIV_TXT[niv]+';font-weight:900;font-size:.82rem;">'+niv+(count>1?' <span style="font-size:.6rem;opacity:.7;">'+count+'</span>':'')+'</td>';
-  }
-
-  // TABLEAU PRINCIPAL
-  var html='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.8rem;background:#fff;border-radius:var(--r2);overflow:hidden;box-shadow:var(--ombre2);">';
-  html+='<thead><tr style="background:var(--bleu);color:#fff;font-size:.72rem;font-weight:800;">';
-  html+='<th style="padding:.5rem .4rem;text-align:left;">Code</th>';
-  html+='<th style="padding:.5rem .4rem;text-align:left;">Comp\u00e9tence</th>';
-  html+='<th style="padding:.5rem;text-align:center;background:var(--bleu2);min-width:55px;">\uD83D\uDD27 Atelier</th>';
-  html+='<th style="padding:.5rem;text-align:center;background:var(--teal);min-width:55px;">\uD83C\uDFED Stage</th>';
-  html+='<th style="padding:.5rem;text-align:center;background:var(--orange);min-width:55px;">\uD83D\uDCCA Retour</th>';
-  html+='<th style="padding:.5rem;text-align:center;background:#333;min-width:65px;">\u27A1 Retenu</th>';
-  html+='</tr></thead><tbody>';
-
-  data.forEach(function(d,i){
-    var c=d.c;var retourNiv=_ep2Retour[c.code]||'';
-    var curRetenu=_ep2Retenu[c.code]||_ep2Best(code,c.code,vals);
-    var bgRow=i%2===0?'#fff':'#f8f9fa';
-
-    // Ligne principale (cliquable)
-    html+='<tr style="background:'+bgRow+';cursor:pointer;border-bottom:1px solid var(--gris3);" onclick="ep2Toggle(\''+c.code+'\')">';
-    html+='<td style="padding:.4rem;font-weight:900;color:var(--bleu2);white-space:nowrap;">'+c.code+(c.obl?' <span style="color:var(--orange);">\u2731</span>':'')+'</td>';
-    html+='<td style="padding:.4rem;font-size:.75rem;">'+esc(c.nom||c.full||'')+(d.total>0?' <span style="background:var(--bleu3);color:var(--bleu2);font-size:.6rem;font-weight:900;padding:.1rem .3rem;border-radius:8px;">\u24'+String(d.total).charCodeAt(0)+'</span>':'')+'</td>';
-    html+=nivCell(d.bestA,d.atelier.length);
-    html+=nivCell(d.bestS,d.stage.length);
-    html+=nivCell(retourNiv||d.bestR,d.retour.length);
-    // Retenu = select
-    html+='<td style="text-align:center;padding:.2rem;" onclick="event.stopPropagation()">';
-    html+='<select style="padding:.2rem;border:2px solid var(--orange);border-radius:4px;font-weight:900;font-size:.78rem;background:'+(curRetenu?NIV_CLR[curRetenu]||'#fff':'#fff')+';color:'+(curRetenu?NIV_TXT[curRetenu]||'var(--texte)':'var(--gris)')+';width:55px;" onchange="ep2SetRetenu(\''+c.code+'\',this.value);this.style.background=({NE:\'#e0e0e0\',EC:\'#fff3cd\',M:\'#d4edda\',PM:\'#cce5ff\'})[this.value]||\'#fff\';this.style.color=({NE:\'#666\',EC:\'#856404\',M:\'#155724\',PM:\'#004085\'})[this.value]||\'var(--gris)\'">';
-    html+='<option value=""'+(! _ep2Retenu[c.code]?' selected':'')+'>'+curRetenu+'</option>';
-    NIVS.forEach(function(n){html+='<option value="'+n+'"'+(_ep2Retenu[c.code]===n?' selected':'')+'>'+n+'</option>';});
-    html+='</select></td>';
-    html+='</tr>';
-
-    // Ligne détail (cachée, dépliable)
-    html+='<tr id="ep2d_'+c.code+'" style="display:none;"><td colspan="6" style="padding:0;background:var(--gris2);">';
-    html+='<div style="padding:.5rem .6rem;">';
-
-    // Tâches atelier
-    html+='<div style="font-size:.7rem;font-weight:800;color:var(--bleu2);margin-bottom:.2rem;">\uD83D\uDD27 Atelier ('+d.atelier.length+' \u00e9val)</div>';
-    if(d.atelier.length){d.atelier.forEach(function(v){
-      html+='<div style="font-size:.72rem;padding:.2rem .4rem;background:#fff;border-radius:3px;margin-bottom:.1rem;display:flex;justify-content:space-between;border-left:3px solid var(--bleu2);"><span>'+esc(v.contexte||'atelier')+' \u00b7 '+(v.timestamp?new Date(v.timestamp).toLocaleDateString('fr-FR'):'—')+' \u00b7 '+esc(v.evaluateur||'')+'</span><span style="font-weight:900;padding:0 .3rem;border-radius:3px;background:'+NIV_CLR[v.niveau]+';color:'+NIV_TXT[v.niveau]+';">'+v.niveau+'</span></div>';
-    });}else{html+='<div style="font-size:.68rem;color:var(--gris);font-style:italic;">Pas encore \u00e9valu\u00e9</div>';}
-
-    // Tâches stage tuteur
-    html+='<div style="font-size:.7rem;font-weight:800;color:var(--teal);margin:.3rem 0 .2rem;">\uD83C\uDFED Stage tuteur ('+d.stage.length+' \u00e9val)</div>';
-    if(d.stage.length){d.stage.forEach(function(v){
-      html+='<div style="font-size:.72rem;padding:.2rem .4rem;background:#fff;border-radius:3px;margin-bottom:.1rem;display:flex;justify-content:space-between;border-left:3px solid var(--teal);"><span>\uD83C\uDFE2 '+esc(v.entreprise)+' \u00b7 '+esc(v.evaluateur)+' \u00b7 '+(v.timestamp?new Date(v.timestamp).toLocaleDateString('fr-FR'):'—')+'</span><span style="font-weight:900;padding:0 .3rem;border-radius:3px;background:'+NIV_CLR[v.niveau]+';color:'+NIV_TXT[v.niveau]+';">'+v.niveau+'</span></div>';
-    });}else{html+='<div style="font-size:.68rem;color:var(--gris);font-style:italic;">\u00c9val tuteur non re\u00e7ue</div>';}
-
-    // Retour stage — boutons jury
-    html+='<div style="font-size:.7rem;font-weight:800;color:var(--orange);margin:.3rem 0 .2rem;">\uD83D\uDCCA Retour stage — \u00c9valuation jury</div>';
-    html+='<div style="display:flex;gap:.25rem;flex-wrap:wrap;margin-bottom:.2rem;">';
-    NIVS.forEach(function(n){
-      var isAct=retourNiv===n;
-      html+='<button style="padding:.25rem .6rem;border:2px solid '+(isAct?NIV_TXT[n]:'var(--gris3)')+';border-radius:5px;background:'+(isAct?NIV_CLR[n]:'#fff')+';color:'+(isAct?NIV_TXT[n]:'var(--gris)')+';font-size:.75rem;font-weight:900;cursor:pointer;min-width:40px;" onclick="event.stopPropagation();ep2SetRetour(\''+c.code+'\',\''+n+'\')">'+n+'</button>';
-    });
-    html+='</div>';
-    if(d.retour.length){d.retour.forEach(function(v){
-      html+='<div style="font-size:.72rem;padding:.2rem .4rem;background:#fff;border-radius:3px;margin-bottom:.1rem;display:flex;justify-content:space-between;border-left:3px solid var(--orange);"><span>'+esc(v.evaluateur||'')+' \u00b7 '+(v.timestamp?new Date(v.timestamp).toLocaleDateString('fr-FR'):'—')+'</span><span style="font-weight:900;padding:0 .3rem;border-radius:3px;background:'+NIV_CLR[v.niveau]+';color:'+NIV_TXT[v.niveau]+';">'+v.niveau+'</span></div>';
-    });}
-
-    html+='</div></td></tr>';
-  });
-
-  html+='</tbody></table></div>';
-  document.getElementById('ep2CompList').innerHTML=html;
-}
-
-function ep2Toggle(code){
-  var row=document.getElementById('ep2d_'+code);if(!row)return;
-  row.style.display=row.style.display==='none'?'':'none';
-}
-window.ep2Toggle=ep2Toggle;
-
-function _bestOf(evals){var order={NE:0,EC:1,M:2,PM:3};var best='';evals.forEach(function(v){if(v.niveau&&(order[v.niveau]||0)>(order[best]||0))best=v.niveau;});return best;}
-
-function ep2SetRetour(code,niv){_ep2Retour[code]=niv;_ep2RenderComps(_ep2Code);}
-function ep2SetRetenu(code,niv){_ep2Retenu[code]=niv;}
-
-async function ep2Envoyer(){
-  if(!_ep2Code){toast('Aucun élève','err');return;}
-  var btn=document.getElementById('ep2BtnSend');btn.disabled=true;btn.textContent='Envoi...';
-  var obs=document.getElementById('ep2Obs').value.trim();
-  var pro=document.getElementById('ep2JuryPro').value.trim();
-  var fr=document.getElementById('ep2JuryFr').value.trim();
-  var dt=document.getElementById('ep2JuryDate').value;
-  var evaluateur=(pro||cfg.nomProf||'Prof')+(fr?' + '+fr:'');
-  var ts=new Date().toISOString();
-  var sent=0,errors=0;
-  // Évals retour stage
-  var codes=Object.keys(_ep2Retour).filter(function(k){return _ep2Retour[k]&&_ep2Retour[k]!=='NE';});
-  for(var i=0;i<codes.length;i++){
-    try{await apiCall({action:'saveValidation',eleve:_ep2Code,data:{epreuve:'EP2',competence:codes[i],critere:'',niveau:_ep2Retour[codes[i]],contexte:'retour_stage',phase:'retour_stage',evaluateur:evaluateur,timestamp:ts,source:'ep2_retour',jury:{pro:pro,fr:fr,date:dt}}});sent++;}catch(e){errors++;}
-  }
-  // Niveaux retenus
-  var ret=Object.keys(_ep2Retenu).filter(function(k){return _ep2Retenu[k];});
-  for(var i=0;i<ret.length;i++){
-    try{await apiCall({action:'saveValidation',eleve:_ep2Code,data:{epreuve:'EP2',competence:ret[i],critere:'',niveau:_ep2Retenu[ret[i]],contexte:'niveau_retenu',phase:'certificatif',evaluateur:evaluateur,timestamp:ts,source:'ep2_retenu'}});sent++;}catch(e){errors++;}
-  }
-  if(obs){try{await apiCall({action:'saveValidation',eleve:_ep2Code,data:{epreuve:'EP2',competence:'__obs_jury__',critere:'',niveau:'OBS',observation:obs,contexte:'retour_stage',phase:'retour_stage',evaluateur:evaluateur,timestamp:ts,source:'ep2_retour',jury:{pro:pro,fr:fr,date:dt}}});}catch(e){}}
-
-  // ═══ ENVOI FRANÇAIS ═══
-  var frExam=document.getElementById('ep2FrExam').value.trim();
-  var frObs=document.getElementById('ep2FrObs').value.trim();
-  var frCrits=Object.keys(_ep2FrScores).filter(function(k){return _ep2FrScores[k]>0;});
-  if(frCrits.length){
-    var frTotal=0;FR_GRILLE.forEach(function(cat){cat.criteres.forEach(function(cr){frTotal+=(_ep2FrScores[cr.id]||0);});});
-    // Envoi note globale français
-    try{await apiCall({action:'saveValidation',eleve:_ep2Code,data:{
-      epreuve:'ORAL_FR',competence:'__oral_francais__',critere:'',niveau:String(frTotal),
-      observation:frObs,contexte:'retour_stage',phase:'retour_stage',
-      evaluateur:frExam||'Prof Fran\u00e7ais',timestamp:ts,source:'ep2_francais',
-      _scores:JSON.parse(JSON.stringify(_ep2FrScores))
-    }});sent++;}catch(e){errors++;}
-    // Envoi chaque critère
-    for(var fi=0;fi<frCrits.length;fi++){
-      try{await apiCall({action:'saveValidation',eleve:_ep2Code,data:{
-        epreuve:'ORAL_FR',competence:frCrits[fi],critere:'',niveau:String(_ep2FrScores[frCrits[fi]]),
-        contexte:'retour_stage',phase:'retour_stage',
-        evaluateur:frExam||'Prof Fran\u00e7ais',timestamp:ts,source:'ep2_francais'
-      }});sent++;}catch(e){errors++;}
-    }
-  }
-
-  // Sauver en local
-  if(!validations[_ep2Code])validations[_ep2Code]=[];
-  codes.forEach(function(k){validations[_ep2Code].push({epreuve:'EP2',competence:k,niveau:_ep2Retour[k],contexte:'retour_stage',phase:'retour_stage',evaluateur:evaluateur,timestamp:ts});});
-  ret.forEach(function(k){validations[_ep2Code].push({epreuve:'EP2',competence:k,niveau:_ep2Retenu[k],contexte:'niveau_retenu',phase:'certificatif',evaluateur:evaluateur,timestamp:ts});});
-  saveLocal();
-  btn.disabled=false;btn.textContent='\u2705 Valider et envoyer au serveur (technique + fran\u00e7ais)';
-  if(errors===0)toast('\u2705 '+sent+' \u00e9val(s) synchronis\u00e9es (technique + fran\u00e7ais)','ok');
-  else toast('\u26a0\ufe0f '+sent+' ok, '+errors+' erreur(s)','warn');
-  _ep2RenderComps(_ep2Code);
-}
-
-window.ep2ShowDetail=ep2ShowDetail;window.ep2ShowDash=ep2ShowDash;
-window.ep2SetRetour=ep2SetRetour;window.ep2SetRetenu=ep2SetRetenu;window.ep2Envoyer=ep2Envoyer;
-
 /* ═══ [N2] ÉVALS TUTEURS ═══ */
 async function loadTuteurEvals(){
   // Peupler le select élèves
@@ -6425,11 +6027,23 @@ document.getElementById('main-content').addEventListener('change',function(e){
 document.addEventListener('DOMContentLoaded',()=>{
   const hasConfig=loadConfig();
 
-  if(hasConfig){
-    // Config trouvée → démarrer directement
-    startApp();
+  // Phase 13.1 — Ecran PIN RGPD avant demarrage
+  if(window.iwPin&&window.iwCrypto){
+    // Ecouter le deverrouillage pour lancer l'app
+    document.addEventListener('iw:unlocked',function _onUnlock(){
+      document.removeEventListener('iw:unlocked',_onUnlock);
+      if(hasConfig)startApp();
+      // Verification retention RGPD apres chargement
+      setTimeout(function(){
+        if(window.iwRetention)iwRetention.check();
+      },3000);
+    });
+    // Afficher ecran PIN
+    window.iwPin.showLockScreen();
+  } else {
+    // Fallback sans securite (modules non charges)
+    if(hasConfig)startApp();
   }
-  // Pas de config → l'écran de configuration reste visible (body.show-config)
 
   // Navigation par hash (ex: #eleves depuis index.html)
   var hash=window.location.hash.replace('#','');
