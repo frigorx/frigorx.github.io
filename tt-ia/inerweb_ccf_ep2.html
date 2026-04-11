@@ -383,24 +383,33 @@ function cellClick(code,ctx,niv){
     else if(ctx==='retour'){retourState[code]=niv;delete retenuState[code];}
     else retenuState[code]=niv;
   }
-  // Sauver localement dans allVals pour persistance immédiate
-  if(!allVals[curCode])allVals[curCode]=[];
-  allVals[curCode].push({competence:code,niveau:niv,phase:phaseMap[ctx]||'formatif',contexte:ctxMap[ctx]||ctx,evaluateur:'Prof',timestamp:new Date().toISOString(),epreuve:'EP2'});
-  // Rafraîchir immédiatement (pas d'attente réseau)
-  calcNote();renderTable(curCode);drawDetailRadar();
-  // Envoyer au serveur EN ARRIÈRE-PLAN (fire & forget)
   var ctxMap={atelier:'atelier',pfmp:'pfmp',retour:'retour_stage',retenu:'niveau_retenu'};
   var phaseMap={atelier:'formatif',pfmp:'pfmp',retour:'retour_stage',retenu:'certificatif'};
+  var ts=new Date().toISOString();
+  // Sauver localement dans allVals
+  if(!allVals[curCode])allVals[curCode]=[];
+  if(niv){allVals[curCode].push({competence:code,niveau:niv,phase:phaseMap[ctx]||'formatif',contexte:ctxMap[ctx]||ctx,evaluateur:'Prof',timestamp:ts,epreuve:'EP2'})}
+  // Rafraîchir immédiatement
+  calcNote();renderTable(curCode);drawDetailRadar();
+  // Envoyer au serveur EN ARRIÈRE-PLAN
+  if(!niv){toast(code+' effac\u00e9','ok');return}
+  // Envoyer au serveur (saveValidation)
   apiPost('saveValidation',{eleve:curCode,data:{
     epreuve:'EP2',competence:code,critere:'',niveau:niv,
     contexte:ctxMap[ctx]||ctx,phase:phaseMap[ctx]||'formatif',
-    evaluateur:'Prof',timestamp:new Date().toISOString(),source:'ccf_ep2'
+    evaluateur:'Prof',timestamp:ts,source:'ccf_ep2'
   }}).then(function(){
-    // Petit flash vert discret
-    toast('\u2705 '+code+' = '+niv+' enregistr\u00e9','ok');
+    toast('\u2705 '+code+' = '+niv,'ok');
   }).catch(function(){
-    toast('\u26a0 '+code+' sauvegard\u00e9 localement','warn');
+    toast('\u26a0 '+code+' local','warn');
   });
+  // Croisement tuteur : si PFMP, aussi envoyer via saveEvalTuteur
+  if(ctx==='pfmp'){
+    var compObj={};compObj[code]=niv;
+    apiPost('saveEvalTuteur',{eleve:curCode,tuteur:'PROF_Henninot',data:JSON.stringify({
+      competences:compObj,tuteurNom:'Henninot (EP2)',date:ts.slice(0,10),source:'prof_interface'
+    })}).catch(function(){});
+  }
 }
 
 function drawDetailRadar(){
