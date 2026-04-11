@@ -341,21 +341,21 @@ function renderTable(code){
 }
 
 function editCell(code,ctx,curNiv){
-  var clrMap={atelier:'var(--bleu2)',pfmp:'var(--teal)',retour:'var(--orange)',retenu:'#333'};
-  var bgc=NIV_CLR[curNiv]||'#fff';var txc=NIV_TXT[curNiv]||'var(--gris)';
-  return '<td style="text-align:center;padding:.2rem" onclick="event.stopPropagation()"><select style="padding:.2rem;border:2px solid '+clrMap[ctx]+';border-radius:4px;font-weight:900;font-size:.72rem;width:48px;background:'+bgc+';color:'+txc+'" onchange="cellChanged(this,\''+code+'\',\''+ctx+'\')"><option value="">'+(curNiv||'\u2014')+'</option>';
-  var o='';NIVS.forEach(function(n){o+='<option value="'+n+'"'+(curNiv===n?' selected':'')+'>'+n+'</option>'});
-  return '<td style="text-align:center;padding:.2rem" onclick="event.stopPropagation()"><select style="padding:.2rem;border:2px solid '+clrMap[ctx]+';border-radius:4px;font-weight:900;font-size:.72rem;width:48px;background:'+bgc+';color:'+txc+'" onchange="cellChanged(this,\''+code+'\',\''+ctx+'\')"><option value="">'+(curNiv||'\u2014')+'</option>'+o+'</select></td>';
+  var h='<td style="padding:.15rem .1rem;white-space:nowrap" onclick="event.stopPropagation()">';
+  NIVS.forEach(function(n){
+    var on=curNiv===n;
+    h+='<button style="padding:.2rem .3rem;border:'+(on?'2px solid '+NIV_TXT[n]:'1px solid #ddd')+';border-radius:4px;background:'+(on?NIV_CLR[n]:'#fff')+';color:'+(on?NIV_TXT[n]:'#ccc')+';font-size:.62rem;font-weight:900;cursor:pointer;min-width:26px;margin:0 1px;" onclick="cellClick(\''+code+'\',\''+ctx+'\',\''+n+'\')">'+(n==='NE'?'\u2014':n)+'</button>';
+  });
+  h+='</td>';
+  return h;
 }
 
-function cellChanged(sel,code,ctx){
-  var n=sel.value;
-  if(ctx==='atelier')atelierState[code]=n;
-  else if(ctx==='pfmp')pfmpState[code]=n;
-  else if(ctx==='retour')retourState[code]=n;
-  else retenuState[code]=n;
-  sel.style.background=NIV_CLR[n]||'#fff';sel.style.color=NIV_TXT[n]||'var(--gris)';
-  calcNote();drawDetailRadar();
+function cellClick(code,ctx,niv){
+  if(ctx==='atelier')atelierState[code]=niv;
+  else if(ctx==='pfmp')pfmpState[code]=niv;
+  else if(ctx==='retour')retourState[code]=niv;
+  else retenuState[code]=niv;
+  renderTable(curCode);calcNote();drawDetailRadar();
 }
 
 function drawDetailRadar(){
@@ -573,7 +573,7 @@ async function envoyer(){
 
 // ═══ EXPOSE ═══
 window.showDash=showDash;window.showDetail=showDetail;window.toggle=toggle;
-window.cellChanged=cellChanged;
+window.cellClick=cellClick;
 window.setAtelier=setAtelier;window.setPfmp=setPfmp;window.setRetour=setRetour;
 window.setRetenu=setRetenu;window.retenuChanged=retenuChanged;window.noteFinaleChanged=noteFinaleChanged;
 window.setFr=setFr;window.envoyer=envoyer;
