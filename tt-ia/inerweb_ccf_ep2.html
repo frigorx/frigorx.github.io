@@ -100,48 +100,51 @@ input,select,textarea,button{font-family:inherit}
 <div class="wrap">
   <!-- VUE 1: DASHBOARD -->
   <div id="dashboard"><div class="dash" id="dashGrid"></div></div>
-  <!-- VUE 2: DETAIL -->
+  <!-- VUE 2: DETAIL ÉLÈVE -->
   <div id="detail">
+    <!-- EN-TÊTE + RETOUR -->
     <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:var(--r);padding:.5rem .6rem;margin-bottom:.4rem;box-shadow:0 2px 8px rgba(0,0,0,.06)">
       <div><div id="dNom" style="font-size:1rem;font-weight:900;color:var(--bleu)"></div><div id="dInfo" style="font-size:.68rem;color:var(--gris)"></div></div>
-      <button class="back-btn" onclick="showDash()">&#x2190; Retour</button>
+      <button class="back-btn" onclick="showDash()">&#x2190; Retour &agrave; la liste</button>
     </div>
 
-    <!-- 3 GROS BOUTONS MODE -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem;margin-bottom:.5rem;" id="modeBtns">
-      <button onclick="switchMode('atelier')" id="modeAtelier" style="padding:.7rem;border:3px solid var(--bleu2);border-radius:var(--r);background:#fff;font-size:.85rem;font-weight:900;cursor:pointer;color:var(--bleu2);transition:all .15s;">&#x1F527; Atelier</button>
-      <button onclick="switchMode('pfmp')" id="modePfmp" style="padding:.7rem;border:3px solid var(--teal);border-radius:var(--r);background:#fff;font-size:.85rem;font-weight:900;cursor:pointer;color:var(--teal);transition:all .15s;">&#x1F3ED; Stage</button>
-      <button onclick="switchMode('retour')" id="modeRetour" style="padding:.7rem;border:3px solid var(--orange);border-radius:var(--r);background:#fff;font-size:.85rem;font-weight:900;cursor:pointer;color:var(--orange);transition:all .15s;">&#x1F4CA; Retour</button>
+    <!-- RADAR GRAND (temps réel) + INFOS ENTREPRISE côte à côte -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.4rem;">
+      <div style="background:#fff;border-radius:var(--r);padding:.4rem;box-shadow:0 2px 8px rgba(0,0,0,.06);text-align:center;">
+        <div style="font-size:.7rem;font-weight:800;color:var(--bleu);margin-bottom:.2rem;">Profil comp&eacute;tences</div>
+        <canvas id="radarDetail" style="width:100%;height:160px;"></canvas>
+      </div>
+      <div id="entrepriseBlock" style="background:#fff;border-radius:var(--r);padding:.5rem;box-shadow:0 2px 8px rgba(0,0,0,.06);font-size:.75rem;">
+        <div style="font-size:.7rem;font-weight:800;color:var(--teal);margin-bottom:.3rem;">&#x1F3E2; Entreprise &amp; Tuteur</div>
+        <div id="entrepriseInfo">Chargement...</div>
+      </div>
     </div>
 
-    <!-- JURY (visible seulement en mode retour) -->
-    <div class="jury" id="juryBlock" style="display:none;"><h4>&#x1F468;&#x200D;&#x2696;&#xFE0F; Jury retour de stage</h4>
+    <!-- TABLEAU INTERACTIF — 3 colonnes éditables -->
+    <div id="tblWrap"></div>
+
+    <!-- JURY RETOUR STAGE -->
+    <div class="jury" style="margin-top:.4rem;"><h4>&#x1F468;&#x200D;&#x2696;&#xFE0F; Jury retour de stage</h4>
       <div class="jury-row">
         <input id="jPro" placeholder="Prof technique"><input id="jFr" placeholder="Prof fran&ccedil;ais"><input type="date" id="jDt">
       </div>
     </div>
 
-    <!-- GRILLE D'ÉVALUATION (toutes les compétences avec gros boutons) -->
-    <div id="evalGrid"></div>
-
-    <!-- SYNTHÈSE TABLEAU (toujours visible) -->
-    <div id="tblWrap" style="margin-top:.5rem;"></div>
-
     <!-- NOTE PROPOSÉE EP2 -->
-    <div id="noteBlock" style="background:#fff;border-radius:var(--r);padding:.6rem;margin-top:.4rem;box-shadow:0 2px 10px rgba(0,0,0,.07);text-align:center;">
-      <div style="font-size:.75rem;font-weight:800;color:var(--bleu);margin-bottom:.2rem;">Note propos&eacute;e EP2</div>
-      <div id="noteValue" style="font-size:2.2rem;font-weight:900;color:var(--bleu);">—</div>
-      <div id="noteDetail" style="font-size:.7rem;color:var(--gris);margin:.2rem 0;"></div>
-      <div id="noteAlerts" style="font-size:.7rem;margin:.2rem 0;"></div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:.5rem;margin-top:.3rem;">
-        <span style="font-size:.78rem;font-weight:800;color:var(--orange);">Note finale jury :</span>
-        <input type="number" id="noteFinale" min="0" max="20" step="0.5" placeholder="auto" style="width:70px;padding:.3rem;border:2px solid var(--orange);border-radius:var(--r2);font-weight:900;font-size:1rem;text-align:center;" onchange="noteFinaleChanged(this.value)">
-        <span style="font-size:.85rem;color:var(--gris);">/20</span>
+    <div style="background:#fff;border-radius:var(--r);padding:.5rem;margin-top:.4rem;box-shadow:0 2px 10px rgba(0,0,0,.07);text-align:center;">
+      <div style="font-size:.72rem;font-weight:800;color:var(--bleu);margin-bottom:.2rem;">Note propos&eacute;e EP2</div>
+      <div id="noteValue" style="font-size:2rem;font-weight:900;color:var(--bleu);">&mdash;</div>
+      <div id="noteDetail" style="font-size:.68rem;color:var(--gris);margin:.1rem 0;"></div>
+      <div id="noteAlerts" style="font-size:.68rem;margin:.1rem 0;"></div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:.4rem;margin-top:.2rem;">
+        <span style="font-size:.75rem;font-weight:800;color:var(--orange);">Note finale :</span>
+        <input type="number" id="noteFinale" min="0" max="20" step="0.5" placeholder="auto" style="width:65px;padding:.25rem;border:2px solid var(--orange);border-radius:var(--r2);font-weight:900;font-size:.95rem;text-align:center;" onchange="noteFinaleChanged(this.value)">
+        <span style="font-size:.8rem;color:var(--gris);">/20</span>
       </div>
     </div>
 
-    <!-- GRILLE FRANÇAIS (visible seulement en mode retour) -->
-    <div class="fr-block" id="frBlock" style="display:none;"><div class="fr-head"><span>&#x1F4DA; Oral Fran&ccedil;ais &mdash; Retour de stage</span><span id="frTotal">0/20</span></div>
+    <!-- GRILLE FRANÇAIS -->
+    <div class="fr-block" style="margin-top:.4rem;"><div class="fr-head"><span>&#x1F4DA; Oral Fran&ccedil;ais</span><span id="frTotal">0/20</span></div>
       <div style="padding:.4rem .5rem;background:#fff">
         <div style="margin-bottom:.3rem"><input id="frExam" placeholder="Examinateur fran&ccedil;ais" style="width:100%;padding:.25rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.75rem"></div>
         <div id="frGrille"></div>
@@ -282,8 +285,12 @@ function showDetail(code){
     document.getElementById('dNom').textContent=(s.nom||'')+' '+(s.prenom||'');
     document.getElementById('dInfo').textContent=s.code+' \u00b7 '+(s.classe||'');
     document.getElementById('jDt').value=new Date().toISOString().slice(0,10);
-    switchMode('atelier');
+    renderTable(code);
+    renderEntreprise(code);
+    drawDetailRadar();
     renderFr();
+    calcNote();
+    document.getElementById('noteFinale').value='';
     window.scrollTo(0,0);
   }catch(e){
     alert('Erreur showDetail: '+e.message);
@@ -294,56 +301,104 @@ function showDetail(code){
 // ═══ TABLEAU 3 COLONNES ═══
 function renderTable(code){
   var v=allVals[code]||[];if(!Array.isArray(v))v=[];
+  // Colonnes: Code | Comp | Atelier [select] | Stage [select] | Retour [select] | Retenu [select]
   var h='<table class="tbl"><thead><tr><th>Code</th><th>Comp\u00e9tence</th><th class="c-at">\uD83D\uDD27 Atelier</th><th class="c-st">\uD83C\uDFED Stage</th><th class="c-rt">\uD83D\uDCCA Retour</th><th class="c-ret">\u27A1 Retenu</th></tr></thead><tbody>';
 
   COMPS.forEach(function(c,i){
     var atV=v.filter(function(x){return x.competence===c.code&&x.phase!=='tuteur'&&x.phase!=='retour_stage'});
     var stV=[];(tuteurEvals[code]||[]).forEach(function(ev){var cp={};try{cp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{})}catch(e){}var n=cp[c.code];var nv=typeof n==='object'?n.niveau:n;if(nv)stV.push({niveau:nv,evaluateur:ev.tuteur||'Tuteur',timestamp:ev.timestamp,entreprise:ev.entreprise||''})});
     var rtV=v.filter(function(x){return x.competence===c.code&&x.phase==='retour_stage'});
-    var bA=best(atV),bS=best(stV),bR=best(rtV),rN=retourState[c.code]||'';
+    var bA=atelierState[c.code]||best(atV),bS=pfmpState[c.code]||best(stV),bR=retourState[c.code]||best(rtV);
     var tot=atV.length+stV.length+rtV.length;
     var curRet=retenuState[c.code]||bestNiv(code,c.code);
     var bg=i%2===0?'#fff':'#f9fafb';
 
-    // Ligne principale
-    h+='<tr style="background:'+bg+'" onclick="toggle(\''+c.code+'\')">';
-    h+='<td style="font-weight:900;color:var(--bleu2);white-space:nowrap">'+c.code+(c.obl?' <span style="color:var(--orange)">\u2731</span>':'')+'</td>';
-    h+='<td style="font-size:.72rem">'+esc(c.nom)+(tot>0?' <span class="cnt">\u00d7'+tot+'</span>':'')+'</td>';
-    h+=nivTd(bA,atV.length);h+=nivTd(bS,stV.length);h+=nivTd(rN||bR,rtV.length);
-    // Retenu select
-    h+='<td style="text-align:center" onclick="event.stopPropagation()"><select class="ret-sel" style="background:'+(NIV_CLR[curRet]||'#fff')+';color:'+(NIV_TXT[curRet]||'var(--gris)')+'" onchange="retenuChanged(this,\''+c.code+'\')">';
-    h+='<option value="">'+curRet+'</option>';NIVS.forEach(function(n){h+='<option value="'+n+'"'+(retenuState[c.code]===n?' selected':'')+'>'+n+'</option>'});
-    h+='</select></td></tr>';
+    // Ligne principale — clic = déplier l'historique
+    h+='<tr style="background:'+bg+'">';
+    h+='<td style="font-weight:900;color:var(--bleu2);white-space:nowrap;cursor:pointer" onclick="toggle(\''+c.code+'\')">'+c.code+(c.obl?' <span style="color:var(--orange)">\u2731</span>':'')+(tot>0?'<span class="cnt">\u00d7'+tot+'</span>':'')+'</td>';
+    h+='<td style="font-size:.72rem;cursor:pointer" onclick="toggle(\''+c.code+'\')">'+esc(c.nom)+'</td>';
+    // Atelier — select direct
+    h+=editCell(c.code,'atelier',bA);
+    // Stage — select direct
+    h+=editCell(c.code,'pfmp',bS);
+    // Retour — select direct
+    h+=editCell(c.code,'retour',bR);
+    // Retenu — select
+    h+=editCell(c.code,'retenu',curRet);
+    h+='</tr>';
 
-    // Ligne détail dépliable
-    var aN=atelierState[c.code]||'';
-    var pN=pfmpState[c.code]||'';
-    h+='<tr class="drow" id="dr_'+c.code+'"><td colspan="6"><div style="padding:.3rem">';
-
-    // ── ATELIER: historique + évaluer ──
-    h+='<div class="src-title src-at">\uD83D\uDD27 Atelier ('+atV.length+')</div>';
-    if(atV.length){atV.forEach(function(x){h+='<div class="task task-at"><span>'+esc(x.contexte||'atelier')+' \u00b7 '+dfr(x.timestamp)+' \u00b7 '+esc(x.evaluateur||'')+'</span><span class="niv niv-'+x.niveau+'">'+x.niveau+'</span></div>'})}
-    h+='<div style="font-size:.68rem;font-weight:800;color:var(--bleu2);margin:.15rem 0">\u00c9valuer en atelier :</div>';
-    h+='<div class="jbtns" onclick="event.stopPropagation()">';NIVS.forEach(function(n){h+='<button class="jbtn'+(aN===n?' on-'+n:'')+'" onclick="setAtelier(\''+c.code+'\',\''+n+'\')">'+n+'</button>'});h+='</div>';
-
-    // ── STAGE: historique + évaluer PFMP ──
-    h+='<div class="src-title src-st">\uD83C\uDFED Stage tuteur ('+stV.length+')</div>';
-    if(stV.length){stV.forEach(function(x){h+='<div class="task task-st"><span>\uD83C\uDFE2 '+esc(x.entreprise)+' \u00b7 '+esc(x.evaluateur)+' \u00b7 '+dfr(x.timestamp)+'</span><span class="niv niv-'+x.niveau+'">'+x.niveau+'</span></div>'})}
-    else h+='<div style="font-size:.68rem;color:var(--gris);font-style:italic">\u00c9val tuteur non re\u00e7ue</div>';
-    h+='<div style="font-size:.68rem;font-weight:800;color:var(--teal);margin:.15rem 0">\u00c9valuer PFMP (prof) :</div>';
-    h+='<div class="jbtns" onclick="event.stopPropagation()">';NIVS.forEach(function(n){h+='<button class="jbtn'+(pN===n?' on-'+n:'')+'" onclick="setPfmp(\''+c.code+'\',\''+n+'\')">'+n+'</button>'});h+='</div>';
-
-    // ── RETOUR STAGE: historique + évaluer jury ──
-    h+='<div class="src-title src-rt">\uD83D\uDCCA Retour stage \u2014 \u00c9val jury</div>';
-    if(rtV.length){rtV.forEach(function(x){h+='<div class="task task-rt"><span>'+esc(x.evaluateur||'')+' \u00b7 '+dfr(x.timestamp)+'</span><span class="niv niv-'+x.niveau+'">'+x.niveau+'</span></div>'})}
-    h+='<div style="font-size:.68rem;font-weight:800;color:var(--orange);margin:.15rem 0">\u00c9valuer retour stage :</div>';
-    h+='<div class="jbtns" onclick="event.stopPropagation()">';NIVS.forEach(function(n){h+='<button class="jbtn'+(rN===n?' on-'+n:'')+'" onclick="setRetour(\''+c.code+'\',\''+n+'\')">'+n+'</button>'});h+='</div>';
-
-    h+='</div></td></tr>'
+    // Ligne historique dépliable
+    h+='<tr class="drow" id="dr_'+c.code+'"><td colspan="6"><div style="padding:.3rem;font-size:.7rem;">';
+    if(atV.length){h+='<div class="src-title src-at">\uD83D\uDD27 Atelier</div>';atV.forEach(function(x){h+='<div class="task task-at"><span>'+dfr(x.timestamp)+' \u00b7 '+esc(x.evaluateur||'')+'</span><span class="niv niv-'+x.niveau+'">'+x.niveau+'</span></div>'})}
+    if(stV.length){h+='<div class="src-title src-st">\uD83C\uDFED Tuteur</div>';stV.forEach(function(x){h+='<div class="task task-st"><span>'+esc(x.entreprise)+' \u00b7 '+esc(x.evaluateur)+' \u00b7 '+dfr(x.timestamp)+'</span><span class="niv niv-'+x.niveau+'">'+x.niveau+'</span></div>'})}
+    if(rtV.length){h+='<div class="src-title src-rt">\uD83D\uDCCA Retour</div>';rtV.forEach(function(x){h+='<div class="task task-rt"><span>'+esc(x.evaluateur||'')+' \u00b7 '+dfr(x.timestamp)+'</span><span class="niv niv-'+x.niveau+'">'+x.niveau+'</span></div>'})}
+    if(!atV.length&&!stV.length&&!rtV.length)h+='<div style="color:var(--gris);font-style:italic">Aucune \u00e9valuation enregistr\u00e9e</div>';
+    h+='</div></td></tr>';
   });
 
   h+='</tbody></table>';
   document.getElementById('tblWrap').innerHTML=h
+}
+
+function editCell(code,ctx,curNiv){
+  var clrMap={atelier:'var(--bleu2)',pfmp:'var(--teal)',retour:'var(--orange)',retenu:'#333'};
+  var bgc=NIV_CLR[curNiv]||'#fff';var txc=NIV_TXT[curNiv]||'var(--gris)';
+  return '<td style="text-align:center;padding:.2rem" onclick="event.stopPropagation()"><select style="padding:.2rem;border:2px solid '+clrMap[ctx]+';border-radius:4px;font-weight:900;font-size:.72rem;width:48px;background:'+bgc+';color:'+txc+'" onchange="cellChanged(this,\''+code+'\',\''+ctx+'\')"><option value="">'+(curNiv||'\u2014')+'</option>';
+  var o='';NIVS.forEach(function(n){o+='<option value="'+n+'"'+(curNiv===n?' selected':'')+'>'+n+'</option>'});
+  return '<td style="text-align:center;padding:.2rem" onclick="event.stopPropagation()"><select style="padding:.2rem;border:2px solid '+clrMap[ctx]+';border-radius:4px;font-weight:900;font-size:.72rem;width:48px;background:'+bgc+';color:'+txc+'" onchange="cellChanged(this,\''+code+'\',\''+ctx+'\')"><option value="">'+(curNiv||'\u2014')+'</option>'+o+'</select></td>';
+}
+
+function cellChanged(sel,code,ctx){
+  var n=sel.value;
+  if(ctx==='atelier')atelierState[code]=n;
+  else if(ctx==='pfmp')pfmpState[code]=n;
+  else if(ctx==='retour')retourState[code]=n;
+  else retenuState[code]=n;
+  sel.style.background=NIV_CLR[n]||'#fff';sel.style.color=NIV_TXT[n]||'var(--gris)';
+  calcNote();drawDetailRadar();
+}
+
+function drawDetailRadar(){
+  var cv=document.getElementById('radarDetail');if(!cv)return;
+  var ctx=cv.getContext('2d'),w=cv.offsetWidth||300,h=cv.offsetHeight||160;
+  cv.width=w*2;cv.height=h*2;ctx.scale(2,2);
+  var cx=w/2,cy=h/2,r=Math.min(w,h)/2-12,n=COMPS.length,nm={NE:0,EC:.35,M:.7,PM:1};
+  var v=allVals[curCode]||[];if(!Array.isArray(v))v=[];
+  // Grille
+  [.25,.5,.75,1].forEach(function(pct){ctx.beginPath();for(var i=0;i<n;i++){var a=Math.PI*2*i/n-Math.PI/2;ctx.lineTo(cx+r*pct*Math.cos(a),cy+r*pct*Math.sin(a))}ctx.closePath();ctx.strokeStyle='rgba(0,0,0,.08)';ctx.lineWidth=.5;ctx.stroke()});
+  // Axes + labels
+  ctx.font='bold '+Math.max(7,Math.min(9,w/40))+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  for(var i=0;i<n;i++){var a=Math.PI*2*i/n-Math.PI/2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));ctx.strokeStyle='rgba(0,0,0,.1)';ctx.stroke();ctx.fillStyle='#1b3a63';ctx.fillText(COMPS[i].code,cx+(r+10)*Math.cos(a),cy+(r+10)*Math.sin(a))}
+  // Données (meilleur de tout: state + existant)
+  ctx.beginPath();
+  for(var i=0;i<n;i++){
+    var c=COMPS[i];
+    var niv=retenuState[c.code]||retourState[c.code]||pfmpState[c.code]||atelierState[c.code]||bestNiv(curCode,c.code);
+    var val=nm[niv]||0;
+    var a=Math.PI*2*i/n-Math.PI/2;
+    ctx.lineTo(cx+r*val*Math.cos(a),cy+r*val*Math.sin(a));
+  }
+  ctx.closePath();ctx.fillStyle='rgba(39,174,96,.25)';ctx.fill();ctx.strokeStyle='#27ae60';ctx.lineWidth=2;ctx.stroke();
+  // Points
+  for(var i=0;i<n;i++){var c=COMPS[i];var niv=retenuState[c.code]||retourState[c.code]||pfmpState[c.code]||atelierState[c.code]||bestNiv(curCode,c.code);var val=nm[niv]||0;var a=Math.PI*2*i/n-Math.PI/2;ctx.beginPath();ctx.arc(cx+r*val*Math.cos(a),cy+r*val*Math.sin(a),3,0,Math.PI*2);ctx.fillStyle='#27ae60';ctx.fill()}
+}
+
+function renderEntreprise(code){
+  var el=document.getElementById('entrepriseInfo');
+  var s=students.find(function(x){return x.code===code})||{};
+  var evals=tuteurEvals[code]||[];
+  var h='';
+  h+='<div><strong>'+esc(s.entreprise_nom||'Non renseign\u00e9e')+'</strong></div>';
+  if(s.entreprise_adresse)h+='<div>'+esc(s.entreprise_adresse)+'</div>';
+  h+='<div style="margin-top:.2rem;"><strong>Tuteur:</strong> '+esc(s.tuteur_nom||'\u2014')+'</div>';
+  if(s.tel_tuteur)h+='<div>Tel: '+esc(s.tel_tuteur)+'</div>';
+  if(evals.length){
+    var last=evals[evals.length-1];
+    h+='<div style="margin-top:.2rem;padding-top:.2rem;border-top:1px solid var(--gris3);font-size:.68rem;color:var(--teal);font-weight:700;">Derni\u00e8re \u00e9val tuteur: '+dfr(last.timestamp)+'</div>';
+  }else{
+    h+='<div style="margin-top:.2rem;font-size:.68rem;color:var(--rouge);font-style:italic;">Aucune \u00e9val tuteur re\u00e7ue</div>';
+  }
+  el.innerHTML=h;
 }
 
 function nivTd(niv,cnt){
@@ -518,7 +573,7 @@ async function envoyer(){
 
 // ═══ EXPOSE ═══
 window.showDash=showDash;window.showDetail=showDetail;window.toggle=toggle;
-window.switchMode=switchMode;window.setEval=setEval;
+window.cellChanged=cellChanged;
 window.setAtelier=setAtelier;window.setPfmp=setPfmp;window.setRetour=setRetour;
 window.setRetenu=setRetenu;window.retenuChanged=retenuChanged;window.noteFinaleChanged=noteFinaleChanged;
 window.setFr=setFr;window.envoyer=envoyer;
