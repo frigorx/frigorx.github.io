@@ -1747,6 +1747,8 @@ function showConfigScreen(){
 /* apiCall → js/core/api.js (copie locale conservée pour rétro-compatibilité) */
 async function apiCall(params){
   if(!cfg.apiUrl){try{var _sc=JSON.parse(localStorage.getItem(SCFG)||'{}');if(_sc.apiUrl){cfg.apiUrl=_sc.apiUrl;cfg.apiKey=_sc.apiKey;}}catch(e){}}
+  if(!cfg.apiUrl&&window.INERWEB_CONFIG&&window.INERWEB_CONFIG.API_URL){cfg.apiUrl=window.INERWEB_CONFIG.API_URL;cfg.apiKey=window.INERWEB_CONFIG.API_KEY;}
+  if(!cfg.apiUrl){cfg.apiUrl='https://script.google.com/macros/s/AKfycbzVvXZRi4975OM4P8AJeoDWvnTbFSfTpVUDErzrNk2R2knfxBxCw-A-kLmKaNzmW35V1A/exec';cfg.apiKey='inerWeb2026fh';}
   if(!cfg.apiUrl) throw new Error('no url');
   params.key=cfg.apiKey;
   const WRITE_ACTIONS=['saveValidation','addEleve','deleteEleve','cloturerEpreuve','addJournalEntry','saveConfig','addUser','deleteUser','sendAttestationEmails','uploadDocument','updateEleveProfil','saveEvalTuteur'];
