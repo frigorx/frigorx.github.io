@@ -373,11 +373,25 @@ function editCell(code,ctx,curNiv){
 }
 
 function cellClick(code,ctx,niv){
-  // Toggle : si on reclique le même niveau, on désélectionne
+  // Déterminer le niveau ACTUELLEMENT affiché (état local OU serveur)
   var stateMap={atelier:atelierState,pfmp:pfmpState,retour:retourState,retenu:retenuState};
-  var state=stateMap[ctx];
-  if(state&&state[code]===niv){niv='';delete state[code];}
-  else{
+  var state=stateMap[ctx]||{};
+  var currentDisplayed=state[code]||'';
+  // Si pas dans l'état local, chercher dans les données serveur
+  if(!currentDisplayed&&ctx!=='retenu'){
+    var v=allVals[curCode]||[];if(Array.isArray(v)){
+      if(ctx==='atelier'){var x=best(v.filter(function(e){return e.competence===code&&e.phase!=='tuteur'&&e.phase!=='retour_stage'}));if(x)currentDisplayed=x}
+      else if(ctx==='retour'){var x=best(v.filter(function(e){return e.competence===code&&e.phase==='retour_stage'}));if(x)currentDisplayed=x}
+    }
+    if(!currentDisplayed&&ctx==='pfmp'){(tuteurEvals[curCode]||[]).forEach(function(ev){var cp={};try{cp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{})}catch(e){}var n=cp[code];var nv=typeof n==='object'?n.niveau:n;if(nv)currentDisplayed=nv})}
+  }
+  // Toggle : si même niveau que celui affiché → effacer
+  if(currentDisplayed===niv){
+    niv='';
+    if(stateMap[ctx])delete stateMap[ctx][code];
+    // Marquer comme effacé dans allVals
+    if(allVals[curCode])allVals[curCode]=allVals[curCode].filter(function(e){return !(e.competence===code&&(ctx==='atelier'&&e.phase!=='tuteur'&&e.phase!=='retour_stage'||ctx==='pfmp'&&e.phase==='pfmp'||ctx==='retour'&&e.phase==='retour_stage'))});
+  }else{
     if(ctx==='atelier'){atelierState[code]=niv;delete retenuState[code];}
     else if(ctx==='pfmp'){pfmpState[code]=niv;delete retenuState[code];}
     else if(ctx==='retour'){retourState[code]=niv;delete retenuState[code];}
