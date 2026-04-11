@@ -268,11 +268,15 @@ function bestNiv(code,comp){
 
 function radar(code){
   var cv=document.getElementById('rd_'+code);if(!cv)return;
-  var ctx=cv.getContext('2d'),w=cv.offsetWidth||150,h=cv.offsetHeight||75;
-  cv.width=w*2;cv.height=h*2;ctx.scale(2,2);
-  var cx=w/2,cy=h/2+2,r=Math.min(w,h)/2-6,n=COMPS.length,nm={NE:0,EC:.35,M:.7,PM:1};
-  ctx.beginPath();for(var i=0;i<n;i++){var a=Math.PI*2*i/n-Math.PI/2;ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a))}ctx.closePath();ctx.fillStyle='rgba(27,58,99,.05)';ctx.fill();ctx.strokeStyle='#ddd';ctx.lineWidth=.5;ctx.stroke();
-  ctx.beginPath();for(var i=0;i<n;i++){var nv=bestNiv(code,COMPS[i].code),v=nm[nv]||0,a=Math.PI*2*i/n-Math.PI/2;ctx.lineTo(cx+r*v*Math.cos(a),cy+r*v*Math.sin(a))}ctx.closePath();ctx.fillStyle='rgba(39,174,96,.2)';ctx.fill();ctx.strokeStyle='#27ae60';ctx.lineWidth=1.5;ctx.stroke()
+  var c=cv.getContext('2d'),w=cv.offsetWidth||150,h=cv.offsetHeight||75;
+  cv.width=w*2;cv.height=h*2;c.scale(2,2);
+  var cx=w/2,cy=h/2+2,r=Math.min(w,h)/2-6,n=COMPS.length,nm={EC:.35,M:.7,PM:1};
+  // Fond
+  c.beginPath();for(var i=0;i<n;i++){var a=Math.PI*2*i/n-Math.PI/2;c.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a))}c.closePath();c.fillStyle='rgba(27,58,99,.05)';c.fill();c.strokeStyle='#ddd';c.lineWidth=.5;c.stroke();
+  // Surface évaluée
+  c.beginPath();for(var i=0;i<n;i++){var nv=bestNiv(code,COMPS[i].code),v=nm[nv]||0,a=Math.PI*2*i/n-Math.PI/2;c.lineTo(cx+r*v*Math.cos(a),cy+r*v*Math.sin(a))}c.closePath();c.fillStyle='rgba(39,174,96,.2)';c.fill();c.strokeStyle='#27ae60';c.lineWidth=1.5;c.stroke();
+  // Points NE en rouge
+  for(var i=0;i<n;i++){var nv=bestNiv(code,COMPS[i].code);if(!nv||nv==='NE'){var a=Math.PI*2*i/n-Math.PI/2;c.beginPath();c.arc(cx+r*.05*Math.cos(a),cy+r*.05*Math.sin(a),2,0,Math.PI*2);c.fillStyle='rgba(231,76,60,.5)';c.fill()}}
 }
 
 // ═══ DETAIL ELEVE ═══
@@ -361,27 +365,69 @@ function cellClick(code,ctx,niv){
 
 function drawDetailRadar(){
   var cv=document.getElementById('radarDetail');if(!cv)return;
-  var ctx=cv.getContext('2d'),w=cv.offsetWidth||300,h=cv.offsetHeight||160;
-  cv.width=w*2;cv.height=h*2;ctx.scale(2,2);
-  var cx=w/2,cy=h/2,r=Math.min(w,h)/2-12,n=COMPS.length,nm={NE:0,EC:.35,M:.7,PM:1};
-  var v=allVals[curCode]||[];if(!Array.isArray(v))v=[];
-  // Grille
-  [.25,.5,.75,1].forEach(function(pct){ctx.beginPath();for(var i=0;i<n;i++){var a=Math.PI*2*i/n-Math.PI/2;ctx.lineTo(cx+r*pct*Math.cos(a),cy+r*pct*Math.sin(a))}ctx.closePath();ctx.strokeStyle='rgba(0,0,0,.08)';ctx.lineWidth=.5;ctx.stroke()});
-  // Axes + labels
-  ctx.font='bold '+Math.max(7,Math.min(9,w/40))+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  for(var i=0;i<n;i++){var a=Math.PI*2*i/n-Math.PI/2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));ctx.strokeStyle='rgba(0,0,0,.1)';ctx.stroke();ctx.fillStyle='#1b3a63';ctx.fillText(COMPS[i].code,cx+(r+10)*Math.cos(a),cy+(r+10)*Math.sin(a))}
-  // Données (meilleur de tout: state + existant)
-  ctx.beginPath();
+  var ctx2d=cv.getContext('2d'),w=cv.offsetWidth||300,h=cv.offsetHeight||160;
+  cv.width=w*2;cv.height=h*2;ctx2d.scale(2,2);
+  var cx=w/2,cy=h/2,r=Math.min(w,h)/2-14,n=COMPS.length;
+  var nm={EC:.35,M:.7,PM:1};
+
+  // Collecter les niveaux
+  var nivs=COMPS.map(function(c){
+    return retenuState[c.code]||retourState[c.code]||pfmpState[c.code]||atelierState[c.code]||bestNiv(curCode,c.code);
+  });
+
+  // Grille de fond (cercles EC/M/PM)
+  ctx2d.setLineDash([]);
+  [{pct:.35,lbl:'EC'},{pct:.7,lbl:'M'},{pct:1,lbl:'PM'}].forEach(function(g){
+    ctx2d.beginPath();
+    for(var i=0;i<n;i++){var a=Math.PI*2*i/n-Math.PI/2;ctx2d.lineTo(cx+r*g.pct*Math.cos(a),cy+r*g.pct*Math.sin(a))}
+    ctx2d.closePath();ctx2d.strokeStyle='rgba(0,0,0,.07)';ctx2d.lineWidth=.5;ctx2d.stroke();
+  });
+
+  // Axes + labels avec couleur selon évalué ou pas
+  var fs=Math.max(7,Math.min(9,w/35));
+  ctx2d.font='bold '+fs+'px sans-serif';ctx2d.textBaseline='middle';
   for(var i=0;i<n;i++){
-    var c=COMPS[i];
-    var niv=retenuState[c.code]||retourState[c.code]||pfmpState[c.code]||atelierState[c.code]||bestNiv(curCode,c.code);
+    var a=Math.PI*2*i/n-Math.PI/2;
+    var isNE=!nivs[i]||nivs[i]==='NE';
+    // Axe
+    ctx2d.beginPath();ctx2d.moveTo(cx,cy);ctx2d.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));
+    ctx2d.strokeStyle=isNE?'rgba(231,76,60,.2)':'rgba(0,0,0,.1)';
+    ctx2d.setLineDash(isNE?[3,3]:[]);ctx2d.lineWidth=isNE?1:.5;ctx2d.stroke();
+    // Label
+    ctx2d.setLineDash([]);
+    ctx2d.textAlign=Math.cos(a)>0.1?'left':Math.cos(a)<-0.1?'right':'center';
+    ctx2d.fillStyle=isNE?'#e74c3c':'#1b3a63';
+    ctx2d.fillText(COMPS[i].code+(isNE?' ?':''),cx+(r+10)*Math.cos(a),cy+(r+10)*Math.sin(a));
+  }
+
+  // Surface évaluée (trait plein vert)
+  ctx2d.beginPath();ctx2d.setLineDash([]);
+  for(var i=0;i<n;i++){
+    var niv=nivs[i];var val=nm[niv]||0;
+    var a=Math.PI*2*i/n-Math.PI/2;
+    ctx2d.lineTo(cx+r*val*Math.cos(a),cy+r*val*Math.sin(a));
+  }
+  ctx2d.closePath();ctx2d.fillStyle='rgba(39,174,96,.2)';ctx2d.fill();
+  ctx2d.strokeStyle='#27ae60';ctx2d.lineWidth=2;ctx2d.stroke();
+
+  // Points : vert si évalué, rouge pointillé si NE
+  for(var i=0;i<n;i++){
+    var niv=nivs[i];var isNE=!niv||niv==='NE';
     var val=nm[niv]||0;
     var a=Math.PI*2*i/n-Math.PI/2;
-    ctx.lineTo(cx+r*val*Math.cos(a),cy+r*val*Math.sin(a));
+    var px=cx+r*val*Math.cos(a),py=cy+r*val*Math.sin(a);
+    if(isNE){
+      // NE = croix rouge au centre
+      ctx2d.beginPath();ctx2d.arc(cx,cy,4,0,Math.PI*2);
+      ctx2d.fillStyle='rgba(231,76,60,.3)';ctx2d.fill();
+      ctx2d.strokeStyle='#e74c3c';ctx2d.lineWidth=1;ctx2d.stroke();
+    }else{
+      // Évalué = point vert plein
+      ctx2d.beginPath();ctx2d.arc(px,py,4,0,Math.PI*2);
+      ctx2d.fillStyle='#27ae60';ctx2d.fill();
+      ctx2d.strokeStyle='#fff';ctx2d.lineWidth=1.5;ctx2d.stroke();
+    }
   }
-  ctx.closePath();ctx.fillStyle='rgba(39,174,96,.25)';ctx.fill();ctx.strokeStyle='#27ae60';ctx.lineWidth=2;ctx.stroke();
-  // Points
-  for(var i=0;i<n;i++){var c=COMPS[i];var niv=retenuState[c.code]||retourState[c.code]||pfmpState[c.code]||atelierState[c.code]||bestNiv(curCode,c.code);var val=nm[niv]||0;var a=Math.PI*2*i/n-Math.PI/2;ctx.beginPath();ctx.arc(cx+r*val*Math.cos(a),cy+r*val*Math.sin(a),3,0,Math.PI*2);ctx.fillStyle='#27ae60';ctx.fill()}
 }
 
 function renderEntreprise(code){
