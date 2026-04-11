@@ -278,7 +278,7 @@ function renderTable(code){
     h+='<td style="font-size:.72rem">'+esc(c.nom)+(tot>0?' <span class="cnt">\u00d7'+tot+'</span>':'')+'</td>';
     h+=nivTd(bA,atV.length);h+=nivTd(bS,stV.length);h+=nivTd(rN||bR,rtV.length);
     // Retenu select
-    h+='<td style="text-align:center" onclick="event.stopPropagation()"><select class="ret-sel" style="background:'+(NIV_CLR[curRet]||'#fff')+';color:'+(NIV_TXT[curRet]||'var(--gris)')+'" onchange="setRetenu(\''+c.code+'\',this.value);this.style.background=('+JSON.stringify(NIV_CLR)+')[this.value]||\'#fff\';this.style.color=('+JSON.stringify(NIV_TXT)+')[this.value]||\'var(--gris)\'">';
+    h+='<td style="text-align:center" onclick="event.stopPropagation()"><select class="ret-sel" style="background:'+(NIV_CLR[curRet]||'#fff')+';color:'+(NIV_TXT[curRet]||'var(--gris)')+'" onchange="retenuChanged(this,\''+c.code+'\')">';
     h+='<option value="">'+curRet+'</option>';NIVS.forEach(function(n){h+='<option value="'+n+'"'+(retenuState[c.code]===n?' selected':'')+'>'+n+'</option>'});
     h+='</select></td></tr>';
 
@@ -312,6 +312,7 @@ function nivTd(niv,cnt){
 function toggle(code){var r=document.getElementById('dr_'+code);if(r)r.classList.toggle('open')}
 function setRetour(code,niv){retourState[code]=niv;renderTable(curCode)}
 function setRetenu(code,niv){retenuState[code]=niv}
+function retenuChanged(sel,code){setRetenu(code,sel.value);var c=NIV_CLR[sel.value]||'#fff';var t=NIV_TXT[sel.value]||'#666';sel.style.background=c;sel.style.color=t}
 
 // ═══ FRANÇAIS ═══
 function renderFr(){
@@ -372,7 +373,7 @@ async function envoyer(){
 
 // ═══ EXPOSE ═══
 window.showDash=showDash;window.showDetail=showDetail;window.toggle=toggle;
-window.setRetour=setRetour;window.setRetenu=setRetenu;window.setFr=setFr;window.envoyer=envoyer;
+window.setRetour=setRetour;window.setRetenu=setRetenu;window.retenuChanged=retenuChanged;window.setFr=setFr;window.envoyer=envoyer;
 
 // ═══ GO ═══
 init();
