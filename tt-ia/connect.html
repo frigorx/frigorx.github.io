@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>inerWeb — Connexion...</title>
+<style>
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1b3a63;font-family:'Segoe UI',sans-serif;color:#fff;margin:0;}
+.box{text-align:center;}
+.spinner{font-size:2rem;animation:spin 1s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg)}}
+p{margin-top:1rem;font-size:.9rem;opacity:.7;}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="spinner">&#x2744;&#xFE0F;</div>
+  <p>Connexion en cours...</p>
+</div>
+<script>
+(function(){
+  // Lire la config depuis l'URL : connect.html?to=inerweb_prof.html&cfg=base64
+  var params=new URLSearchParams(location.search);
+  var cfg64=params.get('cfg');
+  var target=params.get('to')||'inerweb_prof.html';
+
+  if(cfg64){
+    try{
+      var cfg=JSON.parse(atob(decodeURIComponent(cfg64)));
+      // Stocker dans localStorage (MÊME DOMAINE que les pages prof/eleve/tuteur)
+      localStorage.setItem('inerweb-tt-fe-cfg',JSON.stringify(cfg));
+    }catch(e){
+      document.querySelector('p').textContent='Erreur de configuration: '+e.message;
+      return;
+    }
+  }
+
+  // Rediriger vers la page cible
+  setTimeout(function(){
+    location.href=target;
+  },300);
+})();
+</script>
+</body>
+</html>
