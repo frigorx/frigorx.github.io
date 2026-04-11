@@ -359,8 +359,21 @@ function cellClick(code,ctx,niv){
   else if(ctx==='pfmp'){pfmpState[code]=niv;delete retenuState[code];}
   else if(ctx==='retour'){retourState[code]=niv;delete retenuState[code];}
   else retenuState[code]=niv;
-  // Recalculer propositions puis rafraîchir
+  // Rafraîchir immédiatement (pas d'attente réseau)
   calcNote();renderTable(curCode);drawDetailRadar();
+  // Envoyer au serveur EN ARRIÈRE-PLAN (fire & forget)
+  var ctxMap={atelier:'atelier',pfmp:'pfmp',retour:'retour_stage',retenu:'niveau_retenu'};
+  var phaseMap={atelier:'formatif',pfmp:'pfmp',retour:'retour_stage',retenu:'certificatif'};
+  apiPost('saveValidation',{eleve:curCode,data:{
+    epreuve:'EP2',competence:code,critere:'',niveau:niv,
+    contexte:ctxMap[ctx]||ctx,phase:phaseMap[ctx]||'formatif',
+    evaluateur:'Prof',timestamp:new Date().toISOString(),source:'ccf_ep2'
+  }}).then(function(){
+    // Petit flash vert discret
+    toast('\u2705 '+code+' = '+niv+' enregistr\u00e9','ok');
+  }).catch(function(){
+    toast('\u26a0 '+code+' sauvegard\u00e9 localement','warn');
+  });
 }
 
 function drawDetailRadar(){
@@ -609,47 +622,45 @@ function setFr(id,v){frScores[id]=v;renderFr()}
 // ═══ ENVOYER ═══
 async function envoyer(){
   if(!curCode){toast('Aucun \u00e9l\u00e8ve','err');return}
-  var btn=document.getElementById('btnSend');btn.disabled=true;btn.textContent='Envoi...';
+  var btn=document.getElementById('btnSend');btn.disabled=true;btn.textContent='Envoi en cours...';
   var obs=document.getElementById('obsG').value.trim();
   var pro=document.getElementById('jPro').value.trim();
   var fr=document.getElementById('jFr').value.trim();
   var dt=document.getElementById('jDt').value;
   var ev=(pro||'Prof')+(fr?' + '+fr:'');
   var ts=new Date().toISOString();
-  var sent=0,err=0;
 
-  // Évals atelier
-  var ac=Object.keys(atelierState).filter(function(k){return atelierState[k]&&atelierState[k]!=='NE'});
-  for(var i=0;i<ac.length;i++){try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:ac[i],critere:'',niveau:atelierState[ac[i]],contexte:'atelier',phase:'formatif',evaluateur:pro||'Prof',timestamp:ts,source:'ccf_ep2'}});sent++}catch(e){err++}}
+  // Collecter TOUTES les promesses d'envoi
+  var promises=[];
 
-  // Évals PFMP
-  var pc=Object.keys(pfmpState).filter(function(k){return pfmpState[k]&&pfmpState[k]!=='NE'});
-  for(var i=0;i<pc.length;i++){try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:pc[i],critere:'',niveau:pfmpState[pc[i]],contexte:'pfmp',phase:'pfmp',evaluateur:pro||'Prof',timestamp:ts,source:'ccf_ep2'}});sent++}catch(e){err++}}
-
-  // Retour stage technique
-  var rc=Object.keys(retourState).filter(function(k){return retourState[k]&&retourState[k]!=='NE'});
-  for(var i=0;i<rc.length;i++){try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:rc[i],critere:'',niveau:retourState[rc[i]],contexte:'retour_stage',phase:'retour_stage',evaluateur:ev,timestamp:ts,source:'ccf_ep2',jury:{pro:pro,fr:fr,date:dt}}});sent++}catch(e){err++}}
-
-  // Niveaux retenus
-  var rk=Object.keys(retenuState).filter(function(k){return retenuState[k]});
-  for(var i=0;i<rk.length;i++){try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:rk[i],critere:'',niveau:retenuState[rk[i]],contexte:'niveau_retenu',phase:'certificatif',evaluateur:ev,timestamp:ts,source:'ccf_ep2'}});sent++}catch(e){err++}}
-
+  // Atelier
+  Object.keys(atelierState).forEach(function(k){if(atelierState[k]&&atelierState[k]!=='NE')promises.push(apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:k,critere:'',niveau:atelierState[k],contexte:'atelier',phase:'formatif',evaluateur:pro||'Prof',timestamp:ts,source:'ccf_ep2'}}))});
+  // PFMP
+  Object.keys(pfmpState).forEach(function(k){if(pfmpState[k]&&pfmpState[k]!=='NE')promises.push(apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:k,critere:'',niveau:pfmpState[k],contexte:'pfmp',phase:'pfmp',evaluateur:pro||'Prof',timestamp:ts,source:'ccf_ep2'}}))});
+  // Retour stage
+  Object.keys(retourState).forEach(function(k){if(retourState[k]&&retourState[k]!=='NE')promises.push(apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:k,critere:'',niveau:retourState[k],contexte:'retour_stage',phase:'retour_stage',evaluateur:ev,timestamp:ts,source:'ccf_ep2',jury:{pro:pro,fr:fr,date:dt}}}))});
+  // Retenus
+  Object.keys(retenuState).forEach(function(k){if(retenuState[k])promises.push(apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:k,critere:'',niveau:retenuState[k],contexte:'niveau_retenu',phase:'certificatif',evaluateur:ev,timestamp:ts,source:'ccf_ep2'}}))});
   // Note finale
   var nf=noteFinaleVal||parseFloat(document.getElementById('noteFinale').value);
-  if(nf){try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:'__note_finale__',critere:'',niveau:String(nf),contexte:'note_ep2',phase:'certificatif',evaluateur:ev,timestamp:ts,source:'ccf_ep2'}});sent++}catch(e){err++}}
-
+  if(nf)promises.push(apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:'__note_finale__',critere:'',niveau:String(nf),contexte:'note_ep2',phase:'certificatif',evaluateur:ev,timestamp:ts,source:'ccf_ep2'}}));
   // Français
   var frExam=document.getElementById('frExam').value.trim();
   var frObs=document.getElementById('frObs').value.trim();
   var fc=Object.keys(frScores).filter(function(k){return frScores[k]>0});
   if(fc.length){
     var ftot=0;FR.forEach(function(cat){cat.cr.forEach(function(c){ftot+=(frScores[c.id]||0)})});
-    try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'ORAL_FR',competence:'__oral_francais__',critere:'',niveau:String(ftot),observation:frObs,contexte:'retour_stage',phase:'retour_stage',evaluateur:frExam||'Prof Fran\u00e7ais',timestamp:ts,source:'ccf_ep2_fr',_scores:JSON.parse(JSON.stringify(frScores))}});sent++}catch(e){err++}
-    for(var i=0;i<fc.length;i++){try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'ORAL_FR',competence:fc[i],critere:'',niveau:String(frScores[fc[i]]),contexte:'retour_stage',phase:'retour_stage',evaluateur:frExam||'Prof Fran\u00e7ais',timestamp:ts,source:'ccf_ep2_fr'}});sent++}catch(e){err++}}
+    promises.push(apiPost('saveValidation',{eleve:curCode,data:{epreuve:'ORAL_FR',competence:'__oral_francais__',critere:'',niveau:String(ftot),observation:frObs,contexte:'retour_stage',phase:'retour_stage',evaluateur:frExam||'Prof Fran\u00e7ais',timestamp:ts,source:'ccf_ep2_fr',_scores:JSON.parse(JSON.stringify(frScores))}}));
+    fc.forEach(function(k){promises.push(apiPost('saveValidation',{eleve:curCode,data:{epreuve:'ORAL_FR',competence:k,critere:'',niveau:String(frScores[k]),contexte:'retour_stage',phase:'retour_stage',evaluateur:frExam||'Prof Fran\u00e7ais',timestamp:ts,source:'ccf_ep2_fr'}}))});
   }
-
   // Observation globale
-  if(obs){try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:'__obs_jury__',critere:'',niveau:'OBS',observation:obs,contexte:'retour_stage',phase:'retour_stage',evaluateur:ev,timestamp:ts,source:'ccf_ep2',jury:{pro:pro,fr:fr,date:dt}}})}catch(e){}}
+  if(obs)promises.push(apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:'__obs_jury__',critere:'',niveau:'OBS',observation:obs,contexte:'retour_stage',phase:'retour_stage',evaluateur:ev,timestamp:ts,source:'ccf_ep2',jury:{pro:pro,fr:fr,date:dt}}}));
+
+  // ENVOI PARALLÈLE — tout d'un coup
+  btn.textContent='Envoi de '+promises.length+' \u00e9val(s)...';
+  var results=await Promise.allSettled(promises);
+  var sent=results.filter(function(r){return r.status==='fulfilled'}).length;
+  var err=results.filter(function(r){return r.status==='rejected'}).length;
 
   btn.disabled=false;btn.textContent='\u2705 Valider et envoyer au serveur';
   if(err===0)toast('\u2705 '+sent+' \u00e9val(s) envoy\u00e9e(s)','ok');
