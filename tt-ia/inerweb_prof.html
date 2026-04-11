@@ -1907,37 +1907,35 @@ async function syncAll(){
       if(Array.isArray(etd)&&etd.length>0){
         var nbET=0;
         etd.forEach(function(ev){
-          if(!ev.eleve)return;
-          var code=ev.eleve;
-          // Injecter dans validations avec phase 'tuteur'
+          var code=ev.eleveCode||ev.eleve;
+          if(!code)return;
           if(!validations[code])validations[code]=[];
-          var payload=null;try{payload=typeof ev.data==='string'?JSON.parse(ev.data):ev.data;}catch(e){}
+          // Parser les champs JSON (competences et comportement sont stockés en string JSON)
+          var comp={};try{comp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{});}catch(e){}
+          var behav={};try{behav=typeof ev.comportement==='string'?JSON.parse(ev.comportement):(ev.comportement||{});}catch(e){}
           var obsEntry={
             epreuve:'EP2',competence:'__obs_tuteur__',critere:'',
-            niveau:payload&&payload.observation?'OBS':'—',
-            observation:(payload&&payload.observation)||'',
-            evaluateur:(payload&&payload.tuteurNom)||(ev.tuteur||'Tuteur'),
-            entreprise:(payload&&payload.entrepriseData&&payload.entrepriseData.nom)||'',
-            contexte:'pfmp'+(payload&&payload.periode||''),
+            niveau:ev.observation?'OBS':'—',
+            observation:ev.observation||'',
+            evaluateur:ev.tuteur||'Tuteur',
+            entreprise:ev.entreprise||'',
+            contexte:'pfmp'+(ev.periode||''),
             phase:'tuteur',
-            timestamp:ev.timestamp||(payload&&payload.timestamp)||'',
-            _tuteurPayload:payload,
-            source:payload&&payload.source||'tuteur_interface'
+            timestamp:ev.timestamp||'',
+            _tuteurPayload:{competences:comp,comportement:behav,observation:ev.observation||''},
+            source:ev.source||'tuteur'
           };
-          // Éviter les doublons (même élève + même timestamp)
           var isDup=validations[code].some(function(v){return v.competence==='__obs_tuteur__'&&v.timestamp===obsEntry.timestamp;});
           if(!isDup){validations[code].push(obsEntry);nbET++;}
-          // Injecter aussi les compétences individuelles
-          if(payload&&payload.competences){
-            Object.keys(payload.competences).forEach(function(compCode){
-              var cn=payload.competences[compCode];
-              var niv=typeof cn==='object'?cn.niveau:cn;
-              if(!niv||niv==='NE')return;
-              var compEntry={epreuve:'EP2',competence:compCode,critere:'',niveau:niv,contexte:obsEntry.contexte,phase:'tuteur',evaluateur:obsEntry.evaluateur,timestamp:obsEntry.timestamp,source:obsEntry.source};
-              var isDup2=validations[code].some(function(v){return v.phase==='tuteur'&&v.competence===compCode&&v.timestamp===compEntry.timestamp;});
-              if(!isDup2)validations[code].push(compEntry);
-            });
-          }
+          // Compétences individuelles
+          Object.keys(comp).forEach(function(compCode){
+            var cn=comp[compCode];
+            var niv=typeof cn==='object'?cn.niveau:cn;
+            if(!niv||niv==='NE')return;
+            var compEntry={epreuve:'EP2',competence:compCode,critere:'',niveau:niv,contexte:obsEntry.contexte,phase:'tuteur',evaluateur:obsEntry.evaluateur,timestamp:obsEntry.timestamp,source:obsEntry.source};
+            var isDup2=validations[code].some(function(v){return v.phase==='tuteur'&&v.competence===compCode&&v.timestamp===compEntry.timestamp;});
+            if(!isDup2)validations[code].push(compEntry);
+          });
         });
         if(nbET>0)console.log('[syncAll] '+nbET+' éval(s) tuteur récupérée(s) depuis le serveur');
       }
@@ -5835,13 +5833,13 @@ function afficherEvalTuteur(code){
           <span style="background:var(--teal2);color:var(--teal);font-size:.65rem;font-weight:800;padding:.2rem .5rem;border-radius:20px">${v.niveau||'—'}</span>
         </div>`;
 
-      // Compétences évaluées par tuteur
-      const compEntries=Object.entries(comp).filter(([k,v])=>v.niveau&&v.niveau!=='NE');
+      // Compétences évaluées par tuteur (format tuteur: {niveau:"M"} OU format prof: "M")
+      const compEntries=Object.entries(comp).filter(([k,v])=>{const n=typeof v==='object'?v.niveau:v;return n&&n!=='NE';});
       if(compEntries.length){
         html+=`<div style="font-size:.75rem;font-weight:800;color:var(--bleu);margin-bottom:.4rem">Compétences évaluées :</div>`;
         html+=`<div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.75rem">`;
         compEntries.forEach(([k,cv])=>{
-          const n=cv.niveau;
+          const n=typeof cv==='object'?cv.niveau:cv;
           html+=`<span style="background:${NV_CLR[n]||'var(--gris2)'};padding:.2rem .5rem;border-radius:20px;font-size:.7rem;font-weight:800">${k} ${n}</span>`;
         });
         html+=`</div>`;
