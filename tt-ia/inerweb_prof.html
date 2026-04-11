@@ -5909,8 +5909,8 @@ function _ep2RenderComps(code){
   var NIV_CLR={NE:'#e0e0e0',EC:'#fff3cd',M:'#d4edda',PM:'#cce5ff'};
   var NIV_TXT={NE:'#666',EC:'#856404',M:'#155724',PM:'#004085'};
 
-  var html='';
-  COMPS.forEach(function(c){
+  // Collecter les données par compétence
+  var data=COMPS.map(function(c){
     var atelierVals=vals.filter(function(v){return v.competence===c.code&&v.epreuve==='EP2'&&v.phase!=='tuteur'&&v.phase!=='retour_stage';});
     var stageVals=[];
     (_ep2Tuteur[code]||[]).forEach(function(ev){
@@ -5919,67 +5919,85 @@ function _ep2RenderComps(code){
       if(niv)stageVals.push({niveau:niv,evaluateur:ev.tuteur||'Tuteur',timestamp:ev.timestamp,entreprise:ev.entreprise||''});
     });
     var retourVals=vals.filter(function(v){return v.competence===c.code&&v.epreuve==='EP2'&&v.phase==='retour_stage';});
-    var bestA=_bestOf(atelierVals),bestS=stageVals.length?stageVals.reduce(function(a,b){return ({'NE':0,'EC':1,'M':2,'PM':3}[b.niveau]||0)>({'NE':0,'EC':1,'M':2,'PM':3}[a.niveau]||0)?b:a;}).niveau:'',bestR=_bestOf(retourVals);
-    var total=atelierVals.length+stageVals.length+retourVals.length;
-    var retourNiv=_ep2Retour[c.code]||'';
+    return {c:c,atelier:atelierVals,stage:stageVals,retour:retourVals,
+      bestA:_bestOf(atelierVals),bestS:stageVals.length?stageVals.reduce(function(a,b){return ({'NE':0,'EC':1,'M':2,'PM':3}[b.niveau]||0)>({'NE':0,'EC':1,'M':2,'PM':3}[a.niveau]||0)?b:a;}).niveau:'',bestR:_bestOf(retourVals),
+      total:atelierVals.length+stageVals.length+retourVals.length};
+  });
 
-    html+='<div id="ep2c_'+c.code+'" style="background:#fff;border-radius:var(--r2);margin-bottom:.4rem;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05);">';
-    // En-tête cliquable
-    html+='<div style="display:flex;align-items:center;padding:.5rem .6rem;cursor:pointer;gap:.3rem;transition:background .15s;" onmouseover="this.style.background=\'var(--gris2)\'" onmouseout="this.style.background=\'#fff\'" onclick="ep2Toggle(\''+c.code+'\')">';
-    html+='<span style="font-weight:900;color:var(--bleu2);font-size:.82rem;min-width:38px;">'+c.code+'</span>';
-    html+='<span style="flex:1;font-size:.73rem;color:var(--texte);">'+esc(c.nom||c.full||'')+(c.obl?' <span style="color:var(--orange);font-weight:900;">✱</span>':'')+'</span>';
-    if(total>0)html+='<span style="background:var(--bleu3);color:var(--bleu2);font-size:.6rem;font-weight:900;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 .3rem;">'+total+'</span>';
-    // 3 mini-colonnes
-    html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;min-width:105px;">';
-    html+='<div style="text-align:center;padding:.15rem;border-radius:3px;font-size:.6rem;font-weight:800;background:'+(bestA&&bestA!=='NE'?'var(--vert2)':'var(--rouge2)')+';color:'+(bestA&&bestA!=='NE'?'var(--vert)':'var(--rouge)')+';">'+(bestA||'—')+'</div>';
-    html+='<div style="text-align:center;padding:.15rem;border-radius:3px;font-size:.6rem;font-weight:800;background:'+(bestS&&bestS!=='NE'?'var(--teal2)':'var(--rouge2)')+';color:'+(bestS&&bestS!=='NE'?'var(--teal)':'var(--rouge)')+';">'+(bestS||'—')+'</div>';
-    html+='<div style="text-align:center;padding:.15rem;border-radius:3px;font-size:.6rem;font-weight:800;background:'+(retourNiv&&retourNiv!=='NE'||bestR&&bestR!=='NE'?'rgba(255,107,53,.15)':'var(--rouge2)')+';color:'+(retourNiv&&retourNiv!=='NE'||bestR&&bestR!=='NE'?'var(--orange)':'var(--rouge)')+';">'+(retourNiv||bestR||'—')+'</div>';
-    html+='</div>';
-    html+='</div>';
+  function nivCell(niv,count,bgOk,clrOk){
+    if(!niv||niv==='NE')return '<td style="text-align:center;background:var(--rouge2);color:var(--rouge);font-weight:700;font-size:.78rem;">—</td>';
+    return '<td style="text-align:center;background:'+NIV_CLR[niv]+';color:'+NIV_TXT[niv]+';font-weight:900;font-size:.82rem;">'+niv+(count>1?' <span style="font-size:.6rem;opacity:.7;">'+count+'</span>':'')+'</td>';
+  }
 
-    // Détail déplié
-    html+='<div style="display:none;padding:.4rem .6rem .6rem;background:var(--gris2);border-top:1px solid var(--gris3);" class="ep2-comp-detail">';
-    // Headers colonnes
-    html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.3rem;margin-bottom:.4rem;">';
-    html+='<div style="font-size:.68rem;font-weight:900;text-align:center;padding:.25rem;border-radius:var(--r2);background:var(--bleu2);color:#fff;">🔧 Atelier</div>';
-    html+='<div style="font-size:.68rem;font-weight:900;text-align:center;padding:.25rem;border-radius:var(--r2);background:var(--teal);color:#fff;">🏭 Stage</div>';
-    html+='<div style="font-size:.68rem;font-weight:900;text-align:center;padding:.25rem;border-radius:var(--r2);background:var(--orange);color:#fff;">📊 Retour</div>';
-    html+='</div>';
+  // TABLEAU PRINCIPAL
+  var html='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.8rem;background:#fff;border-radius:var(--r2);overflow:hidden;box-shadow:var(--ombre2);">';
+  html+='<thead><tr style="background:var(--bleu);color:#fff;font-size:.72rem;font-weight:800;">';
+  html+='<th style="padding:.5rem .4rem;text-align:left;">Code</th>';
+  html+='<th style="padding:.5rem .4rem;text-align:left;">Comp\u00e9tence</th>';
+  html+='<th style="padding:.5rem;text-align:center;background:var(--bleu2);min-width:55px;">\uD83D\uDD27 Atelier</th>';
+  html+='<th style="padding:.5rem;text-align:center;background:var(--teal);min-width:55px;">\uD83C\uDFED Stage</th>';
+  html+='<th style="padding:.5rem;text-align:center;background:var(--orange);min-width:55px;">\uD83D\uDCCA Retour</th>';
+  html+='<th style="padding:.5rem;text-align:center;background:#333;min-width:65px;">\u27A1 Retenu</th>';
+  html+='</tr></thead><tbody>';
+
+  data.forEach(function(d,i){
+    var c=d.c;var retourNiv=_ep2Retour[c.code]||'';
+    var curRetenu=_ep2Retenu[c.code]||_ep2Best(code,c.code,vals);
+    var bgRow=i%2===0?'#fff':'#f8f9fa';
+
+    // Ligne principale (cliquable)
+    html+='<tr style="background:'+bgRow+';cursor:pointer;border-bottom:1px solid var(--gris3);" onclick="ep2Toggle(\''+c.code+'\')">';
+    html+='<td style="padding:.4rem;font-weight:900;color:var(--bleu2);white-space:nowrap;">'+c.code+(c.obl?' <span style="color:var(--orange);">\u2731</span>':'')+'</td>';
+    html+='<td style="padding:.4rem;font-size:.75rem;">'+esc(c.nom||c.full||'')+(d.total>0?' <span style="background:var(--bleu3);color:var(--bleu2);font-size:.6rem;font-weight:900;padding:.1rem .3rem;border-radius:8px;">\u24'+String(d.total).charCodeAt(0)+'</span>':'')+'</td>';
+    html+=nivCell(d.bestA,d.atelier.length);
+    html+=nivCell(d.bestS,d.stage.length);
+    html+=nivCell(retourNiv||d.bestR,d.retour.length);
+    // Retenu = select
+    html+='<td style="text-align:center;padding:.2rem;" onclick="event.stopPropagation()">';
+    html+='<select style="padding:.2rem;border:2px solid var(--orange);border-radius:4px;font-weight:900;font-size:.78rem;background:'+(curRetenu?NIV_CLR[curRetenu]||'#fff':'#fff')+';color:'+(curRetenu?NIV_TXT[curRetenu]||'var(--texte)':'var(--gris)')+';width:55px;" onchange="ep2SetRetenu(\''+c.code+'\',this.value);this.style.background=({NE:\'#e0e0e0\',EC:\'#fff3cd\',M:\'#d4edda\',PM:\'#cce5ff\'})[this.value]||\'#fff\';this.style.color=({NE:\'#666\',EC:\'#856404\',M:\'#155724\',PM:\'#004085\'})[this.value]||\'var(--gris)\'">';
+    html+='<option value=""'+(! _ep2Retenu[c.code]?' selected':'')+'>'+curRetenu+'</option>';
+    NIVS.forEach(function(n){html+='<option value="'+n+'"'+(_ep2Retenu[c.code]===n?' selected':'')+'>'+n+'</option>';});
+    html+='</select></td>';
+    html+='</tr>';
+
+    // Ligne détail (cachée, dépliable)
+    html+='<tr id="ep2d_'+c.code+'" style="display:none;"><td colspan="6" style="padding:0;background:var(--gris2);">';
+    html+='<div style="padding:.5rem .6rem;">';
+
     // Tâches atelier
-    if(atelierVals.length){atelierVals.forEach(function(v){
-      html+='<div style="font-size:.7rem;padding:.2rem .35rem;background:#fff;border-radius:3px;margin-bottom:.15rem;display:flex;justify-content:space-between;border-left:3px solid var(--bleu2);"><span>'+esc(v.contexte||'atelier')+' · '+(v.timestamp?new Date(v.timestamp).toLocaleDateString('fr-FR',''):'—')+' · '+esc(v.evaluateur||'')+'</span><span style="font-weight:900;padding:.05rem .25rem;border-radius:3px;background:'+NIV_CLR[v.niveau]+';color:'+NIV_TXT[v.niveau]+';">'+v.niveau+'</span></div>';
-    });}else{html+='<div style="font-size:.68rem;color:var(--gris);font-style:italic;padding:.15rem;">Pas évalué en atelier</div>';}
-    // Tâches stage
-    if(stageVals.length){stageVals.forEach(function(v){
-      html+='<div style="font-size:.7rem;padding:.2rem .35rem;background:#fff;border-radius:3px;margin-bottom:.15rem;display:flex;justify-content:space-between;border-left:3px solid var(--teal);"><span>🏢 '+esc(v.entreprise)+' · '+esc(v.evaluateur)+' · '+(v.timestamp?new Date(v.timestamp).toLocaleDateString('fr-FR'):'—')+'</span><span style="font-weight:900;padding:.05rem .25rem;border-radius:3px;background:'+NIV_CLR[v.niveau]+';color:'+NIV_TXT[v.niveau]+';">'+v.niveau+'</span></div>';
-    });}else{html+='<div style="font-size:.68rem;color:var(--gris);font-style:italic;padding:.15rem;">Éval tuteur non reçue</div>';}
+    html+='<div style="font-size:.7rem;font-weight:800;color:var(--bleu2);margin-bottom:.2rem;">\uD83D\uDD27 Atelier ('+d.atelier.length+' \u00e9val)</div>';
+    if(d.atelier.length){d.atelier.forEach(function(v){
+      html+='<div style="font-size:.72rem;padding:.2rem .4rem;background:#fff;border-radius:3px;margin-bottom:.1rem;display:flex;justify-content:space-between;border-left:3px solid var(--bleu2);"><span>'+esc(v.contexte||'atelier')+' \u00b7 '+(v.timestamp?new Date(v.timestamp).toLocaleDateString('fr-FR'):'—')+' \u00b7 '+esc(v.evaluateur||'')+'</span><span style="font-weight:900;padding:0 .3rem;border-radius:3px;background:'+NIV_CLR[v.niveau]+';color:'+NIV_TXT[v.niveau]+';">'+v.niveau+'</span></div>';
+    });}else{html+='<div style="font-size:.68rem;color:var(--gris);font-style:italic;">Pas encore \u00e9valu\u00e9</div>';}
+
+    // Tâches stage tuteur
+    html+='<div style="font-size:.7rem;font-weight:800;color:var(--teal);margin:.3rem 0 .2rem;">\uD83C\uDFED Stage tuteur ('+d.stage.length+' \u00e9val)</div>';
+    if(d.stage.length){d.stage.forEach(function(v){
+      html+='<div style="font-size:.72rem;padding:.2rem .4rem;background:#fff;border-radius:3px;margin-bottom:.1rem;display:flex;justify-content:space-between;border-left:3px solid var(--teal);"><span>\uD83C\uDFE2 '+esc(v.entreprise)+' \u00b7 '+esc(v.evaluateur)+' \u00b7 '+(v.timestamp?new Date(v.timestamp).toLocaleDateString('fr-FR'):'—')+'</span><span style="font-weight:900;padding:0 .3rem;border-radius:3px;background:'+NIV_CLR[v.niveau]+';color:'+NIV_TXT[v.niveau]+';">'+v.niveau+'</span></div>';
+    });}else{html+='<div style="font-size:.68rem;color:var(--gris);font-style:italic;">\u00c9val tuteur non re\u00e7ue</div>';}
+
     // Retour stage — boutons jury
-    html+='<div style="margin-top:.3rem;padding:.4rem;background:rgba(255,107,53,.06);border-radius:var(--r2);border:1px dashed var(--orange);">';
-    html+='<div style="font-size:.7rem;font-weight:900;color:var(--orange);margin-bottom:.2rem;">📊 Éval jury retour stage</div>';
-    html+='<div style="display:flex;gap:.2rem;flex-wrap:wrap;">';
+    html+='<div style="font-size:.7rem;font-weight:800;color:var(--orange);margin:.3rem 0 .2rem;">\uD83D\uDCCA Retour stage — \u00c9valuation jury</div>';
+    html+='<div style="display:flex;gap:.25rem;flex-wrap:wrap;margin-bottom:.2rem;">';
     NIVS.forEach(function(n){
       var isAct=retourNiv===n;
-      html+='<button style="padding:.2rem .5rem;border:2px solid '+(isAct?NIV_TXT[n]:'var(--gris3)')+';border-radius:5px;background:'+(isAct?NIV_CLR[n]:'#fff')+';color:'+(isAct?NIV_TXT[n]:'var(--gris)')+';font-size:.72rem;font-weight:800;cursor:pointer;" onclick="ep2SetRetour(\''+c.code+'\',\''+n+'\')">'+n+'</button>';
+      html+='<button style="padding:.25rem .6rem;border:2px solid '+(isAct?NIV_TXT[n]:'var(--gris3)')+';border-radius:5px;background:'+(isAct?NIV_CLR[n]:'#fff')+';color:'+(isAct?NIV_TXT[n]:'var(--gris)')+';font-size:.75rem;font-weight:900;cursor:pointer;min-width:40px;" onclick="event.stopPropagation();ep2SetRetour(\''+c.code+'\',\''+n+'\')">'+n+'</button>';
     });
-    html+='</div></div>';
-    // Niveau retenu
-    var curRetenu=_ep2Retenu[c.code]||_ep2Best(code,c.code,vals);
-    html+='<div style="display:flex;align-items:center;gap:.4rem;margin-top:.4rem;padding-top:.3rem;border-top:2px solid var(--orange);">';
-    html+='<span style="font-size:.76rem;font-weight:900;color:var(--orange);">➜ Retenu :</span>';
-    html+='<select style="padding:.25rem .4rem;border:2px solid var(--orange);border-radius:var(--r2);font-weight:800;font-size:.8rem;" onchange="ep2SetRetenu(\''+c.code+'\',this.value)">';
-    html+='<option value="">AUTO ('+curRetenu+')</option>';
-    NIVS.forEach(function(n){html+='<option value="'+n+'"'+(_ep2Retenu[c.code]===n?' selected':'')+'>'+n+'</option>';});
-    html+='</select></div>';
-    html+='</div>'; // fin détail
-    html+='</div>'; // fin comp
+    html+='</div>';
+    if(d.retour.length){d.retour.forEach(function(v){
+      html+='<div style="font-size:.72rem;padding:.2rem .4rem;background:#fff;border-radius:3px;margin-bottom:.1rem;display:flex;justify-content:space-between;border-left:3px solid var(--orange);"><span>'+esc(v.evaluateur||'')+' \u00b7 '+(v.timestamp?new Date(v.timestamp).toLocaleDateString('fr-FR'):'—')+'</span><span style="font-weight:900;padding:0 .3rem;border-radius:3px;background:'+NIV_CLR[v.niveau]+';color:'+NIV_TXT[v.niveau]+';">'+v.niveau+'</span></div>';
+    });}
+
+    html+='</div></td></tr>';
   });
+
+  html+='</tbody></table></div>';
   document.getElementById('ep2CompList').innerHTML=html;
 }
 
 function ep2Toggle(code){
-  var el=document.getElementById('ep2c_'+code);if(!el)return;
-  var detail=el.querySelector('.ep2-comp-detail');if(!detail)return;
-  detail.style.display=detail.style.display==='none'?'':'none';
+  var row=document.getElementById('ep2d_'+code);if(!row)return;
+  row.style.display=row.style.display==='none'?'':'none';
 }
 window.ep2Toggle=ep2Toggle;
 
