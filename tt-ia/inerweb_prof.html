@@ -1207,13 +1207,31 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
             <input type="date" id="ep2JuryDate" style="padding:.35rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.78rem;">
           </div>
         </div>
-        <!-- Grille compétences 3 colonnes -->
+        <!-- Grille compétences techniques 3 colonnes -->
         <div id="ep2CompList"></div>
-        <!-- Observation + Envoi -->
+
+        <!-- ═══ GRILLE FRANÇAIS — intégrée dans EP2 ═══ -->
+        <div id="ep2FrBlock" style="margin-top:.6rem;border-top:4px solid var(--violet);border-radius:var(--r);overflow:hidden;box-shadow:var(--ombre2);">
+          <div style="background:var(--violet);color:#fff;padding:.5rem .7rem;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:900;font-size:.85rem;">📚 Oral Français — Retour de stage</span>
+            <span id="ep2FrTotal" style="background:rgba(255,255,255,.25);padding:.15rem .6rem;border-radius:20px;font-weight:900;font-size:.85rem;">0/20</span>
+          </div>
+          <div style="padding:.5rem .6rem;background:#fff;">
+            <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.4rem;">
+              <input id="ep2FrExam" placeholder="Examinateur français" style="flex:1;min-width:120px;padding:.3rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.78rem;">
+            </div>
+            <div id="ep2FrGrille"></div>
+            <div style="margin-top:.3rem;">
+              <textarea id="ep2FrObs" placeholder="Observations prof français..." style="width:100%;border:1px solid var(--gris3);border-radius:var(--r2);padding:.3rem;font-size:.75rem;min-height:35px;resize:vertical;font-family:inherit;"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Observation globale + Envoi (technique + français ensemble) -->
         <div style="background:#fff;border-radius:var(--r);padding:.6rem;margin-top:.5rem;box-shadow:var(--ombre2);">
-          <textarea id="ep2Obs" placeholder="Observation globale du jury..." style="width:100%;border:1px solid var(--gris3);border-radius:var(--r2);padding:.4rem;font-size:.78rem;resize:vertical;min-height:45px;font-family:inherit;margin-bottom:.4rem;"></textarea>
+          <textarea id="ep2Obs" placeholder="Observation globale du jury (technique + français)..." style="width:100%;border:1px solid var(--gris3);border-radius:var(--r2);padding:.4rem;font-size:.78rem;resize:vertical;min-height:45px;font-family:inherit;margin-bottom:.4rem;"></textarea>
           <div style="text-align:center;">
-            <button class="btn btn-vert btn-sm" id="ep2BtnSend" onclick="ep2Envoyer()" style="padding:.5rem 1.5rem;font-size:.85rem;">✅ Valider et envoyer au serveur</button>
+            <button class="btn btn-vert btn-sm" id="ep2BtnSend" onclick="ep2Envoyer()" style="padding:.5rem 1.5rem;font-size:.85rem;">✅ Valider et envoyer au serveur (technique + français)</button>
           </div>
         </div>
       </div>
@@ -5884,8 +5902,66 @@ function _ep2Best(code,compCode,vals){
   return best;
 }
 
+// ═══ GRILLE FRANÇAIS ═══
+var FR_GRILLE=[
+  {cat:"communication",label:"Communication",bareme:7,color:'#2d5a8c',criteres:[
+    {id:"C1",label:"Comportement physique (posture, regard, notes)",max:2},
+    {id:"C2",label:"Expos\u00e9 coh\u00e9rent ~5 min (pr\u00e9sentation + plan)",max:2},
+    {id:"C3",label:"Expression claire (ton, voix, d\u00e9bit)",max:2},
+    {id:"C4",label:"Dialogue, r\u00e9action, int\u00e9r\u00eat auditoire",max:1}
+  ]},
+  {cat:"argumentation",label:"Argumentation",bareme:10,color:'#8e44ad',criteres:[
+    {id:"A1",label:"Avis argument\u00e9 avec exemples pertinents",max:2},
+    {id:"A2",label:"Cherche \u00e0 convaincre \u2014 arguments convaincants",max:2},
+    {id:"A3",label:"Vivacit\u00e9 et pertinence \u2014 raisonnement coh\u00e9rent",max:2},
+    {id:"A4",label:"Rapprochement stage/projet \u2194 parcours formation",max:2},
+    {id:"A5",label:"Projet d'orientation / r\u00e9flexion",max:2}
+  ]},
+  {cat:"linguistique",label:"Outils linguistiques",bareme:3,color:'#ff6b35',criteres:[
+    {id:"L1",label:"Langue pr\u00e9cise et correcte (vocabulaire, grammaire, style)",max:3}
+  ]}
+];
+var _ep2FrScores={}; // {critId: value}
+
+function ep2RenderFr(){
+  var html='';
+  FR_GRILLE.forEach(function(cat){
+    var catTotal=0;cat.criteres.forEach(function(cr){catTotal+=(_ep2FrScores[cr.id]||0);});
+    var over=catTotal>cat.bareme;
+    html+='<div style="margin-bottom:.4rem;">';
+    html+='<div style="background:'+cat.color+';color:#fff;padding:.35rem .5rem;border-radius:var(--r2) var(--r2) 0 0;display:flex;justify-content:space-between;font-size:.78rem;font-weight:900;">';
+    html+='<span>'+esc(cat.label)+' (/'+cat.bareme+')</span>';
+    html+='<span style="background:rgba(255,255,255,'+(over?.5:.25)+');padding:.1rem .4rem;border-radius:12px;'+(over?'color:#ff6b6b;':'')+'">'+catTotal+'/'+cat.bareme+'</span>';
+    html+='</div>';
+    html+='<table style="width:100%;border-collapse:collapse;font-size:.75rem;">';
+    cat.criteres.forEach(function(cr){
+      var val=_ep2FrScores[cr.id]||0;
+      html+='<tr style="border-bottom:1px solid var(--gris3);">';
+      html+='<td style="padding:.3rem .4rem;font-weight:800;color:'+cat.color+';width:28px;">'+cr.id+'</td>';
+      html+='<td style="padding:.3rem .2rem;">'+esc(cr.label)+'</td>';
+      html+='<td style="padding:.3rem;width:80px;text-align:right;">';
+      html+='<input type="range" min="0" max="'+cr.max+'" step="0.5" value="'+val+'" style="width:50px;accent-color:'+cat.color+';" oninput="ep2SetFr(\''+cr.id+'\',parseFloat(this.value))">';
+      html+='</td>';
+      html+='<td style="padding:.3rem;width:35px;font-weight:900;text-align:center;">'+val+'<span style="font-size:.6rem;color:var(--gris);">/'+cr.max+'</span></td>';
+      html+='</tr>';
+    });
+    html+='</table></div>';
+  });
+  document.getElementById('ep2FrGrille').innerHTML=html;
+  // Total
+  var total=0;FR_GRILLE.forEach(function(cat){cat.criteres.forEach(function(cr){total+=(_ep2FrScores[cr.id]||0);});});
+  document.getElementById('ep2FrTotal').textContent=total+'/20';
+  document.getElementById('ep2FrTotal').style.background=total>20?'#ff6b6b':'rgba(255,255,255,.25)';
+}
+
+function ep2SetFr(critId,val){
+  _ep2FrScores[critId]=val;
+  ep2RenderFr();
+}
+window.ep2SetFr=ep2SetFr;
+
 function ep2ShowDetail(code){
-  _ep2Code=code;_ep2Retour={};_ep2Retenu={};
+  _ep2Code=code;_ep2Retour={};_ep2Retenu={};_ep2FrScores={};
   document.getElementById('ep2Dashboard').style.display='none';
   document.getElementById('ep2Detail').style.display='';
   var s=students.find(function(x){return x.code===code;})||{};
@@ -5893,6 +5969,7 @@ function ep2ShowDetail(code){
   document.getElementById('ep2DetailInfo').textContent=s.code+' · '+(s.classe||'');
   document.getElementById('ep2JuryDate').value=new Date().toISOString().slice(0,10);
   _ep2RenderComps(code);
+  ep2RenderFr();
 }
 
 function ep2ShowDash(){
@@ -6027,14 +6104,38 @@ async function ep2Envoyer(){
     try{await apiCall({action:'saveValidation',eleve:_ep2Code,data:{epreuve:'EP2',competence:ret[i],critere:'',niveau:_ep2Retenu[ret[i]],contexte:'niveau_retenu',phase:'certificatif',evaluateur:evaluateur,timestamp:ts,source:'ep2_retenu'}});sent++;}catch(e){errors++;}
   }
   if(obs){try{await apiCall({action:'saveValidation',eleve:_ep2Code,data:{epreuve:'EP2',competence:'__obs_jury__',critere:'',niveau:'OBS',observation:obs,contexte:'retour_stage',phase:'retour_stage',evaluateur:evaluateur,timestamp:ts,source:'ep2_retour',jury:{pro:pro,fr:fr,date:dt}}});}catch(e){}}
-  // Aussi sauver en local
+
+  // ═══ ENVOI FRANÇAIS ═══
+  var frExam=document.getElementById('ep2FrExam').value.trim();
+  var frObs=document.getElementById('ep2FrObs').value.trim();
+  var frCrits=Object.keys(_ep2FrScores).filter(function(k){return _ep2FrScores[k]>0;});
+  if(frCrits.length){
+    var frTotal=0;FR_GRILLE.forEach(function(cat){cat.criteres.forEach(function(cr){frTotal+=(_ep2FrScores[cr.id]||0);});});
+    // Envoi note globale français
+    try{await apiCall({action:'saveValidation',eleve:_ep2Code,data:{
+      epreuve:'ORAL_FR',competence:'__oral_francais__',critere:'',niveau:String(frTotal),
+      observation:frObs,contexte:'retour_stage',phase:'retour_stage',
+      evaluateur:frExam||'Prof Fran\u00e7ais',timestamp:ts,source:'ep2_francais',
+      _scores:JSON.parse(JSON.stringify(_ep2FrScores))
+    }});sent++;}catch(e){errors++;}
+    // Envoi chaque critère
+    for(var fi=0;fi<frCrits.length;fi++){
+      try{await apiCall({action:'saveValidation',eleve:_ep2Code,data:{
+        epreuve:'ORAL_FR',competence:frCrits[fi],critere:'',niveau:String(_ep2FrScores[frCrits[fi]]),
+        contexte:'retour_stage',phase:'retour_stage',
+        evaluateur:frExam||'Prof Fran\u00e7ais',timestamp:ts,source:'ep2_francais'
+      }});sent++;}catch(e){errors++;}
+    }
+  }
+
+  // Sauver en local
   if(!validations[_ep2Code])validations[_ep2Code]=[];
   codes.forEach(function(k){validations[_ep2Code].push({epreuve:'EP2',competence:k,niveau:_ep2Retour[k],contexte:'retour_stage',phase:'retour_stage',evaluateur:evaluateur,timestamp:ts});});
   ret.forEach(function(k){validations[_ep2Code].push({epreuve:'EP2',competence:k,niveau:_ep2Retenu[k],contexte:'niveau_retenu',phase:'certificatif',evaluateur:evaluateur,timestamp:ts});});
   saveLocal();
-  btn.disabled=false;btn.textContent='✅ Valider et envoyer au serveur';
-  if(errors===0)toast('✅ '+sent+' éval(s) synchronisées','ok');
-  else toast('⚠️ '+sent+' ok, '+errors+' erreur(s)','warn');
+  btn.disabled=false;btn.textContent='\u2705 Valider et envoyer au serveur (technique + fran\u00e7ais)';
+  if(errors===0)toast('\u2705 '+sent+' \u00e9val(s) synchronis\u00e9es (technique + fran\u00e7ais)','ok');
+  else toast('\u26a0\ufe0f '+sent+' ok, '+errors+' erreur(s)','warn');
   _ep2RenderComps(_ep2Code);
 }
 
