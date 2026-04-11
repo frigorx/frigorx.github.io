@@ -1778,7 +1778,7 @@ function loadConfig(){
   }
   // Pas de config sauvée → essayer inerweb.config.js
   if(window.INERWEB_CONFIG&&window.INERWEB_CONFIG.API_URL&&window.INERWEB_CONFIG.API_KEY){
-    cfg={apiUrl:cleanUrl(window.INERWEB_CONFIG.API_URL),apiKey:window.INERWEB_CONFIG.API_KEY,nomProf:cfg.nomProf||'Enseignant',baseUrl:window.iwConfig?window.iwConfig.getBaseUrl():''};
+    cfg={apiUrl:cleanUrl(window.INERWEB_CONFIG.API_URL),apiKey:window.INERWEB_CONFIG.API_KEY,nomProf:cfg.nomProf||window.INERWEB_CONFIG.ENSEIGNANT_DEFAUT||'Enseignant',baseUrl:window.iwConfig?window.iwConfig.getBaseUrl():'https://frigorx.github.io/tt-ia/'};
     if(cfg.apiUrl&&cfg.apiKey){
       localStorage.setItem(SCFG,JSON.stringify(cfg));
       return true;

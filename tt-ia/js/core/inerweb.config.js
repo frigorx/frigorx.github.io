@@ -62,14 +62,13 @@
 
     // ─── ETABLISSEMENT ───
     ETABLISSEMENT: {
-      nom: 'Lycee Professionnel',
-      ville: '',
-      academie: ''
+      nom: 'LP Priv\u00e9 Jacques Raynaud \u2014 Campus \u00c9QUATIO',
+      ville: 'Marseille',
+      academie: 'Aix-Marseille'
     },
 
     // ─── ENSEIGNANT PAR DEFAUT ───
-    // Utilise si pas de configuration locale
-    ENSEIGNANT_DEFAUT: 'Enseignant',
+    ENSEIGNANT_DEFAUT: 'Henninot',
 
     // ─── FONCTIONNALITES ───
     FEATURES: {
