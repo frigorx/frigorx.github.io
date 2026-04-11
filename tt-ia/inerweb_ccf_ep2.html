@@ -351,11 +351,12 @@ function editCell(code,ctx,curNiv){
 }
 
 function cellClick(code,ctx,niv){
-  if(ctx==='atelier')atelierState[code]=niv;
-  else if(ctx==='pfmp')pfmpState[code]=niv;
-  else if(ctx==='retour')retourState[code]=niv;
+  if(ctx==='atelier'){atelierState[code]=niv;delete retenuState[code];}
+  else if(ctx==='pfmp'){pfmpState[code]=niv;delete retenuState[code];}
+  else if(ctx==='retour'){retourState[code]=niv;delete retenuState[code];}
   else retenuState[code]=niv;
-  renderTable(curCode);calcNote();drawDetailRadar();
+  // Recalculer propositions puis rafraîchir
+  calcNote();renderTable(curCode);drawDetailRadar();
 }
 
 function drawDetailRadar(){
@@ -477,29 +478,67 @@ function retenuChanged(sel,code){setRetenu(code,sel.value);var c=NIV_CLR[sel.val
 function noteFinaleChanged(v){noteFinaleVal=v?parseFloat(v):null}
 
 // ═══ CALCUL NOTE PROPOSÉE ═══
+// ═══ PROPOSITION INTELLIGENTE DU NIVEAU RETENU ═══
+// Règle académique : on retient le MEILLEUR niveau constaté.
+// Si le retour de stage (jury) est évalué, il prime (évaluation certificative).
+// Si 2 contextes sur 3 donnent le même niveau = forte confiance.
+function proposeRetenu(code){
+  var o={NE:0,EC:1,M:2,PM:3};
+  var a=atelierState[code]||'';
+  var s=pfmpState[code]||'';
+  var r=retourState[code]||'';
+  // Aussi prendre en compte les données serveur
+  var v=allVals[curCode]||[];if(!Array.isArray(v))v=[];
+  if(!a){var x=best(v.filter(function(e){return e.competence===code&&e.phase!=='tuteur'&&e.phase!=='retour_stage'}));if(x)a=x}
+  if(!s){(tuteurEvals[curCode]||[]).forEach(function(ev){var cp={};try{cp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{})}catch(e){}var n=cp[code];var nv=typeof n==='object'?n.niveau:n;if(nv&&(o[nv]||0)>(o[s]||0))s=nv})}
+  if(!r){var x=best(v.filter(function(e){return e.competence===code&&e.phase==='retour_stage'}));if(x)r=x}
+
+  var nivs=[a,s,r].filter(function(n){return n&&n!=='NE'});
+  if(!nivs.length)return '';
+
+  // Priorité 1: si retour stage évalué (certificatif, jury), il prime
+  if(r&&r!=='NE')return r;
+  // Priorité 2: si 2/3 identiques = retenir ce niveau
+  if(a&&s&&a===s)return a;
+  // Priorité 3: meilleur niveau
+  return nivs.reduce(function(best,n){return (o[n]||0)>(o[best]||0)?n:best});
+}
+
 function calcNote(){
   if(!curCode){document.getElementById('noteValue').textContent='\u2014';return}
   var BAREME={PM:1.0,M:0.70,EC:0.35,NE:0};
   var COEF_OBL=1.2;
   var totalPts=0,totalPoids=0,evaluated=0,alerts=[];
+
   COMPS.forEach(function(c){
-    // Niveau retenu > retour > pfmp > atelier > tuteur
-    var niv=retenuState[c.code]||retourState[c.code]||pfmpState[c.code]||atelierState[c.code]||bestNiv(curCode,c.code);
+    // Auto-proposer le retenu si pas déjà fixé manuellement
+    if(!retenuState[c.code]){
+      var prop=proposeRetenu(c.code);
+      if(prop)retenuState[c.code]=prop;
+    }
+    var niv=retenuState[c.code]||'';
     var poids=c.poids;var coef=c.obl?COEF_OBL:1;
     totalPoids+=poids*coef;
     if(niv&&niv!=='NE'){totalPts+=poids*coef*(BAREME[niv]||0);evaluated++}
     if(c.obl&&(!niv||niv==='NE'))alerts.push(c.code+' non \u00e9valu\u00e9e');
-    if(c.obl&&niv==='EC')alerts.push(c.code+' EC \u2014 obligatoire non ma\u00eetris\u00e9e');
+    if(c.obl&&niv==='EC')alerts.push(c.code+' EC \u2014 comp. obligatoire');
   });
+
   var note=totalPoids>0?(totalPts/totalPoids)*20:0;
   note=Math.round(note*2)/2;
   var pct=COMPS.length>0?Math.round(evaluated/COMPS.length*100):0;
+
   document.getElementById('noteValue').innerHTML=note+' <span style="font-size:1rem;color:var(--gris)">/20</span>';
-  document.getElementById('noteDetail').textContent=evaluated+'/'+COMPS.length+' comp. \u00e9valu\u00e9es ('+pct+'%)'+(pct<80?' \u2014 \u26a0 < 80%':'');
+  var txt=evaluated+'/'+COMPS.length+' comp. ('+pct+'%)';
+  if(pct<80)txt+=' \u2014 \u26a0 inf\u00e9rieur \u00e0 80%';
+  else txt+=' \u2714';
+  document.getElementById('noteDetail').textContent=txt;
   document.getElementById('noteValue').style.color=pct>=80?'var(--vert)':pct>=50?'var(--jaune)':'var(--rouge)';
+
   var ah='';alerts.forEach(function(a){ah+='<div style="color:var(--rouge);font-size:.68rem">\u26a0 '+a+'</div>'});
   document.getElementById('noteAlerts').innerHTML=ah;
   if(!noteFinaleVal)document.getElementById('noteFinale').placeholder=note;
+
 }
 
 // ═══ FRANÇAIS ═══
