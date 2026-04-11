@@ -852,6 +852,7 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
       <div class="stage-tabs">
         <button class="stage-tab active" data-sp="suivi" onclick="switchStagePanel('suivi')">📓 Suivi élèves</button>
         <button class="stage-tab" data-sp="tuteurs" onclick="switchStagePanel('tuteurs')">🏢 Évals tuteurs</button>
+        <button class="stage-tab" data-sp="entreprises" onclick="switchStagePanel('entreprises')">🏭 Entreprises</button>
         <button class="stage-tab" data-sp="partenaires" onclick="switchStagePanel('partenaires')">📋 Partenaires</button>
         <button class="stage-tab" data-sp="comm" onclick="switchStagePanel('comm')">📣 Comm.</button>
         <button class="stage-tab" data-sp="docs" onclick="switchStagePanel('docs')">📁 Documents</button>
@@ -875,6 +876,12 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
           </select>
         </div>
         <div id="tuteurEvalContenu"><div class="empty"><div class="ei">🏢</div><p>Sélectionnez un élève</p></div></div>
+      </div>
+
+      <!-- PANEL ENTREPRISES -->
+      <div class="stage-panel" id="sp-entreprises">
+        <div style="font-weight:800;color:var(--bleu);font-size:.9rem;margin-bottom:.5rem;">🏭 Tableau de bord Entreprises / Tuteurs</div>
+        <div id="entreprisesTable"><div class="empty"><div class="ei">🏭</div><p>Chargement...</p></div></div>
       </div>
 
       <div class="stage-panel" id="sp-partenaires">
@@ -2468,6 +2475,7 @@ function switchStagePanel(p){
   document.querySelectorAll('.stage-panel').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.stage-tab').forEach(t=>t.classList.toggle('active',t.dataset.sp===p));
   document.getElementById('sp-'+p)?.classList.add('active');
+  if(p==='entreprises')renderEntreprises();
   if(p==='partenaires')renderParts();
   if(p==='comm')renderComm();
   if(p==='docs')renderSharedDocs();
@@ -2954,6 +2962,37 @@ function stageTracking(code){
   }
   return{days:calcDaysSinceLastEntry(code),lastPhoto,lastComment,photosTotal,commentsTotal,streak,bar};
 }
+function renderEntreprises(){
+  var c=document.getElementById('entreprisesTable');if(!c)return;
+  if(!students.length){c.innerHTML='<div class="empty"><div class="ei">🏭</div><p>Aucun élève</p></div>';return;}
+  var h='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.78rem;background:#fff;border-radius:var(--r2);overflow:hidden;box-shadow:var(--ombre2);">';
+  h+='<thead><tr style="background:var(--bleu);color:#fff;font-size:.7rem;"><th style="padding:.4rem;text-align:left;">Élève</th><th style="padding:.4rem;text-align:left;">Classe</th><th style="padding:.4rem;text-align:left;">Entreprise</th><th style="padding:.4rem;text-align:left;">Tuteur</th><th style="padding:.4rem;text-align:left;">Tél</th><th style="padding:.4rem;text-align:center;">Éval</th></tr></thead><tbody>';
+  students.forEach(function(s,i){
+    var bg=i%2===0?'#fff':'#f9fafb';
+    var entNom=s.entreprise_nom||'';
+    var tutNom=s.tuteur_nom||'';
+    var tel=s.tel_tuteur||'';
+    var hasEval=false;
+    // Vérifier si éval tuteur reçue
+    var vals=validations[s.code]||[];
+    if(Array.isArray(vals))hasEval=vals.some(function(v){return v.phase==='tuteur';});
+    h+='<tr style="background:'+bg+';border-bottom:1px solid var(--gris3);">';
+    h+='<td style="padding:.35rem;font-weight:700;">'+esc(s.nom)+' '+esc(s.prenom||'')+'</td>';
+    h+='<td style="padding:.35rem;font-size:.7rem;color:var(--gris);">'+esc(s.classe||'')+'</td>';
+    h+='<td style="padding:.35rem;'+(entNom?'':'color:var(--rouge);font-style:italic;')+'">'+esc(entNom||'Non renseignée')+'</td>';
+    h+='<td style="padding:.35rem;'+(tutNom?'':'color:var(--gris);font-style:italic;')+'">'+esc(tutNom||'—')+'</td>';
+    h+='<td style="padding:.35rem;font-size:.72rem;">'+esc(tel||'—')+'</td>';
+    h+='<td style="padding:.35rem;text-align:center;">'+( hasEval?'<span style="color:var(--vert);font-weight:900;">✅</span>':'<span style="color:var(--rouge);font-size:.7rem;">—</span>')+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  // Stats
+  var withEnt=students.filter(function(s){return s.entreprise_nom;}).length;
+  var withTut=students.filter(function(s){return s.tuteur_nom;}).length;
+  h='<div style="display:flex;gap:.4rem;margin-bottom:.5rem;flex-wrap:wrap;font-size:.75rem;font-weight:700;"><span style="background:var(--bleu3);padding:.3rem .6rem;border-radius:var(--r2);color:var(--bleu);">'+students.length+' élèves</span><span style="background:'+(withEnt>=students.length?'var(--vert2)':'var(--jaune2)')+';padding:.3rem .6rem;border-radius:var(--r2);">'+withEnt+' entreprises</span><span style="background:'+(withTut>=students.length?'var(--vert2)':'var(--jaune2)')+';padding:.3rem .6rem;border-radius:var(--r2);">'+withTut+' tuteurs</span></div>'+h;
+  c.innerHTML=h;
+}
+
 function renderSuivi(){
   const c=document.getElementById('stageList');
   if(!students.length){c.innerHTML='<div class="empty"><div class="ei">🏢</div><p>Aucun élève</p></div>';return;}
