@@ -191,9 +191,9 @@ var COMPS=[
   {code:"C3.8",nom:"Tri d\u00e9chets",obl:false,poids:1},
   {code:"C3.9",nom:"\u00c9tanch\u00e9it\u00e9",obl:true,poids:2}
 ];
-var NIVS=['NE','EC','M','PM'];
-var NIV_CLR={NE:'#e0e0e0',EC:'#fff3cd',M:'#d4edda',PM:'#cce5ff'};
-var NIV_TXT={NE:'#666',EC:'#856404',M:'#155724',PM:'#004085'};
+var NIVS=['NE','NA','EC','M','PM'];
+var NIV_CLR={NE:'#e0e0e0',NA:'#fde8e6',EC:'#fff3cd',M:'#d4edda',PM:'#cce5ff'};
+var NIV_TXT={NE:'#666',NA:'#c0392b',EC:'#856404',M:'#155724',PM:'#004085'};
 
 // ═══ GRILLE FRANÇAIS ═══
 var FR=[
@@ -270,7 +270,7 @@ function radar(code){
   var cv=document.getElementById('rd_'+code);if(!cv)return;
   var c=cv.getContext('2d'),w=cv.offsetWidth||150,h=cv.offsetHeight||75;
   cv.width=w*2;cv.height=h*2;c.scale(2,2);
-  var cx=w/2,cy=h/2+2,r=Math.min(w,h)/2-6,n=COMPS.length,nm={EC:.35,M:.7,PM:1};
+  var cx=w/2,cy=h/2+2,r=Math.min(w,h)/2-6,n=COMPS.length,nm={NA:.05,EC:.35,M:.7,PM:1};
   // Fond
   c.beginPath();for(var i=0;i<n;i++){var a=Math.PI*2*i/n-Math.PI/2;c.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a))}c.closePath();c.fillStyle='rgba(27,58,99,.05)';c.fill();c.strokeStyle='#ddd';c.lineWidth=.5;c.stroke();
   // Surface évaluée
@@ -373,10 +373,16 @@ function editCell(code,ctx,curNiv){
 }
 
 function cellClick(code,ctx,niv){
-  if(ctx==='atelier'){atelierState[code]=niv;delete retenuState[code];}
-  else if(ctx==='pfmp'){pfmpState[code]=niv;delete retenuState[code];}
-  else if(ctx==='retour'){retourState[code]=niv;delete retenuState[code];}
-  else retenuState[code]=niv;
+  // Toggle : si on reclique le même niveau, on désélectionne
+  var stateMap={atelier:atelierState,pfmp:pfmpState,retour:retourState,retenu:retenuState};
+  var state=stateMap[ctx];
+  if(state&&state[code]===niv){niv='';delete state[code];}
+  else{
+    if(ctx==='atelier'){atelierState[code]=niv;delete retenuState[code];}
+    else if(ctx==='pfmp'){pfmpState[code]=niv;delete retenuState[code];}
+    else if(ctx==='retour'){retourState[code]=niv;delete retenuState[code];}
+    else retenuState[code]=niv;
+  }
   // Sauver localement dans allVals pour persistance immédiate
   if(!allVals[curCode])allVals[curCode]=[];
   allVals[curCode].push({competence:code,niveau:niv,phase:phaseMap[ctx]||'formatif',contexte:ctxMap[ctx]||ctx,evaluateur:'Prof',timestamp:new Date().toISOString(),epreuve:'EP2'});
@@ -402,7 +408,7 @@ function drawDetailRadar(){
   var ctx2d=cv.getContext('2d'),w=cv.offsetWidth||300,h=cv.offsetHeight||160;
   cv.width=w*2;cv.height=h*2;ctx2d.scale(2,2);
   var cx=w/2,cy=h/2,r=Math.min(w,h)/2-14,n=COMPS.length;
-  var nm={EC:.35,M:.7,PM:1};
+  var nm={NA:.05,EC:.35,M:.7,PM:1};
 
   // Collecter les niveaux
   var nivs=COMPS.map(function(c){
@@ -422,7 +428,7 @@ function drawDetailRadar(){
   ctx2d.font='bold '+fs+'px sans-serif';ctx2d.textBaseline='middle';
   for(var i=0;i<n;i++){
     var a=Math.PI*2*i/n-Math.PI/2;
-    var isNE=!nivs[i]||nivs[i]==='NE';
+    var isNE=!nivs[i]||nivs[i]==='NE';var isNA=nivs[i]==='NA';
     // Axe
     ctx2d.beginPath();ctx2d.moveTo(cx,cy);ctx2d.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));
     ctx2d.strokeStyle=isNE?'rgba(231,76,60,.2)':'rgba(0,0,0,.1)';
@@ -586,7 +592,7 @@ function proposeRetenu(code){
 
 function calcNote(){
   if(!curCode){document.getElementById('noteValue').textContent='\u2014';return}
-  var BAREME={PM:1.0,M:0.70,EC:0.35,NE:0};
+  var BAREME={PM:1.0,M:0.70,EC:0.35,NA:0,NE:0};
   var COEF_OBL=1.2;
   var totalPts=0,totalPoids=0,evaluated=0,alerts=[];
 
@@ -600,6 +606,7 @@ function calcNote(){
     var poids=c.poids;var coef=c.obl?COEF_OBL:1;
     totalPoids+=poids*coef;
     if(niv&&niv!=='NE'){totalPts+=poids*coef*(BAREME[niv]||0);evaluated++}
+    else if(niv==='NA'){evaluated++} // NA = évalué mais 0 points
     if(c.obl&&(!niv||niv==='NE'))alerts.push(c.code+' non \u00e9valu\u00e9e');
     if(c.obl&&niv==='EC')alerts.push(c.code+' EC \u2014 comp. obligatoire');
   });
