@@ -1768,24 +1768,26 @@ function loadDemoMode(){
 /* DEFAULT_CFG → js/core/api.js */
 const DEFAULT_CFG=window.DEFAULT_CFG||{apiUrl:'',apiKey:'',nomProf:'',baseUrl:''};
 function loadConfig(){
-  const s=localStorage.getItem(SCFG);
+  // 1. Essayer localStorage
+  var s=localStorage.getItem(SCFG);
   if(s){
-    try{cfg=JSON.parse(s);}catch{cfg=Object.assign({},DEFAULT_CFG);return false;}
-    cfg.apiUrl=cleanUrl(cfg.apiUrl||'');
-    const bad=cfg.apiUrl.includes('AKfycbzTMUOk')||cfg.apiUrl.includes('AKfycbybJxLLb3p0h')||cfg.apiUrl.includes('%20')||cfg.apiUrl.length<20;
-    if(bad){cfg.apiUrl='';cfg.apiKey='';localStorage.removeItem(SCFG);}
-    if(cfg.apiUrl&&cfg.apiKey)return true;
-  }
-  // Pas de config sauvée → essayer inerweb.config.js
-  if(window.INERWEB_CONFIG&&window.INERWEB_CONFIG.API_URL&&window.INERWEB_CONFIG.API_KEY){
-    cfg={apiUrl:cleanUrl(window.INERWEB_CONFIG.API_URL),apiKey:window.INERWEB_CONFIG.API_KEY,nomProf:cfg.nomProf||window.INERWEB_CONFIG.ENSEIGNANT_DEFAUT||'Enseignant',baseUrl:window.iwConfig?window.iwConfig.getBaseUrl():'https://frigorx.github.io/tt-ia/'};
+    try{cfg=JSON.parse(s);}catch{cfg={};}
     if(cfg.apiUrl&&cfg.apiKey){
-      localStorage.setItem(SCFG,JSON.stringify(cfg));
-      return true;
+      cfg.apiUrl=cleanUrl(cfg.apiUrl);
+      var bad=cfg.apiUrl.includes('AKfycbzTMUOk')||cfg.apiUrl.includes('AKfycbybJxLLb3p0h')||cfg.apiUrl.includes('%20')||cfg.apiUrl.length<20;
+      if(!bad)return true;
     }
   }
-  cfg=Object.assign({},DEFAULT_CFG);
-  return false;
+  // 2. Essayer inerweb.config.js
+  if(window.INERWEB_CONFIG&&window.INERWEB_CONFIG.API_URL&&window.INERWEB_CONFIG.API_KEY){
+    cfg={apiUrl:cleanUrl(window.INERWEB_CONFIG.API_URL),apiKey:window.INERWEB_CONFIG.API_KEY,nomProf:window.INERWEB_CONFIG.ENSEIGNANT_DEFAUT||'Enseignant',baseUrl:'https://frigorx.github.io/tt-ia/'};
+    localStorage.setItem(SCFG,JSON.stringify(cfg));
+    return true;
+  }
+  // 3. DERNIER RECOURS — config en dur, ne demande JAMAIS rien à l'utilisateur
+  cfg={apiUrl:'https://script.google.com/macros/s/AKfycbzVvXZRi4975OM4P8AJeoDWvnTbFSfTpVUDErzrNk2R2knfxBxCw-A-kLmKaNzmW35V1A/exec',apiKey:'inerWeb2026fh',nomProf:'Henninot',baseUrl:'https://frigorx.github.io/tt-ia/'};
+  localStorage.setItem(SCFG,JSON.stringify(cfg));
+  return true;
 }
 function startApp(){
   document.getElementById('screen-config').style.display='none';
