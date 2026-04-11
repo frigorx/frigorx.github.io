@@ -114,6 +114,18 @@ input,select,textarea,button{font-family:inherit}
     </div>
     <!-- TABLEAU COMPETENCES -->
     <div id="tblWrap"></div>
+    <!-- NOTE PROPOSÉE EP2 -->
+    <div id="noteBlock" style="background:#fff;border-radius:var(--r);padding:.6rem;margin-top:.4rem;box-shadow:0 2px 10px rgba(0,0,0,.07);text-align:center;">
+      <div style="font-size:.75rem;font-weight:800;color:var(--bleu);margin-bottom:.2rem;">Note propos&eacute;e EP2 (calcul&eacute;e automatiquement)</div>
+      <div id="noteValue" style="font-size:2.2rem;font-weight:900;color:var(--bleu);">—</div>
+      <div id="noteDetail" style="font-size:.7rem;color:var(--gris);margin:.2rem 0;"></div>
+      <div id="noteAlerts" style="font-size:.7rem;margin:.2rem 0;"></div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:.5rem;margin-top:.3rem;">
+        <span style="font-size:.78rem;font-weight:800;color:var(--orange);">Note finale jury :</span>
+        <input type="number" id="noteFinale" min="0" max="20" step="0.5" placeholder="auto" style="width:70px;padding:.3rem;border:2px solid var(--orange);border-radius:var(--r2);font-weight:900;font-size:1rem;text-align:center;" onchange="noteFinaleChanged(this.value)">
+        <span style="font-size:.85rem;color:var(--gris);">/20</span>
+      </div>
+    </div>
     <!-- GRILLE FRANÇAIS -->
     <div class="fr-block"><div class="fr-head"><span>&#x1F4DA; Oral Fran&ccedil;ais &mdash; Retour de stage</span><span id="frTotal">0/20</span></div>
       <div style="padding:.4rem .5rem;background:#fff">
@@ -147,7 +159,7 @@ var API='',KEY='';
 
 // ═══ DONNÉES ═══
 var students=[],curCode='',tuteurEvals={},allVals={};
-var retourState={},retenuState={},frScores={};
+var retourState={},retenuState={},atelierState={},pfmpState={},frScores={},noteFinaleVal=null;
 
 // ═══ COMPÉTENCES EP2 CAP IFCA ═══
 var COMPS=[
@@ -249,7 +261,7 @@ function radar(code){
 // ═══ DETAIL ELEVE ═══
 function showDetail(code){
   try{
-    curCode=code;retourState={};retenuState={};frScores={};
+    curCode=code;retourState={};retenuState={};atelierState={};pfmpState={};frScores={};noteFinaleVal=null;
     document.getElementById('dashboard').style.display='none';
     document.getElementById('detail').style.display='block';
     var s=students.find(function(x){return x.code===code})||{};
@@ -258,6 +270,7 @@ function showDetail(code){
     document.getElementById('jDt').value=new Date().toISOString().slice(0,10);
     renderTable(code);
     renderFr();
+    calcNote();
     window.scrollTo(0,0);
   }catch(e){
     alert('Erreur showDetail: '+e.message);
@@ -290,18 +303,27 @@ function renderTable(code){
     h+='</select></td></tr>';
 
     // Ligne détail dépliable
+    var aN=atelierState[c.code]||'';
+    var pN=pfmpState[c.code]||'';
     h+='<tr class="drow" id="dr_'+c.code+'"><td colspan="6"><div style="padding:.3rem">';
-    // Atelier
+
+    // ── ATELIER: historique + évaluer ──
     h+='<div class="src-title src-at">\uD83D\uDD27 Atelier ('+atV.length+')</div>';
     if(atV.length){atV.forEach(function(x){h+='<div class="task task-at"><span>'+esc(x.contexte||'atelier')+' \u00b7 '+dfr(x.timestamp)+' \u00b7 '+esc(x.evaluateur||'')+'</span><span class="niv niv-'+x.niveau+'">'+x.niveau+'</span></div>'})}
-    else h+='<div style="font-size:.68rem;color:var(--gris);font-style:italic">Pas encore \u00e9valu\u00e9</div>';
-    // Stage
+    h+='<div style="font-size:.68rem;font-weight:800;color:var(--bleu2);margin:.15rem 0">\u00c9valuer en atelier :</div>';
+    h+='<div class="jbtns" onclick="event.stopPropagation()">';NIVS.forEach(function(n){h+='<button class="jbtn'+(aN===n?' on-'+n:'')+'" onclick="setAtelier(\''+c.code+'\',\''+n+'\')">'+n+'</button>'});h+='</div>';
+
+    // ── STAGE: historique + évaluer PFMP ──
     h+='<div class="src-title src-st">\uD83C\uDFED Stage tuteur ('+stV.length+')</div>';
     if(stV.length){stV.forEach(function(x){h+='<div class="task task-st"><span>\uD83C\uDFE2 '+esc(x.entreprise)+' \u00b7 '+esc(x.evaluateur)+' \u00b7 '+dfr(x.timestamp)+'</span><span class="niv niv-'+x.niveau+'">'+x.niveau+'</span></div>'})}
     else h+='<div style="font-size:.68rem;color:var(--gris);font-style:italic">\u00c9val tuteur non re\u00e7ue</div>';
-    // Retour stage
+    h+='<div style="font-size:.68rem;font-weight:800;color:var(--teal);margin:.15rem 0">\u00c9valuer PFMP (prof) :</div>';
+    h+='<div class="jbtns" onclick="event.stopPropagation()">';NIVS.forEach(function(n){h+='<button class="jbtn'+(pN===n?' on-'+n:'')+'" onclick="setPfmp(\''+c.code+'\',\''+n+'\')">'+n+'</button>'});h+='</div>';
+
+    // ── RETOUR STAGE: historique + évaluer jury ──
     h+='<div class="src-title src-rt">\uD83D\uDCCA Retour stage \u2014 \u00c9val jury</div>';
     if(rtV.length){rtV.forEach(function(x){h+='<div class="task task-rt"><span>'+esc(x.evaluateur||'')+' \u00b7 '+dfr(x.timestamp)+'</span><span class="niv niv-'+x.niveau+'">'+x.niveau+'</span></div>'})}
+    h+='<div style="font-size:.68rem;font-weight:800;color:var(--orange);margin:.15rem 0">\u00c9valuer retour stage :</div>';
     h+='<div class="jbtns" onclick="event.stopPropagation()">';NIVS.forEach(function(n){h+='<button class="jbtn'+(rN===n?' on-'+n:'')+'" onclick="setRetour(\''+c.code+'\',\''+n+'\')">'+n+'</button>'});h+='</div>';
 
     h+='</div></td></tr>'
@@ -317,9 +339,38 @@ function nivTd(niv,cnt){
 }
 
 function toggle(code){var r=document.getElementById('dr_'+code);if(r)r.classList.toggle('open')}
-function setRetour(code,niv){retourState[code]=niv;renderTable(curCode)}
-function setRetenu(code,niv){retenuState[code]=niv}
+function setAtelier(code,niv){atelierState[code]=niv;renderTable(curCode);calcNote()}
+function setPfmp(code,niv){pfmpState[code]=niv;renderTable(curCode);calcNote()}
+function setRetour(code,niv){retourState[code]=niv;renderTable(curCode);calcNote()}
+function setRetenu(code,niv){retenuState[code]=niv;calcNote()}
 function retenuChanged(sel,code){setRetenu(code,sel.value);var c=NIV_CLR[sel.value]||'#fff';var t=NIV_TXT[sel.value]||'#666';sel.style.background=c;sel.style.color=t}
+function noteFinaleChanged(v){noteFinaleVal=v?parseFloat(v):null}
+
+// ═══ CALCUL NOTE PROPOSÉE ═══
+function calcNote(){
+  if(!curCode){document.getElementById('noteValue').textContent='\u2014';return}
+  var BAREME={PM:1.0,M:0.70,EC:0.35,NE:0};
+  var COEF_OBL=1.2;
+  var totalPts=0,totalPoids=0,evaluated=0,alerts=[];
+  COMPS.forEach(function(c){
+    // Niveau retenu > retour > pfmp > atelier > tuteur
+    var niv=retenuState[c.code]||retourState[c.code]||pfmpState[c.code]||atelierState[c.code]||bestNiv(curCode,c.code);
+    var poids=c.poids;var coef=c.obl?COEF_OBL:1;
+    totalPoids+=poids*coef;
+    if(niv&&niv!=='NE'){totalPts+=poids*coef*(BAREME[niv]||0);evaluated++}
+    if(c.obl&&(!niv||niv==='NE'))alerts.push(c.code+' non \u00e9valu\u00e9e');
+    if(c.obl&&niv==='EC')alerts.push(c.code+' EC \u2014 obligatoire non ma\u00eetris\u00e9e');
+  });
+  var note=totalPoids>0?(totalPts/totalPoids)*20:0;
+  note=Math.round(note*2)/2;
+  var pct=COMPS.length>0?Math.round(evaluated/COMPS.length*100):0;
+  document.getElementById('noteValue').innerHTML=note+' <span style="font-size:1rem;color:var(--gris)">/20</span>';
+  document.getElementById('noteDetail').textContent=evaluated+'/'+COMPS.length+' comp. \u00e9valu\u00e9es ('+pct+'%)'+(pct<80?' \u2014 \u26a0 < 80%':'');
+  document.getElementById('noteValue').style.color=pct>=80?'var(--vert)':pct>=50?'var(--jaune)':'var(--rouge)';
+  var ah='';alerts.forEach(function(a){ah+='<div style="color:var(--rouge);font-size:.68rem">\u26a0 '+a+'</div>'});
+  document.getElementById('noteAlerts').innerHTML=ah;
+  if(!noteFinaleVal)document.getElementById('noteFinale').placeholder=note;
+}
 
 // ═══ FRANÇAIS ═══
 function renderFr(){
@@ -352,13 +403,25 @@ async function envoyer(){
   var ts=new Date().toISOString();
   var sent=0,err=0;
 
+  // Évals atelier
+  var ac=Object.keys(atelierState).filter(function(k){return atelierState[k]&&atelierState[k]!=='NE'});
+  for(var i=0;i<ac.length;i++){try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:ac[i],critere:'',niveau:atelierState[ac[i]],contexte:'atelier',phase:'formatif',evaluateur:pro||'Prof',timestamp:ts,source:'ccf_ep2'}});sent++}catch(e){err++}}
+
+  // Évals PFMP
+  var pc=Object.keys(pfmpState).filter(function(k){return pfmpState[k]&&pfmpState[k]!=='NE'});
+  for(var i=0;i<pc.length;i++){try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:pc[i],critere:'',niveau:pfmpState[pc[i]],contexte:'pfmp',phase:'pfmp',evaluateur:pro||'Prof',timestamp:ts,source:'ccf_ep2'}});sent++}catch(e){err++}}
+
   // Retour stage technique
   var rc=Object.keys(retourState).filter(function(k){return retourState[k]&&retourState[k]!=='NE'});
-  for(var i=0;i<rc.length;i++){try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:rc[i],critere:'',niveau:retourState[rc[i]],contexte:'retour_stage',phase:'retour_stage',evaluateur:ev,timestamp:ts,source:'ccf_ep2'}});sent++}catch(e){err++}}
+  for(var i=0;i<rc.length;i++){try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:rc[i],critere:'',niveau:retourState[rc[i]],contexte:'retour_stage',phase:'retour_stage',evaluateur:ev,timestamp:ts,source:'ccf_ep2',jury:{pro:pro,fr:fr,date:dt}}});sent++}catch(e){err++}}
 
   // Niveaux retenus
   var rk=Object.keys(retenuState).filter(function(k){return retenuState[k]});
   for(var i=0;i<rk.length;i++){try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:rk[i],critere:'',niveau:retenuState[rk[i]],contexte:'niveau_retenu',phase:'certificatif',evaluateur:ev,timestamp:ts,source:'ccf_ep2'}});sent++}catch(e){err++}}
+
+  // Note finale
+  var nf=noteFinaleVal||parseFloat(document.getElementById('noteFinale').value);
+  if(nf){try{await apiPost('saveValidation',{eleve:curCode,data:{epreuve:'EP2',competence:'__note_finale__',critere:'',niveau:String(nf),contexte:'note_ep2',phase:'certificatif',evaluateur:ev,timestamp:ts,source:'ccf_ep2'}});sent++}catch(e){err++}}
 
   // Français
   var frExam=document.getElementById('frExam').value.trim();
@@ -380,7 +443,9 @@ async function envoyer(){
 
 // ═══ EXPOSE ═══
 window.showDash=showDash;window.showDetail=showDetail;window.toggle=toggle;
-window.setRetour=setRetour;window.setRetenu=setRetenu;window.retenuChanged=retenuChanged;window.setFr=setFr;window.envoyer=envoyer;
+window.setAtelier=setAtelier;window.setPfmp=setPfmp;window.setRetour=setRetour;
+window.setRetenu=setRetenu;window.retenuChanged=retenuChanged;window.noteFinaleChanged=noteFinaleChanged;
+window.setFr=setFr;window.envoyer=envoyer;
 
 // ═══ GO ═══
 init();
