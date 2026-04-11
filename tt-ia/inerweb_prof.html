@@ -6423,23 +6423,11 @@ document.getElementById('main-content').addEventListener('change',function(e){
 document.addEventListener('DOMContentLoaded',()=>{
   const hasConfig=loadConfig();
 
-  // Phase 13.1 — Ecran PIN RGPD avant demarrage
-  if(window.iwPin&&window.iwCrypto){
-    // Ecouter le deverrouillage pour lancer l'app
-    document.addEventListener('iw:unlocked',function _onUnlock(){
-      document.removeEventListener('iw:unlocked',_onUnlock);
-      if(hasConfig)startApp();
-      // Verification retention RGPD apres chargement
-      setTimeout(function(){
-        if(window.iwRetention)iwRetention.check();
-      },3000);
-    });
-    // Afficher ecran PIN
-    window.iwPin.showLockScreen();
-  } else {
-    // Fallback sans securite (modules non charges)
-    if(hasConfig)startApp();
+  if(hasConfig){
+    // Config trouvée → démarrer directement
+    startApp();
   }
+  // Pas de config → l'écran de configuration reste visible (body.show-config)
 
   // Navigation par hash (ex: #eleves depuis index.html)
   var hash=window.location.hash.replace('#','');
