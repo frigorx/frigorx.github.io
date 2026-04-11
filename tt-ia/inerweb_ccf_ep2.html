@@ -6,180 +6,187 @@
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>CCF EP2 — Retour de stage | inerWeb Édu</title>
+<title>CCF EP2 — CAP IFCA | inerWeb &Eacute;du</title>
 <style>
 :root{
   --bleu:#1b3a63;--bleu2:#2d5a8c;--bleu3:#e8f0f8;
   --orange:#ff6b35;--vert:#27ae60;--vert2:#d4f4e2;
   --rouge:#e74c3c;--rouge2:#fde8e6;
   --teal:#16a085;--teal2:#d0f0ea;
-  --violet:#8e44ad;--violet2:#f3e5f5;
+  --violet:#8e44ad;
   --jaune:#f39c12;--jaune2:#fef9e7;
   --gris:#6c757d;--gris2:#f0f2f5;--gris3:#dee2e6;
   --texte:#1a2332;
   --r:14px;--r2:8px;
-  --ombre:0 4px 24px rgba(27,58,99,.12);
 }
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Segoe UI','Nunito',sans-serif;color:var(--texte);background:var(--gris2);min-height:100dvh;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',sans-serif;color:var(--texte);background:var(--gris2);min-height:100dvh;}
 input,select,textarea,button{font-family:inherit;}
 
-.header{background:linear-gradient(90deg,var(--bleu2),var(--bleu));color:#fff;padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2);}
-.header h1{font-size:.95rem;font-weight:900;}
-.header .badge{background:rgba(255,255,255,.2);border-radius:20px;padding:.15rem .6rem;font-size:.65rem;font-weight:800;}
+/* Header */
+.hdr{background:linear-gradient(90deg,var(--bleu2),var(--bleu));color:#fff;padding:.6rem 1rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2);}
+.hdr h1{font-size:.9rem;font-weight:900;}
+.hdr-sub{font-size:.6rem;opacity:.7;}
+.hdr .badge{background:rgba(255,255,255,.2);border-radius:20px;padding:.15rem .6rem;font-size:.6rem;font-weight:800;}
 
-.container{max-width:700px;margin:0 auto;padding:1rem;}
-.card{background:#fff;border-radius:var(--r);padding:1rem;margin-bottom:.75rem;box-shadow:var(--ombre);}
-.card-title{font-size:.85rem;font-weight:900;color:var(--bleu);margin-bottom:.5rem;}
+.wrap{max-width:800px;margin:0 auto;padding:.75rem;}
 
-/* Sélecteurs */
-.sel-row{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;}
-.sel-row select,.sel-row input{flex:1;min-width:120px;padding:.5rem;border:2px solid var(--gris3);border-radius:var(--r2);font-weight:700;font-size:.85rem;}
+/* Cards élèves dashboard */
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.5rem;margin-bottom:1rem;}
+.eleve-card{background:#fff;border-radius:var(--r);padding:.6rem;cursor:pointer;transition:all .15s;border:2px solid transparent;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.eleve-card:hover{border-color:var(--bleu2);transform:translateY(-2px);}
+.eleve-card.active{border-color:var(--orange);box-shadow:0 4px 16px rgba(255,107,53,.2);}
+.eleve-nom{font-size:.8rem;font-weight:900;color:var(--bleu);}
+.eleve-code{font-size:.65rem;color:var(--gris);}
+.eleve-radar{width:100%;height:80px;margin-top:.3rem;}
+.eleve-pct{font-size:.65rem;font-weight:800;text-align:center;margin-top:.2rem;}
 
-/* Sous-onglets */
-.sub-tabs{display:flex;gap:.3rem;margin-bottom:1rem;overflow-x:auto;}
-.sub-tab{padding:.4rem .8rem;border:2px solid var(--gris3);border-radius:20px;background:#fff;font-size:.75rem;font-weight:800;cursor:pointer;white-space:nowrap;transition:all .2s;}
-.sub-tab.active{background:var(--bleu2);color:#fff;border-color:var(--bleu2);}
-.sub-tab.retour{border-color:var(--orange);}
-.sub-tab.retour.active{background:var(--orange);border-color:var(--orange);}
+/* Détail élève */
+#detail{display:none;}
+.detail-header{background:#fff;border-radius:var(--r);padding:.75rem;margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.detail-nom{font-size:1rem;font-weight:900;color:var(--bleu);}
+.btn-back{background:var(--gris2);border:none;border-radius:var(--r2);padding:.4rem .8rem;font-size:.78rem;font-weight:700;cursor:pointer;}
 
-/* Bloc tuteur */
-.tuteur-block{border-left:4px solid var(--teal);border-radius:var(--r2);background:var(--teal2);padding:.75rem;margin-bottom:.75rem;}
-.tuteur-block h4{color:var(--teal);font-size:.85rem;margin-bottom:.3rem;}
-.tuteur-line{font-size:.78rem;color:var(--texte);margin-bottom:.2rem;}
-.tuteur-comp{display:inline-flex;align-items:center;gap:.2rem;background:#fff;border-radius:20px;padding:.15rem .5rem;font-size:.7rem;font-weight:800;margin:.15rem .15rem 0 0;}
+/* Compétence row */
+.comp-row{background:#fff;border-radius:var(--r2);margin-bottom:.4rem;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.comp-head{display:flex;align-items:center;padding:.55rem .7rem;cursor:pointer;gap:.4rem;transition:background .15s;}
+.comp-head:hover{background:var(--gris2);}
+.comp-code{font-weight:900;color:var(--bleu2);font-size:.82rem;min-width:38px;}
+.comp-name{flex:1;font-size:.75rem;color:var(--texte);}
+.comp-obl{color:var(--orange);font-weight:900;font-size:.75rem;}
+.comp-count{background:var(--bleu3);color:var(--bleu2);font-size:.6rem;font-weight:900;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 .3rem;}
 
-/* Jury */
-.jury-block{border-left:4px solid var(--orange);border-radius:var(--r2);background:var(--orange);background:rgba(255,107,53,.08);padding:.75rem;margin-bottom:.75rem;}
-.jury-block h4{color:var(--orange);font-size:.85rem;margin-bottom:.3rem;}
-.jury-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem;}
-.jury-row input{flex:1;min-width:120px;padding:.4rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.8rem;}
+/* 3 colonnes éval */
+.eval-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;margin-left:38px;}
+.eval-col{text-align:center;padding:.2rem;border-radius:4px;font-size:.65rem;font-weight:800;}
+.eval-col.done{background:var(--vert2);color:var(--vert);}
+.eval-col.empty{background:var(--rouge2);color:var(--rouge);}
+.eval-col .lbl{font-size:.55rem;font-weight:700;opacity:.7;display:block;}
 
-/* Compétences */
-.comp-card{background:#fff;border:1px solid var(--gris3);border-radius:var(--r2);padding:.75rem;margin-bottom:.5rem;}
-.comp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;}
-.comp-code{font-weight:900;color:var(--bleu2);font-size:.85rem;}
-.comp-name{font-size:.78rem;color:var(--gris);flex:1;margin-left:.5rem;}
-.comp-obl{color:var(--orange);font-weight:900;}
-.tuteur-niv{font-size:.7rem;background:var(--teal2);color:var(--teal);padding:.1rem .4rem;border-radius:12px;font-weight:800;}
+/* Détail déplié */
+.comp-detail{display:none;padding:.4rem .7rem .6rem;background:var(--gris2);border-top:1px solid var(--gris3);}
+.comp-row.open .comp-detail{display:block;}
+.comp-row.open .comp-head{background:var(--bleu3);}
 
-.niv-row{display:flex;gap:.3rem;flex-wrap:wrap;}
-.niv-btn{padding:.35rem .8rem;border:2px solid var(--gris3);border-radius:var(--r2);background:#fff;font-size:.78rem;font-weight:800;cursor:pointer;transition:all .15s;min-width:44px;text-align:center;}
-.niv-btn:active{transform:scale(.95);}
-.niv-btn.ne.active{background:#e0e0e0;border-color:#999;color:#666;}
-.niv-btn.ec.active{background:#fff3cd;border-color:#856404;color:#856404;}
-.niv-btn.m.active{background:#d4edda;border-color:#155724;color:#155724;}
-.niv-btn.pm.active{background:#cce5ff;border-color:#004085;color:#004085;}
+/* Colonnes header dans le détail */
+.col-header{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.3rem;margin-bottom:.4rem;}
+.col-h{font-size:.7rem;font-weight:900;text-align:center;padding:.3rem;border-radius:var(--r2);color:#fff;}
+.col-h.atelier{background:var(--bleu2);}
+.col-h.stage{background:var(--teal);}
+.col-h.retour{background:var(--orange);}
 
-.obs-area{width:100%;border:1px solid var(--gris3);border-radius:var(--r2);padding:.5rem;font-size:.8rem;resize:vertical;min-height:50px;margin-top:.3rem;font-family:inherit;}
+/* Tâches */
+.tache{font-size:.72rem;padding:.25rem .4rem;background:#fff;border-radius:4px;margin-bottom:.2rem;display:flex;justify-content:space-between;align-items:center;border-left:3px solid var(--gris3);}
+.tache.atelier{border-left-color:var(--bleu2);}
+.tache.stage{border-left-color:var(--teal);}
+.tache.retour{border-left-color:var(--orange);}
+.tache-niv{font-weight:900;font-size:.7rem;padding:.1rem .3rem;border-radius:4px;}
+.niv-NE{background:#e0e0e0;color:#666;}.niv-EC{background:#fff3cd;color:#856404;}.niv-M{background:#d4edda;color:#155724;}.niv-PM{background:#cce5ff;color:#004085;}
 
-/* Boutons */
-.btn{display:inline-flex;align-items:center;gap:.3rem;padding:.6rem 1.2rem;border:none;border-radius:var(--r2);font-weight:800;font-size:.85rem;cursor:pointer;transition:all .15s;}
-.btn:active{transform:scale(.97);}
-.btn-primary{background:var(--vert);color:#fff;}
-.btn-secondary{background:var(--bleu2);color:#fff;}
-.btn-ghost{background:var(--gris2);color:var(--texte);}
+/* Niveau retenu */
+.retenu-row{display:flex;align-items:center;gap:.4rem;margin-top:.5rem;padding-top:.4rem;border-top:2px solid var(--orange);}
+.retenu-row label{font-size:.78rem;font-weight:900;color:var(--orange);}
+.retenu-row select{padding:.3rem .5rem;border:2px solid var(--orange);border-radius:var(--r2);font-weight:800;font-size:.82rem;background:#fff;}
+
+/* Retour stage - éval jury */
+.jury-eval{margin-top:.4rem;padding:.5rem;background:rgba(255,107,53,.06);border-radius:var(--r2);border:1px dashed var(--orange);}
+.jury-eval h5{font-size:.72rem;color:var(--orange);margin-bottom:.3rem;}
+.jury-niv-row{display:flex;gap:.2rem;flex-wrap:wrap;}
+.jury-btn{padding:.25rem .55rem;border:2px solid var(--gris3);border-radius:6px;background:#fff;font-size:.72rem;font-weight:800;cursor:pointer;transition:all .12s;min-width:36px;text-align:center;}
+.jury-btn:active{transform:scale(.95);}
+.jury-btn.active.ne{background:#e0e0e0;border-color:#999;color:#666;}
+.jury-btn.active.ec{background:#fff3cd;border-color:#856404;color:#856404;}
+.jury-btn.active.m{background:#d4edda;border-color:#155724;color:#155724;}
+.jury-btn.active.pm{background:#cce5ff;border-color:#004085;color:#004085;}
+
+/* Jury info */
+.jury-block{background:rgba(255,107,53,.08);border-left:4px solid var(--orange);border-radius:var(--r2);padding:.6rem;margin-bottom:.5rem;}
+.jury-block h4{font-size:.82rem;color:var(--orange);margin-bottom:.3rem;}
+.jury-inputs{display:flex;gap:.4rem;flex-wrap:wrap;}
+.jury-inputs input{flex:1;min-width:100px;padding:.35rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.78rem;}
+
+/* Bouton envoi */
+.send-bar{background:#fff;border-radius:var(--r);padding:.6rem;margin-top:.5rem;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.btn-send{background:var(--vert);color:#fff;border:none;border-radius:var(--r2);padding:.6rem 1.5rem;font-size:.85rem;font-weight:900;cursor:pointer;transition:all .15s;}
+.btn-send:active{transform:scale(.97);}
+.btn-send:disabled{opacity:.4;cursor:not-allowed;}
+
+/* Observation */
+.obs-box{margin-top:.4rem;}
+.obs-box textarea{width:100%;border:1px solid var(--gris3);border-radius:var(--r2);padding:.4rem;font-size:.78rem;resize:vertical;min-height:45px;font-family:inherit;}
 
 /* Toast */
-.toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);padding:.6rem 1.2rem;border-radius:var(--r2);color:#fff;font-weight:700;font-size:.82rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;}
-.toast.show{opacity:1;}
-.toast.ok{background:var(--vert);}
-.toast.err{background:var(--rouge);}
-.toast.warn{background:var(--jaune);}
-
-.empty{text-align:center;padding:2rem;color:var(--gris);font-size:.9rem;}
-.spinner{display:none;text-align:center;padding:1rem;font-size:.85rem;color:var(--gris);}
-.spinner.on{display:block;}
-
-/* Note */
-.note-box{text-align:center;padding:1rem;background:var(--bleu3);border-radius:var(--r);margin-bottom:.75rem;}
-.note-big{font-size:2.2rem;font-weight:900;color:var(--bleu);}
-.note-sub{font-size:.75rem;color:var(--gris);}
+.toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);padding:.55rem 1.2rem;border-radius:var(--r2);color:#fff;font-weight:700;font-size:.8rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}.toast.ok{background:var(--vert);}.toast.err{background:var(--rouge);}.toast.warn{background:var(--jaune);}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div>
-    <h1>&#x2744;&#xFE0F; CCF EP2 — CAP IFCA</h1>
-    <div style="font-size:.65rem;opacity:.7;">Retour de stage &middot; Atelier &middot; PFMP</div>
-  </div>
-  <div>
-    <span class="badge" id="syncBadge">&#x2195; Chargement...</span>
-  </div>
+<div class="hdr">
+  <div><h1>&#x2744;&#xFE0F; EP2 &#x2014; CAP IFCA</h1><div class="hdr-sub">R&eacute;alisation d&#x2019;une installation</div></div>
+  <span class="badge" id="syncBadge">Chargement...</span>
 </div>
 
-<div class="container">
-  <!-- Sélecteur élève -->
-  <div class="sel-row">
-    <select id="selEleve" onchange="selectEleve(this.value)">
-      <option value="">-- Choisir un &eacute;l&egrave;ve --</option>
-    </select>
+<div class="wrap">
+  <!-- VUE 1 : Dashboard élèves -->
+  <div id="dashboard">
+    <div class="dash-grid" id="dashGrid"></div>
   </div>
 
-  <!-- Sous-onglets contexte -->
-  <div class="sub-tabs" id="subTabs">
-    <button class="sub-tab active" data-ctx="atelier" onclick="switchCtx('atelier')">&#x1F527; Atelier</button>
-    <button class="sub-tab" data-ctx="pfmp1" onclick="switchCtx('pfmp1')">&#x1F3ED; PFMP 1</button>
-    <button class="sub-tab" data-ctx="pfmp2" onclick="switchCtx('pfmp2')">&#x1F3ED; PFMP 2</button>
-    <button class="sub-tab retour" data-ctx="retour1" onclick="switchCtx('retour1')">&#x1F4CA; Retour stage 1</button>
-    <button class="sub-tab retour" data-ctx="retour2" onclick="switchCtx('retour2')">&#x1F4CA; Retour stage 2</button>
-  </div>
-
-  <div class="spinner" id="spinner">Chargement des donn&eacute;es...</div>
-
-  <!-- Bloc tuteur (visible seulement en retour stage) -->
-  <div id="tuteurSection" style="display:none;"></div>
-
-  <!-- Bloc jury (visible seulement en retour stage) -->
-  <div id="jurySection" style="display:none;"></div>
-
-  <!-- Grille compétences -->
-  <div id="compGrid"></div>
-
-  <!-- Note calculée -->
-  <div id="noteSection" style="display:none;"></div>
-
-  <!-- Observation globale + bouton -->
-  <div class="card" id="obsCard" style="display:none;">
-    <div class="card-title">&#x1F4DD; Observation globale</div>
-    <textarea class="obs-area" id="obsGlobal" placeholder="Observation du jury sur le retour de stage..."></textarea>
-    <div style="margin-top:.5rem;display:flex;gap:.5rem;justify-content:flex-end;">
-      <button class="btn btn-primary" onclick="validerEval()">&#x2705; Valider et envoyer</button>
+  <!-- VUE 2 : Détail élève -->
+  <div id="detail">
+    <div class="detail-header">
+      <div><div class="detail-nom" id="detailNom"></div><div style="font-size:.7rem;color:var(--gris);" id="detailInfo"></div></div>
+      <button class="btn-back" onclick="showDashboard()">&#x2190; Retour</button>
     </div>
-  </div>
 
-  <!-- Retour prof -->
-  <div style="text-align:center;margin-top:1rem;">
-    <a href="inerweb_prof.html" class="btn btn-ghost">&#x2190; Retour interface prof</a>
+    <!-- Jury (pour retour stage) -->
+    <div class="jury-block" id="juryBlock" style="display:none;">
+      <h4>&#x1F468;&#x200D;&#x2696;&#xFE0F; Jury retour de stage</h4>
+      <div class="jury-inputs">
+        <input id="jPro" placeholder="Prof technique" oninput="jury.pro=this.value">
+        <input id="jFr" placeholder="Prof fran&ccedil;ais / g&eacute;n&eacute;ral" oninput="jury.fr=this.value">
+        <input type="date" id="jDate" oninput="jury.date=this.value">
+      </div>
+    </div>
+
+    <!-- Grille compétences -->
+    <div id="compList"></div>
+
+    <!-- Observation + Envoi -->
+    <div class="send-bar" id="sendBar" style="display:none;">
+      <div class="obs-box"><textarea id="obsGlobal" placeholder="Observation globale du jury..."></textarea></div>
+      <button class="btn-send" onclick="envoyerTout()" id="btnSend">&#x2705; Valider et envoyer au serveur</button>
+    </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script src="js/core/inerweb.config.js"></script>
-<script src="js/core/api.js"></script>
 <script>
 (function(){
 'use strict';
 
 // ═══ CONFIG ═══
-var API_URL='', API_KEY='';
-function initConfig(){
+var API_URL='',API_KEY='';
+function initCfg(){
   try{var s=localStorage.getItem('inerweb-tt-fe-cfg');if(s){var c=JSON.parse(s);API_URL=c.apiUrl||'';API_KEY=c.apiKey||'';}}catch(e){}
   if(!API_URL&&window.INERWEB_CONFIG){API_URL=window.INERWEB_CONFIG.API_URL;API_KEY=window.INERWEB_CONFIG.API_KEY;}
 }
 
 // ═══ STATE ═══
 var students=[];
-var currentCode='';
-var currentCtx='atelier';
-var evalState={}; // {compCode: niveau}
-var juryState={profPro:'',profFr:'',date:''};
-var tuteurEvals={}; // {eleveCode: [{...}]}
+var curCode='';
+var allVals={};    // {eleveCode: [{competence,niveau,contexte,phase,timestamp,evaluateur,...}]}
+var tuteurEvals={}; // {eleveCode: [{competences,comportement,observation,...}]}
+var retourState={}; // {compCode: niveau} — ce que le jury évalue pendant le retour
+var retenuState={}; // {compCode: niveau} — niveau retenu final
+var jury={pro:'',fr:'',date:new Date().toISOString().slice(0,10)};
 
-// ═══ COMPÉTENCES EP2 CAP IFCA ═══
-var COMP_EP2=[
+// ═══ COMPÉTENCES EP2 ═══
+var COMPS=[
+  {code:"C2.1",nom:"Pr\u00e9parer intervention",full:"Pr\u00e9parer son intervention",obl:true,poids:1},
   {code:"C3.1",nom:"Organiser",full:"Organiser son poste de travail",obl:true,poids:1.5},
   {code:"C3.2",nom:"Identifier r\u00e9seaux",full:"Identifier les r\u00e9seaux frigorifiques et a\u00e9rauliques",obl:true,poids:2},
   {code:"C3.3",nom:"Implanter, fixer",full:"Implanter, fixer les supports et \u00e9quipements",obl:true,poids:2},
@@ -188,315 +195,347 @@ var COMP_EP2=[
   {code:"C3.6",nom:"C\u00e2bler, connecter",full:"C\u00e2bler et connecter les \u00e9quipements",obl:true,poids:2},
   {code:"C3.7",nom:"Contr\u00f4les",full:"R\u00e9aliser les contr\u00f4les pr\u00e9alables",obl:true,poids:1.5},
   {code:"C3.8",nom:"Tri d\u00e9chets",full:"Trier et \u00e9vacuer les d\u00e9chets",obl:false,poids:1},
-  {code:"C3.9",nom:"\u00c9tanch\u00e9it\u00e9",full:"Contr\u00f4ler l'\u00e9tanch\u00e9it\u00e9 des circuits",obl:true,poids:2},
-  {code:"C2.1",nom:"Pr\u00e9parer intervention",full:"Pr\u00e9parer son intervention",obl:true,poids:1}
+  {code:"C3.9",nom:"\u00c9tanch\u00e9it\u00e9",full:"Contr\u00f4ler l'\u00e9tanch\u00e9it\u00e9 des circuits",obl:true,poids:2}
 ];
-
-var NIVEAUX=['NE','EC','M','PM'];
-var NIV_CLR={NE:'#e0e0e0',EC:'#fff3cd',M:'#d4edda',PM:'#cce5ff'};
-var COEF_OBL=1.2;
-var BAREME={PM:1.0,M:0.70,EC:0.35,NE:0};
+var NIVS=['NE','EC','M','PM'];
 
 // ═══ HELPERS ═══
-function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+(type||'ok');setTimeout(function(){t.className='toast';},3000);}
-function spinner(on){document.getElementById('spinner').className='spinner'+(on?' on':'');}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function dateFR(iso){if(!iso)return'\u2014';try{return new Date(iso).toLocaleDateString('fr-FR');}catch(e){return String(iso).slice(0,10);}}
+function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast show '+(t||'ok');setTimeout(function(){e.className='toast';},3500);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function dateFR(iso){if(!iso)return'\u2014';try{return new Date(iso).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});}catch(e){return String(iso).slice(0,10);}}
 
 // ═══ API ═══
-async function apiGet(action,params){
-  var url=new URL(API_URL);url.searchParams.set('action',action);url.searchParams.set('key',API_KEY);
-  if(params)Object.entries(params).forEach(function(kv){url.searchParams.set(kv[0],kv[1]);});
-  var r=await fetch(url.toString(),{method:'GET',redirect:'follow'});return r.json();
+async function apiGet(action,p){
+  var u=new URL(API_URL);u.searchParams.set('action',action);u.searchParams.set('key',API_KEY);
+  if(p)Object.entries(p).forEach(function(kv){u.searchParams.set(kv[0],kv[1]);});
+  var r=await fetch(u.toString(),{redirect:'follow'});return r.json();
 }
 async function apiPost(action,body){
-  var url=new URL(API_URL);url.searchParams.set('action',action);
+  var u=new URL(API_URL);u.searchParams.set('action',action);
   body.apiKey=API_KEY;
-  var r=await fetch(url.toString(),{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)});
+  var r=await fetch(u.toString(),{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)});
   return r.json();
 }
 
-// ═══ CHARGEMENT ═══
+// ═══ INIT ═══
 async function init(){
-  initConfig();
-  if(!API_URL){toast('API non configur\u00e9e \u2014 v\u00e9rifiez les param\u00e8tres','err');return;}
-  spinner(true);
+  initCfg();
+  if(!API_URL){toast('API non configur\u00e9e','err');return;}
+  document.getElementById('syncBadge').textContent='Sync...';
   try{
+    // Élèves
     var d=await apiGet('getDashboard');
-    if(Array.isArray(d)&&d.length){
-      students=d;
-      var sel=document.getElementById('selEleve');
-      sel.innerHTML='<option value="">-- Choisir un \u00e9l\u00e8ve --</option>';
-      // Filtrer CAP IFCA
-      d.forEach(function(s){
-        if(s.classe&&(s.classe.indexOf('CAP')>=0||s.classe.indexOf('IFCA')>=0)){
-          var o=document.createElement('option');
-          o.value=s.code;o.textContent=s.nom+' '+(s.prenom||'')+' ('+s.code+')';
-          sel.appendChild(o);
-        }
-      });
-      document.getElementById('syncBadge').textContent='\u2705 '+d.length+' \u00e9l\u00e8ves';
-    }
-    // Charger toutes les évals tuteur
+    if(Array.isArray(d))students=d;
+
+    // Évals tuteur
     var et=await apiGet('getEvalTuteur');
-    if(Array.isArray(et)){
-      et.forEach(function(e){
-        var code=e.eleveCode;if(!code)return;
-        if(!tuteurEvals[code])tuteurEvals[code]=[];
-        tuteurEvals[code].push(e);
+    if(Array.isArray(et))et.forEach(function(e){
+      var c=e.eleveCode;if(!c)return;
+      if(!tuteurEvals[c])tuteurEvals[c]=[];tuteurEvals[c].push(e);
+    });
+
+    // Validations existantes
+    // On charge depuis getValidations pour chaque élève CAP
+    // (optionnel — on peut aussi lire depuis le localStorage du prof)
+    try{
+      var raw=localStorage.getItem('inerweb-tt-fe-v1');
+      if(raw){var p=JSON.parse(raw);if(p.validations)allVals=p.validations;}
+    }catch(e){}
+
+    document.getElementById('syncBadge').textContent='\u2705 '+students.length+' \u00e9l\u00e8ves';
+    renderDashboard();
+  }catch(e){
+    toast('Erreur: '+e.message,'err');
+    document.getElementById('syncBadge').textContent='\u274c Erreur';
+  }
+}
+
+// ═══ VUE 1 : DASHBOARD ═══
+function renderDashboard(){
+  var grid=document.getElementById('dashGrid');
+  // Filtrer CAP IFCA
+  var cap=students.filter(function(s){return s.classe&&(s.classe.indexOf('CAP')>=0||s.classe.indexOf('IFCA')>=0);});
+  if(!cap.length){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--gris);">Aucun \u00e9l\u00e8ve CAP IFCA trouv\u00e9</div>';return;}
+
+  grid.innerHTML=cap.map(function(s){
+    var stats=getCompStats(s.code);
+    var pct=stats.total>0?Math.round(stats.done/stats.total*100):0;
+    var clr=pct>=80?'var(--vert)':pct>=40?'var(--jaune)':'var(--rouge)';
+    return '<div class="eleve-card'+(s.code===curCode?' active':'')+'" onclick="showDetail(\''+s.code+'\')">'+
+      '<div class="eleve-nom">'+esc(s.nom)+' '+esc(s.prenom||'')+'</div>'+
+      '<div class="eleve-code">'+s.code+(s.classe?' \u00b7 '+esc(s.classe):'')+'</div>'+
+      '<canvas class="eleve-radar" id="radar_'+s.code+'"></canvas>'+
+      '<div class="eleve-pct" style="color:'+clr+'">'+pct+'% \u00e9valu\u00e9</div>'+
+    '</div>';
+  }).join('');
+
+  // Dessiner les radars
+  cap.forEach(function(s){drawMiniRadar(s.code);});
+}
+
+function getCompStats(code){
+  var vals=allVals[code]||[];
+  if(!Array.isArray(vals))vals=[];
+  var done=0;
+  COMPS.forEach(function(c){
+    var has=vals.some(function(v){return v.competence===c.code&&v.niveau&&v.niveau!=='NE';});
+    // Aussi chercher dans les évals tuteur
+    if(!has){
+      var te=tuteurEvals[code]||[];
+      te.forEach(function(ev){
+        var comp={};try{comp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{});}catch(e){}
+        var n=comp[c.code];if(n){var niv=typeof n==='object'?n.niveau:n;if(niv&&niv!=='NE')has=true;}
       });
     }
-  }catch(e){toast('Erreur chargement: '+e.message,'err');}
-  spinner(false);
+    if(has)done++;
+  });
+  return {done:done,total:COMPS.length};
 }
 
-// ═══ SÉLECTION ÉLÈVE ═══
-function selectEleve(code){
-  currentCode=code;
-  evalState={};
-  if(!code){document.getElementById('compGrid').innerHTML='<div class="empty">S\u00e9lectionnez un \u00e9l\u00e8ve</div>';return;}
-  render();
+function drawMiniRadar(code){
+  var canvas=document.getElementById('radar_'+code);
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var w=canvas.offsetWidth||160,h=canvas.offsetHeight||80;
+  canvas.width=w*2;canvas.height=h*2;ctx.scale(2,2);
+  var cx=w/2,cy=h/2+2,r=Math.min(w,h)/2-8;
+  var n=COMPS.length;
+  var vals=allVals[code]||[];if(!Array.isArray(vals))vals=[];
+  var nivMap={NE:0,EC:.35,M:.7,PM:1};
+
+  // Fond
+  ctx.beginPath();
+  for(var i=0;i<n;i++){var a=Math.PI*2*i/n-Math.PI/2;ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}
+  ctx.closePath();ctx.fillStyle='rgba(27,58,99,.06)';ctx.fill();ctx.strokeStyle='#ddd';ctx.lineWidth=.5;ctx.stroke();
+
+  // Données
+  ctx.beginPath();
+  for(var i=0;i<n;i++){
+    var c=COMPS[i];
+    var niv=getBestNiv(code,c.code,vals);
+    var v=nivMap[niv]||0;
+    var a=Math.PI*2*i/n-Math.PI/2;
+    ctx.lineTo(cx+r*v*Math.cos(a),cy+r*v*Math.sin(a));
+  }
+  ctx.closePath();ctx.fillStyle='rgba(39,174,96,.2)';ctx.fill();ctx.strokeStyle='#27ae60';ctx.lineWidth=1.5;ctx.stroke();
 }
 
-// ═══ SWITCH CONTEXTE ═══
-function switchCtx(ctx){
-  currentCtx=ctx;
-  evalState={};
-  document.querySelectorAll('.sub-tab').forEach(function(b){b.classList.toggle('active',b.dataset.ctx===ctx);});
-  render();
+function getBestNiv(code,compCode,vals){
+  var order={NE:0,EC:1,M:2,PM:3};
+  var best='NE';
+  // Depuis validations
+  if(Array.isArray(vals))vals.forEach(function(v){
+    if(v.competence===compCode&&v.niveau&&order[v.niveau]>(order[best]||0))best=v.niveau;
+  });
+  // Depuis tuteur
+  (tuteurEvals[code]||[]).forEach(function(ev){
+    var comp={};try{comp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{});}catch(e){}
+    var n=comp[compCode];var niv=typeof n==='object'?n.niveau:n;
+    if(niv&&order[niv]>(order[best]||0))best=niv;
+  });
+  return best;
 }
 
-// ═══ RENDER PRINCIPAL ═══
-function render(){
-  if(!currentCode){document.getElementById('compGrid').innerHTML='';return;}
-  var s=students.find(function(x){return x.code===currentCode;})||{};
-  var isRetour=currentCtx.indexOf('retour')===0;
-  var pfmpIdx=currentCtx==='pfmp1'||currentCtx==='retour1'?0:currentCtx==='pfmp2'||currentCtx==='retour2'?1:-1;
-
-  // Tuteur section (retour stage seulement)
-  var tutSec=document.getElementById('tuteurSection');
-  var jurySec=document.getElementById('jurySection');
-  var noteSec=document.getElementById('noteSection');
-  var obsCard=document.getElementById('obsCard');
-
-  if(isRetour){
-    tutSec.style.display='';tutSec.innerHTML=renderTuteurBlock(currentCode,pfmpIdx);
-    jurySec.style.display='';jurySec.innerHTML=renderJuryBlock();
-    obsCard.style.display='';
-    noteSec.style.display='';noteSec.innerHTML=renderNote();
-  }else{
-    tutSec.style.display='none';jurySec.style.display='none';
-    obsCard.style.display='none';noteSec.style.display='none';
-  }
-
-  // Grille compétences
-  document.getElementById('compGrid').innerHTML=renderCompGrid(currentCode,pfmpIdx,isRetour);
+// ═══ VUE 2 : DÉTAIL ÉLÈVE ═══
+function showDetail(code){
+  curCode=code;
+  retourState={};retenuState={};
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('detail').style.display='';
+  var s=students.find(function(x){return x.code===code;})||{};
+  document.getElementById('detailNom').textContent=(s.nom||'')+' '+(s.prenom||'');
+  document.getElementById('detailInfo').textContent=s.code+' \u00b7 '+(s.classe||'');
+  document.getElementById('jDate').value=jury.date;
+  document.getElementById('juryBlock').style.display='';
+  document.getElementById('sendBar').style.display='';
+  renderCompList(code);
 }
 
-// ═══ RENDER BLOC TUTEUR ═══
-function renderTuteurBlock(code,pfmpIdx){
-  var evals=tuteurEvals[code]||[];
-  if(!evals.length){
-    return '<div class="tuteur-block"><h4>\uD83C\uDFE2 Donn\u00e9es Tuteur &amp; Entreprise</h4><div class="tuteur-line" style="color:var(--gris);font-style:italic;">Aucune \u00e9valuation tuteur re\u00e7ue pour cet \u00e9l\u00e8ve.</div></div>';
-  }
-  // Prendre la plus récente (ou filtrer par PFMP)
-  var ev=evals[evals.length-1];
-  var comp={};try{comp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{});}catch(e){}
-  var behav={};try{behav=typeof ev.comportement==='string'?JSON.parse(ev.comportement):(ev.comportement||{});}catch(e){}
-
-  var html='<div class="tuteur-block">';
-  html+='<h4>\uD83C\uDFE2 Donn\u00e9es Entreprise &amp; Tuteur</h4>';
-  html+='<div class="tuteur-line"><strong>Entreprise :</strong> '+esc(ev.entreprise||'\u2014')+'</div>';
-  html+='<div class="tuteur-line"><strong>Tuteur :</strong> '+esc(ev.tuteur||'\u2014')+'</div>';
-  if(ev.periode)html+='<div class="tuteur-line"><strong>P\u00e9riode :</strong> '+esc(ev.periode)+'</div>';
-  if(ev.timestamp)html+='<div class="tuteur-line"><strong>Date \u00e9val :</strong> '+dateFR(ev.timestamp)+'</div>';
-
-  // Compétences évaluées par le tuteur
-  var compKeys=Object.keys(comp);
-  if(compKeys.length){
-    html+='<div style="margin-top:.4rem;"><strong style="font-size:.78rem;color:var(--teal);">\uD83D\uDCCA \u00c9valuation tuteur :</strong></div>';
-    html+='<div style="margin-top:.2rem;">';
-    compKeys.forEach(function(k){
-      var v=comp[k];var niv=typeof v==='object'?v.niveau:v;
-      if(!niv||niv==='NE')return;
-      html+='<span class="tuteur-comp" style="background:'+NIV_CLR[niv]+';">'+k+' '+niv+'</span>';
-    });
-    html+='</div>';
-  }
-
-  // Comportement
-  var behavKeys=Object.keys(behav);
-  if(behavKeys.length){
-    html+='<div style="margin-top:.4rem;"><strong style="font-size:.78rem;color:var(--teal);">Comportement :</strong></div>';
-    html+='<div style="font-size:.75rem;margin-top:.2rem;">';
-    behavKeys.forEach(function(k){
-      var v=behav[k];
-      html+='<span style="margin-right:.5rem;">'+esc(k)+': <strong>'+esc(v)+'</strong></span>';
-    });
-    html+='</div>';
-  }
-
-  // Observation
-  if(ev.observation){
-    html+='<div style="margin-top:.4rem;font-size:.78rem;font-style:italic;color:var(--texte);background:rgba(255,255,255,.6);padding:.4rem;border-radius:var(--r2);">"'+esc(ev.observation)+'"</div>';
-  }
-
-  html+='</div>';
-  return html;
+function showDashboard(){
+  curCode='';
+  document.getElementById('detail').style.display='none';
+  document.getElementById('dashboard').style.display='';
+  renderDashboard();
 }
 
-// ═══ RENDER BLOC JURY ═══
-function renderJuryBlock(){
-  return '<div class="jury-block">'+
-    '<h4>\uD83D\uDC68\u200D\u2696\uFE0F Jury de retour de stage</h4>'+
-    '<div class="jury-row">'+
-      '<input id="juryProfPro" placeholder="Prof technique (pro)" value="'+esc(juryState.profPro)+'" onchange="juryState.profPro=this.value">'+
-      '<input id="juryProfFr" placeholder="Prof fran\u00e7ais / g\u00e9n\u00e9ral" value="'+esc(juryState.profFr)+'" onchange="juryState.profFr=this.value">'+
-    '</div>'+
-    '<div class="jury-row">'+
-      '<input type="date" id="juryDate" value="'+(juryState.date||new Date().toISOString().slice(0,10))+'" onchange="juryState.date=this.value">'+
-    '</div>'+
-  '</div>';
-}
-
-// ═══ RENDER GRILLE COMPÉTENCES ═══
-function renderCompGrid(code,pfmpIdx,isRetour){
-  // Récupérer les niveaux tuteur pour comparaison
-  var tuteurNivs={};
-  if(isRetour){
-    var evals=tuteurEvals[code]||[];
-    if(evals.length){
-      var ev=evals[evals.length-1];
-      var comp={};try{comp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{});}catch(e){}
-      Object.keys(comp).forEach(function(k){
-        var v=comp[k];tuteurNivs[k]=typeof v==='object'?v.niveau:v;
-      });
-    }
-  }
-
+function renderCompList(code){
+  var vals=allVals[code]||[];if(!Array.isArray(vals))vals=[];
   var html='';
-  COMP_EP2.forEach(function(c){
-    var currentNiv=evalState[c.code]||'';
-    var tutNiv=tuteurNivs[c.code]||'';
 
-    html+='<div class="comp-card">';
-    html+='<div class="comp-head">';
-    html+='<span class="comp-code">'+c.code+'</span>';
-    html+='<span class="comp-name">'+esc(c.full)+(c.obl?' <span class="comp-obl">\u2731</span>':'')+'</span>';
-    if(isRetour&&tutNiv){
-      html+='<span class="tuteur-niv" title="Niveau tuteur">\uD83C\uDFE2 '+tutNiv+'</span>';
-    }
-    html+='</div>';
-
-    // Boutons niveau
-    html+='<div class="niv-row">';
-    NIVEAUX.forEach(function(n){
-      html+='<button class="niv-btn '+n.toLowerCase()+(currentNiv===n?' active':'')+'" onclick="setNiveau(\''+c.code+'\',\''+n+'\')">'+n+'</button>';
+  COMPS.forEach(function(c){
+    // Collecter les évaluations par source
+    var atelierEvals=vals.filter(function(v){return v.competence===c.code&&(v.contexte==='atelier'||v.phase==='formatif'||v.phase==='certificatif')&&v.phase!=='tuteur'&&v.phase!=='retour_stage';});
+    var stageEvals=[];
+    (tuteurEvals[code]||[]).forEach(function(ev){
+      var comp={};try{comp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{});}catch(e){}
+      var n=comp[c.code];var niv=typeof n==='object'?n.niveau:n;
+      if(niv)stageEvals.push({niveau:niv,evaluateur:ev.tuteur||'Tuteur',timestamp:ev.timestamp,entreprise:ev.entreprise||''});
     });
+    var retourEvals=vals.filter(function(v){return v.competence===c.code&&v.phase==='retour_stage';});
+
+    var bestAtelier=bestOf(atelierEvals);
+    var bestStage=stageEvals.length?stageEvals.reduce(function(a,b){return ({'NE':0,'EC':1,'M':2,'PM':3}[b.niveau]||0)>({'NE':0,'EC':1,'M':2,'PM':3}[a.niveau]||0)?b:a;}).niveau:'';
+    var bestRetour=bestOf(retourEvals);
+
+    var totalEvals=atelierEvals.length+stageEvals.length+retourEvals.length;
+    var retourNiv=retourState[c.code]||'';
+
+    html+='<div class="comp-row" id="row_'+c.code+'">';
+
+    // En-tête
+    html+='<div class="comp-head" onclick="toggleComp(\''+c.code+'\')">';
+    html+='<span class="comp-code">'+c.code+'</span>';
+    html+='<span class="comp-name">'+esc(c.nom)+(c.obl?' <span class="comp-obl">\u2731</span>':'')+'</span>';
+    if(totalEvals>0)html+='<span class="comp-count">'+totalEvals+'</span>';
+
+    // 3 colonnes résumé
+    html+='<div class="eval-cols">';
+    html+='<div class="eval-col '+(bestAtelier&&bestAtelier!=='NE'?'done':'empty')+'"><span class="lbl">\uD83D\uDD27</span>'+(bestAtelier||'\u2014')+'</div>';
+    html+='<div class="eval-col '+(bestStage&&bestStage!=='NE'?'done':'empty')+'"><span class="lbl">\uD83C\uDFED</span>'+(bestStage||'\u2014')+'</div>';
+    html+='<div class="eval-col '+(bestRetour&&bestRetour!=='NE'||retourNiv&&retourNiv!=='NE'?'done':'empty')+'"><span class="lbl">\uD83D\uDCCA</span>'+(retourNiv||bestRetour||'\u2014')+'</div>';
     html+='</div>';
 
-    html+='</div>';
-  });
-  return html;
-}
+    html+='</div>'; // fin comp-head
 
-// ═══ RENDER NOTE ═══
-function renderNote(){
-  var totalPts=0,totalPoids=0,evaluated=0;
-  COMP_EP2.forEach(function(c){
-    var niv=evalState[c.code]||'NE';
-    var poids=c.poids;
-    var coef=c.obl?COEF_OBL:1;
-    totalPoids+=poids*coef;
-    if(niv!=='NE'){
-      totalPts+=poids*coef*(BAREME[niv]||0);
-      evaluated++;
+    // Détail (déplié au clic)
+    html+='<div class="comp-detail">';
+
+    // Headers colonnes
+    html+='<div class="col-header"><div class="col-h atelier">\uD83D\uDD27 Atelier</div><div class="col-h stage">\uD83C\uDFED Stage (tuteur)</div><div class="col-h retour">\uD83D\uDCCA Retour stage</div></div>';
+
+    // Tâches atelier
+    html+='<div style="margin-bottom:.3rem;">';
+    if(atelierEvals.length){
+      atelierEvals.forEach(function(v){
+        html+='<div class="tache atelier"><span>'+esc(v.contexte||'atelier')+' \u00b7 '+dateFR(v.timestamp)+' \u00b7 '+esc(v.evaluateur||'')+'</span><span class="tache-niv niv-'+v.niveau+'">'+v.niveau+'</span></div>';
+      });
+    }else{
+      html+='<div style="font-size:.7rem;color:var(--gris);font-style:italic;padding:.2rem;">Pas encore \u00e9valu\u00e9 en atelier</div>';
     }
+    html+='</div>';
+
+    // Tâches stage (tuteur)
+    html+='<div style="margin-bottom:.3rem;">';
+    if(stageEvals.length){
+      stageEvals.forEach(function(v){
+        html+='<div class="tache stage"><span>\uD83C\uDFE2 '+esc(v.entreprise)+' \u00b7 '+esc(v.evaluateur)+' \u00b7 '+dateFR(v.timestamp)+'</span><span class="tache-niv niv-'+v.niveau+'">'+v.niveau+'</span></div>';
+      });
+    }else{
+      html+='<div style="font-size:.7rem;color:var(--gris);font-style:italic;padding:.2rem;">\u00c9val tuteur non re\u00e7ue</div>';
+    }
+    html+='</div>';
+
+    // Retour stage — éval jury
+    html+='<div class="jury-eval"><h5>\uD83D\uDCCA \u00c9valuation jury retour de stage</h5>';
+    html+='<div class="jury-niv-row">';
+    NIVS.forEach(function(n){
+      html+='<button class="jury-btn '+n.toLowerCase()+(retourNiv===n?' active':'')+'" onclick="setRetour(\''+c.code+'\',\''+n+'\')">'+n+'</button>';
+    });
+    html+='</div></div>';
+
+    // Niveau retenu
+    var currentRetenu=retenuState[c.code]||getBestNiv(code,c.code,vals);
+    html+='<div class="retenu-row">';
+    html+='<label>\u27A1 Niveau retenu :</label>';
+    html+='<select onchange="setRetenu(\''+c.code+'\',this.value)">';
+    html+='<option value="">AUTO ('+currentRetenu+')</option>';
+    NIVS.forEach(function(n){html+='<option value="'+n+'"'+(retenuState[c.code]===n?' selected':'')+'>'+n+'</option>';});
+    html+='</select>';
+    html+='</div>';
+
+    html+='</div>'; // fin comp-detail
+    html+='</div>'; // fin comp-row
   });
-  var note=totalPoids>0?(totalPts/totalPoids)*20:0;
-  note=Math.round(note*2)/2;
-  return '<div class="note-box"><div class="note-sub">Note propos\u00e9e EP2 ('+evaluated+'/'+COMP_EP2.length+' comp.)</div><div class="note-big">'+note+' <span style="font-size:1rem;color:var(--gris);">/20</span></div></div>';
+
+  document.getElementById('compList').innerHTML=html;
 }
 
-// ═══ SET NIVEAU ═══
-function setNiveau(compCode,niveau){
-  evalState[compCode]=niveau;
-  render();
+function bestOf(evals){
+  var order={NE:0,EC:1,M:2,PM:3};var best='';
+  evals.forEach(function(v){if(v.niveau&&(order[v.niveau]||0)>(order[best]||0))best=v.niveau;});
+  return best;
 }
 
-// ═══ VALIDER ET ENVOYER ═══
-async function validerEval(){
-  if(!currentCode){toast('Aucun \u00e9l\u00e8ve','err');return;}
-  var comps=Object.keys(evalState).filter(function(k){return evalState[k]&&evalState[k]!=='NE';});
-  if(!comps.length){toast('Aucune comp\u00e9tence \u00e9valu\u00e9e','warn');return;}
+// ═══ INTERACTIONS ═══
+function toggleComp(code){
+  document.getElementById('row_'+code).classList.toggle('open');
+}
+
+function setRetour(code,niv){
+  retourState[code]=niv;
+  renderCompList(curCode);
+}
+
+function setRetenu(code,niv){
+  retenuState[code]=niv;
+}
+
+// ═══ ENVOYER ═══
+async function envoyerTout(){
+  if(!curCode){toast('Aucun \u00e9l\u00e8ve','err');return;}
+  var btn=document.getElementById('btnSend');
+  btn.disabled=true;btn.textContent='Envoi en cours...';
 
   var obs=document.getElementById('obsGlobal').value.trim();
-  var isRetour=currentCtx.indexOf('retour')>=0;
-  var phase=isRetour?'retour_stage':currentCtx.indexOf('pfmp')>=0?'pfmp':'formatif';
-  var evaluateur=(juryState.profPro||'Prof')+(juryState.profFr?' + '+juryState.profFr:'');
-  var errors=0,sent=0;
+  var evaluateur=(jury.pro||'Prof')+(jury.fr?' + '+jury.fr:'');
+  var ts=new Date().toISOString();
+  var sent=0,errors=0;
 
-  // Envoyer chaque compétence individuellement via saveValidation
-  for(var i=0;i<comps.length;i++){
-    var c=comps[i];
+  // Envoyer évals retour stage
+  var codes=Object.keys(retourState).filter(function(k){return retourState[k]&&retourState[k]!=='NE';});
+  for(var i=0;i<codes.length;i++){
     try{
-      await apiPost('saveValidation',{
-        eleve:currentCode,
-        data:{
-          epreuve:'EP2',
-          competence:c,
-          critere:'',
-          niveau:evalState[c],
-          contexte:currentCtx,
-          phase:phase,
-          evaluateur:evaluateur,
-          timestamp:new Date().toISOString(),
-          source:'ccf_ep2_page'
-        }
-      });
-      sent++;
+      await apiPost('saveValidation',{eleve:curCode,data:{
+        epreuve:'EP2',competence:codes[i],critere:'',niveau:retourState[codes[i]],
+        contexte:'retour_stage',phase:'retour_stage',evaluateur:evaluateur,
+        timestamp:ts,source:'ccf_ep2',jury:{pro:jury.pro,fr:jury.fr,date:jury.date}
+      }});sent++;
     }catch(e){errors++;}
   }
 
-  // Envoyer l'observation globale si présente
+  // Envoyer niveaux retenus
+  var retenus=Object.keys(retenuState).filter(function(k){return retenuState[k];});
+  for(var i=0;i<retenus.length;i++){
+    try{
+      await apiPost('saveValidation',{eleve:curCode,data:{
+        epreuve:'EP2',competence:retenus[i],critere:'',niveau:retenuState[retenus[i]],
+        contexte:'niveau_retenu',phase:'certificatif',evaluateur:evaluateur,
+        timestamp:ts,source:'ccf_ep2'
+      }});sent++;
+    }catch(e){errors++;}
+  }
+
+  // Observation globale
   if(obs){
     try{
-      await apiPost('saveValidation',{
-        eleve:currentCode,
-        data:{
-          epreuve:'EP2',
-          competence:'__obs_jury__',
-          critere:'',
-          niveau:'OBS',
-          observation:obs,
-          contexte:currentCtx,
-          phase:phase,
-          evaluateur:evaluateur,
-          jury:{profPro:juryState.profPro,profFr:juryState.profFr,date:juryState.date},
-          timestamp:new Date().toISOString(),
-          source:'ccf_ep2_page'
-        }
-      });
+      await apiPost('saveValidation',{eleve:curCode,data:{
+        epreuve:'EP2',competence:'__obs_jury__',critere:'',niveau:'OBS',
+        observation:obs,contexte:'retour_stage',phase:'retour_stage',
+        evaluateur:evaluateur,timestamp:ts,source:'ccf_ep2',
+        jury:{pro:jury.pro,fr:jury.fr,date:jury.date}
+      }});
     }catch(e){}
   }
 
+  btn.disabled=false;btn.textContent='\u2705 Valider et envoyer au serveur';
+
   if(errors===0){
-    toast('\u2705 '+sent+' comp\u00e9tence(s) enregistr\u00e9e(s) et synchronis\u00e9e(s)','ok');
+    toast('\u2705 '+sent+' \u00e9val(s) envoy\u00e9e(s) et synchronis\u00e9e(s)','ok');
   }else{
-    toast('\u26A0\uFE0F '+sent+' envoy\u00e9e(s), '+errors+' erreur(s)','warn');
+    toast('\u26A0 '+sent+' ok, '+errors+' erreur(s)','warn');
   }
 }
 
-// ═══ EXPOSER ═══
-window.selectEleve=selectEleve;
-window.switchCtx=switchCtx;
-window.setNiveau=setNiveau;
-window.validerEval=validerEval;
-window.juryState=juryState;
+// ═══ EXPOSE ═══
+window.showDetail=showDetail;
+window.showDashboard=showDashboard;
+window.toggleComp=toggleComp;
+window.setRetour=setRetour;
+window.setRetenu=setRetenu;
+window.envoyerTout=envoyerTout;
+window.jury=jury;
 
-// ═══ INIT ═══
 init();
-
 })();
 </script>
 </body>
