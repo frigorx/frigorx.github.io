@@ -1899,6 +1899,49 @@ async function syncAll(){
         if(Array.isArray(jd)&&jd.length>0){if(!pfmpData[sc])pfmpData[sc]={journal:[]};pfmpData[sc].journal=jd;}
       }catch(ej){}
     }
+    // ═══ Récupérer les évaluations tuteur depuis le serveur ═══
+    try{
+      var etUrl=new URL(_url);etUrl.searchParams.set('action','getEvalTuteur');etUrl.searchParams.set('key',_key);
+      var etr=await fetch(etUrl.toString(),{method:'GET',redirect:'follow'});
+      var etd=await etr.json();
+      if(Array.isArray(etd)&&etd.length>0){
+        var nbET=0;
+        etd.forEach(function(ev){
+          if(!ev.eleve)return;
+          var code=ev.eleve;
+          // Injecter dans validations avec phase 'tuteur'
+          if(!validations[code])validations[code]=[];
+          var payload=null;try{payload=typeof ev.data==='string'?JSON.parse(ev.data):ev.data;}catch(e){}
+          var obsEntry={
+            epreuve:'EP2',competence:'__obs_tuteur__',critere:'',
+            niveau:payload&&payload.observation?'OBS':'—',
+            observation:(payload&&payload.observation)||'',
+            evaluateur:(payload&&payload.tuteurNom)||(ev.tuteur||'Tuteur'),
+            entreprise:(payload&&payload.entrepriseData&&payload.entrepriseData.nom)||'',
+            contexte:'pfmp'+(payload&&payload.periode||''),
+            phase:'tuteur',
+            timestamp:ev.timestamp||(payload&&payload.timestamp)||'',
+            _tuteurPayload:payload,
+            source:payload&&payload.source||'tuteur_interface'
+          };
+          // Éviter les doublons (même élève + même timestamp)
+          var isDup=validations[code].some(function(v){return v.competence==='__obs_tuteur__'&&v.timestamp===obsEntry.timestamp;});
+          if(!isDup){validations[code].push(obsEntry);nbET++;}
+          // Injecter aussi les compétences individuelles
+          if(payload&&payload.competences){
+            Object.keys(payload.competences).forEach(function(compCode){
+              var cn=payload.competences[compCode];
+              var niv=typeof cn==='object'?cn.niveau:cn;
+              if(!niv||niv==='NE')return;
+              var compEntry={epreuve:'EP2',competence:compCode,critere:'',niveau:niv,contexte:obsEntry.contexte,phase:'tuteur',evaluateur:obsEntry.evaluateur,timestamp:obsEntry.timestamp,source:obsEntry.source};
+              var isDup2=validations[code].some(function(v){return v.phase==='tuteur'&&v.competence===compCode&&v.timestamp===compEntry.timestamp;});
+              if(!isDup2)validations[code].push(compEntry);
+            });
+          }
+        });
+        if(nbET>0)console.log('[syncAll] '+nbET+' éval(s) tuteur récupérée(s) depuis le serveur');
+      }
+    }catch(ete){console.warn('[syncAll] getEvalTuteur:',ete.message||ete);}
     online=true;saveLocal();setSyncState('ok');updateAll();
     toast('✓ Synchronisé — '+students.length+' élève(s)','ok');
   }catch(e){
