@@ -23,8 +23,13 @@
 body{font-family:'Nunito',sans-serif;color:var(--texte);background:var(--gris2);min-height:100dvh}
 input,select,textarea,button{font-family:inherit}
 /* HEADER */
-.hdr{background:linear-gradient(90deg,var(--bleu2),var(--bleu));color:#fff;padding:.65rem 1rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.hdr{background:linear-gradient(90deg,var(--bleu2),var(--bleu));color:#fff;padding:.55rem .8rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2)}
 .hdr h1{font-size:.95rem;font-weight:900}.hdr-sub{font-size:.6rem;opacity:.7}
+.hdr-title{flex:1;min-width:0}
+.hdr-actions{display:flex;gap:.4rem;align-items:center;flex-shrink:0}
+.hdr-btn{background:var(--orange);color:#fff;border:none;border-radius:var(--r2);padding:.55rem .85rem;font-size:.78rem;font-weight:900;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25);white-space:nowrap;transition:transform .1s}
+.hdr-btn:hover{transform:translateY(-1px)}.hdr-btn:active{transform:scale(.96)}
+.hdr-btn.alt{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.4)}
 .badge{background:rgba(255,255,255,.2);border-radius:20px;padding:.15rem .6rem;font-size:.6rem;font-weight:800}
 .wrap{max-width:900px;margin:0 auto;padding:.75rem}
 /* CARDS ELEVES */
@@ -37,6 +42,11 @@ input,select,textarea,button{font-family:inherit}
 /* DETAIL */
 #detail{display:none}
 .back-btn{background:var(--gris2);border:none;border-radius:var(--r2);padding:.35rem .7rem;font-size:.75rem;font-weight:700;cursor:pointer}
+/* MODE TOGGLE */
+.mode-bar{display:flex;gap:.3rem;align-items:center;margin-bottom:.3rem;background:#fff;padding:.35rem .5rem;border-radius:var(--r);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.mode-btn{background:#fff;border:1.5px solid var(--gris3);border-radius:var(--r2);padding:.35rem .7rem;font-size:.72rem;font-weight:800;cursor:pointer;color:var(--gris);transition:all .1s}
+.mode-btn:hover{border-color:var(--bleu2)}
+.mode-btn.on{background:var(--bleu);color:#fff;border-color:var(--bleu);box-shadow:0 2px 6px rgba(27,58,99,.3)}
 /* TABLE */
 .tbl{width:100%;border-collapse:collapse;font-size:.78rem;background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07)}
 .tbl thead{background:var(--bleu);color:#fff;font-size:.7rem}
@@ -94,18 +104,21 @@ input,select,textarea,button{font-family:inherit}
 </head>
 <body>
 <div class="hdr">
-  <div><h1>&#x2744; EP2 &mdash; R&eacute;alisation d'une installation</h1><div class="hdr-sub">CAP IFCA &mdash; CCF</div></div>
-  <span class="badge" id="badge">Chargement...</span>
+  <div class="hdr-title"><h1>&#x2744; EP2 &mdash; R&eacute;alisation d'une installation</h1><div class="hdr-sub">CAP IFCA &mdash; CCF</div></div>
+  <div class="hdr-actions">
+    <button class="hdr-btn" id="btnBackList" onclick="showDash()" style="display:none">&#x1F465; Liste &eacute;l&egrave;ves</button>
+    <button class="hdr-btn alt" onclick="location.href='inerweb_prof.html'">&#x1F3E0; Tableau prof</button>
+    <span class="badge" id="badge">Chargement...</span>
+  </div>
 </div>
 <div class="wrap">
   <!-- VUE 1: DASHBOARD -->
   <div id="dashboard"><div class="dash" id="dashGrid"></div></div>
   <!-- VUE 2: DETAIL ÉLÈVE -->
   <div id="detail">
-    <!-- EN-TÊTE + RETOUR -->
-    <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:var(--r);padding:.5rem .6rem;margin-bottom:.4rem;box-shadow:0 2px 8px rgba(0,0,0,.06)">
-      <div><div id="dNom" style="font-size:1rem;font-weight:900;color:var(--bleu)"></div><div id="dInfo" style="font-size:.68rem;color:var(--gris)"></div></div>
-      <button class="back-btn" onclick="showDash()">&#x2190; Retour &agrave; la liste</button>
+    <!-- EN-TÊTE ÉLÈVE -->
+    <div style="background:#fff;border-radius:var(--r);padding:.5rem .6rem;margin-bottom:.4rem;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+      <div id="dNom" style="font-size:1rem;font-weight:900;color:var(--bleu)"></div><div id="dInfo" style="font-size:.68rem;color:var(--gris)"></div>
     </div>
 
     <!-- RADAR GRAND (temps réel) + INFOS ENTREPRISE côte à côte -->
@@ -120,6 +133,13 @@ input,select,textarea,button{font-family:inherit}
       </div>
     </div>
 
+    <!-- MODE DE CALCUL DU NIVEAU RETENU -->
+    <div class="mode-bar">
+      <span style="font-size:.7rem;font-weight:800;color:var(--bleu)">Mode calcul :</span>
+      <button id="btnModeMoy" class="mode-btn on" onclick="setMode('moyenne')">&#x1F4CA; Moyenne</button>
+      <button id="btnModeProg" class="mode-btn" onclick="setMode('progression')">&#x1F4C8; Progression</button>
+      <span style="font-size:.6rem;color:var(--gris);margin-left:auto;font-style:italic">m&eacute;moris&eacute; par &eacute;l&egrave;ve &middot; tu peux toujours corriger</span>
+    </div>
     <!-- TABLEAU INTERACTIF — 3 colonnes éditables -->
     <div id="tblWrap"></div>
 
@@ -136,6 +156,8 @@ input,select,textarea,button{font-family:inherit}
       <div id="noteValue" style="font-size:2rem;font-weight:900;color:var(--bleu);">&mdash;</div>
       <div id="noteDetail" style="font-size:.68rem;color:var(--gris);margin:.1rem 0;"></div>
       <div id="noteAlerts" style="font-size:.68rem;margin:.1rem 0;"></div>
+      <button type="button" onclick="var el=document.getElementById('noteBreakdown');el.style.display=el.style.display==='none'?'':'none';this.textContent=el.style.display==='none'?'\uD83D\uDCCA D\u00e9tail du calcul':'\u2716 Masquer le d\u00e9tail';" style="margin-top:.3rem;background:var(--bleu3);color:var(--bleu);border:1.5px solid var(--bleu2);border-radius:var(--r2);padding:.35rem .7rem;font-size:.72rem;font-weight:800;cursor:pointer">&#x1F4CA; D&eacute;tail du calcul</button>
+      <div id="noteBreakdown" style="display:none;margin-top:.4rem;text-align:left;font-size:.68rem"></div>
       <div style="display:flex;align-items:center;justify-content:center;gap:.4rem;margin-top:.2rem;">
         <span style="font-size:.75rem;font-weight:800;color:var(--orange);">Note finale :</span>
         <input type="number" id="noteFinale" min="0" max="20" step="0.5" placeholder="auto" style="width:65px;padding:.25rem;border:2px solid var(--orange);border-radius:var(--r2);font-weight:900;font-size:.95rem;text-align:center;" onchange="noteFinaleChanged(this.value)">
@@ -143,12 +165,19 @@ input,select,textarea,button{font-family:inherit}
       </div>
     </div>
 
-    <!-- GRILLE FRANÇAIS -->
-    <div class="fr-block" style="margin-top:.4rem;"><div class="fr-head"><span>&#x1F4DA; Oral Fran&ccedil;ais</span><span id="frTotal">0/20</span></div>
-      <div style="padding:.4rem .5rem;background:#fff">
-        <div style="margin-bottom:.3rem"><input id="frExam" placeholder="Examinateur fran&ccedil;ais" style="width:100%;padding:.25rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.75rem"></div>
-        <div id="frGrille"></div>
-        <textarea id="frObs" placeholder="Observations prof fran&ccedil;ais..." style="width:100%;border:1px solid var(--gris3);border-radius:var(--r2);padding:.25rem;font-size:.72rem;min-height:30px;resize:vertical;font-family:inherit;margin-top:.2rem"></textarea>
+    <!-- GRILLE FRANÇAIS + NOTE COMPORTEMENT STAGE (côte à côte) -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.4rem">
+      <div class="fr-block" style="margin:0"><div class="fr-head"><span>&#x1F4DA; Oral Fran&ccedil;ais</span><span id="frTotal">0/20</span></div>
+        <div style="padding:.4rem .5rem;background:#fff">
+          <div style="margin-bottom:.3rem"><input id="frExam" placeholder="Examinateur fran&ccedil;ais" style="width:100%;padding:.25rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.75rem"></div>
+          <div id="frGrille"></div>
+          <textarea id="frObs" placeholder="Observations prof fran&ccedil;ais..." style="width:100%;border:1px solid var(--gris3);border-radius:var(--r2);padding:.25rem;font-size:.72rem;min-height:30px;resize:vertical;font-family:inherit;margin-top:.2rem"></textarea>
+        </div>
+      </div>
+      <div class="fr-block" style="margin:0;border-top-color:var(--teal)"><div class="fr-head" style="background:var(--teal)"><span>&#x1F31F; Comportement stage</span><span id="behavTotal">&mdash;/20</span></div>
+        <div id="behavBlock" style="padding:.4rem .5rem;background:#fff;font-size:.7rem">
+          <div style="color:var(--gris);font-style:italic">Aucune &eacute;valuation tuteur re&ccedil;ue</div>
+        </div>
       </div>
     </div>
     <!-- ENVOI -->
@@ -156,7 +185,6 @@ input,select,textarea,button{font-family:inherit}
       <textarea id="obsG" placeholder="Observation globale du jury (technique + fran&ccedil;ais)..."></textarea>
       <button class="btn-send" id="btnSend" onclick="envoyer()">&#x2705; Valider et envoyer au serveur</button>
     </div>
-    <div style="text-align:center;margin-top:.5rem"><a href="inerweb_prof.html" style="color:var(--gris);font-size:.75rem">&#x2190; Retour interface prof</a></div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -177,6 +205,23 @@ var API='',KEY='';
 // ═══ DONNÉES ═══
 var students=[],curCode='',tuteurEvals={},allVals={};
 var retourState={},retenuState={},atelierState={},pfmpState={},frScores={},noteFinaleVal=null;
+var modeRetenu={};   // {codeEleve: 'moyenne'|'progression'} — mémorisé par élève
+var retenuAuto={};   // {codeComp: true} — vrai si retenu auto-proposé (non manuel)
+function getMode(){return modeRetenu[curCode]||'moyenne';}
+function setMode(m){
+  if(!curCode)return;
+  modeRetenu[curCode]=m;
+  // Effacer uniquement les retenus auto-proposés pour laisser proposeRetenu recalculer
+  Object.keys(retenuAuto).forEach(function(k){if(retenuAuto[k]){delete retenuState[k];delete retenuAuto[k];}});
+  updateModeUI();
+  renderTable(curCode);drawDetailRadar();calcNote();
+}
+function updateModeUI(){
+  var m=getMode();
+  var b1=document.getElementById('btnModeMoy'),b2=document.getElementById('btnModeProg');
+  if(b1)b1.className='mode-btn'+(m==='moyenne'?' on':'');
+  if(b2)b2.className='mode-btn'+(m==='progression'?' on':'');
+}
 
 // ═══ COMPÉTENCES EP2 CAP IFCA ═══
 var COMPS=[
@@ -231,6 +276,7 @@ async function init(){
 // ═══ DASHBOARD ═══
 function showDash(){
   curCode='';document.getElementById('detail').style.display='none';document.getElementById('dashboard').style.display='';
+  var b=document.getElementById('btnBackList');if(b)b.style.display='none';
   var cap=students.filter(function(s){return s.classe&&(s.classe.indexOf('CAP')>=0||s.classe.indexOf('IFCA')>=0)});
   if(!cap.length){document.getElementById('dashGrid').innerHTML='<div class="empty">Aucun \u00e9l\u00e8ve CAP IFCA</div>';return}
   var h='';
@@ -282,9 +328,10 @@ function radar(code){
 // ═══ DETAIL ELEVE ═══
 async function showDetail(code){
   try{
-    curCode=code;retourState={};retenuState={};atelierState={};pfmpState={};frScores={};noteFinaleVal=null;
+    curCode=code;retourState={};retenuState={};atelierState={};pfmpState={};frScores={};noteFinaleVal=null;retenuAuto={};
     document.getElementById('dashboard').style.display='none';
     document.getElementById('detail').style.display='block';
+    var b=document.getElementById('btnBackList');if(b)b.style.display='';
     var s=students.find(function(x){return x.code===code})||{};
     document.getElementById('dNom').textContent=(s.nom||'')+' '+(s.prenom||'');
     document.getElementById('dInfo').textContent=s.code+' \u00b7 '+(s.classe||'');
@@ -309,8 +356,10 @@ async function showDetail(code){
     }catch(e){}
     renderTable(code);
     renderEntreprise(code);
+    renderBehav(code);
     drawDetailRadar();
     renderFr();
+    updateModeUI();
     calcNote();
     document.getElementById('noteFinale').value='';
     window.scrollTo(0,0);
@@ -327,7 +376,7 @@ function renderTable(code){
   var h='<table class="tbl"><thead><tr><th>Code</th><th>Comp\u00e9tence</th><th class="c-at">\uD83D\uDD27 Atelier</th><th class="c-st">\uD83C\uDFED Stage</th><th class="c-rt">\uD83D\uDCCA Retour</th><th class="c-ret">\u27A1 Retenu</th></tr></thead><tbody>';
 
   COMPS.forEach(function(c,i){
-    var atV=v.filter(function(x){return x.competence===c.code&&x.phase!=='tuteur'&&x.phase!=='retour_stage'});
+    var atV=v.filter(function(x){return x.competence===c.code&&x.phase!=='tuteur'&&x.phase!=='retour_stage'&&x.phase!=='pfmp'});
     var stV=[];(tuteurEvals[code]||[]).forEach(function(ev){var cp={};try{cp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{})}catch(e){}var n=cp[c.code];var nv=typeof n==='object'?n.niveau:n;if(nv)stV.push({niveau:nv,evaluateur:ev.tuteur||'Tuteur',timestamp:ev.timestamp,entreprise:ev.entreprise||''})});
     var rtV=v.filter(function(x){return x.competence===c.code&&x.phase==='retour_stage'});
     var bA=atelierState[c.code]||best(atV),bS=pfmpState[c.code]||best(stV),bR=retourState[c.code]||best(rtV);
@@ -380,7 +429,7 @@ function cellClick(code,ctx,niv){
   // Si pas dans l'état local, chercher dans les données serveur
   if(!currentDisplayed&&ctx!=='retenu'){
     var v=allVals[curCode]||[];if(Array.isArray(v)){
-      if(ctx==='atelier'){var x=best(v.filter(function(e){return e.competence===code&&e.phase!=='tuteur'&&e.phase!=='retour_stage'}));if(x)currentDisplayed=x}
+      if(ctx==='atelier'){var x=best(v.filter(function(e){return e.competence===code&&e.phase!=='tuteur'&&e.phase!=='retour_stage'&&e.phase!=='pfmp'}));if(x)currentDisplayed=x}
       else if(ctx==='retour'){var x=best(v.filter(function(e){return e.competence===code&&e.phase==='retour_stage'}));if(x)currentDisplayed=x}
     }
     if(!currentDisplayed&&ctx==='pfmp'){(tuteurEvals[curCode]||[]).forEach(function(ev){var cp={};try{cp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{})}catch(e){}var n=cp[code];var nv=typeof n==='object'?n.niveau:n;if(nv)currentDisplayed=nv})}
@@ -390,7 +439,7 @@ function cellClick(code,ctx,niv){
     niv='';
     if(stateMap[ctx])delete stateMap[ctx][code];
     // Marquer comme effacé dans allVals
-    if(allVals[curCode])allVals[curCode]=allVals[curCode].filter(function(e){return !(e.competence===code&&(ctx==='atelier'&&e.phase!=='tuteur'&&e.phase!=='retour_stage'||ctx==='pfmp'&&e.phase==='pfmp'||ctx==='retour'&&e.phase==='retour_stage'))});
+    if(allVals[curCode])allVals[curCode]=allVals[curCode].filter(function(e){return !(e.competence===code&&(ctx==='atelier'&&e.phase!=='tuteur'&&e.phase!=='retour_stage'&&e.phase!=='pfmp'||ctx==='pfmp'&&e.phase==='pfmp'||ctx==='retour'&&e.phase==='retour_stage'))});
   }else{
     if(ctx==='atelier'){atelierState[code]=niv;delete retenuState[code];}
     else if(ctx==='pfmp'){pfmpState[code]=niv;delete retenuState[code];}
@@ -493,6 +542,45 @@ function drawDetailRadar(){
   }
 }
 
+// ═══ NOTE COMPORTEMENT STAGE (6 critères tuteur) ═══
+var BEHAV_DEF=[
+  {key:'ponctualite',ico:'\u23F0',lbl:'Ponctualit\u00e9'},
+  {key:'tenue',ico:'\uD83D\uDC77',lbl:'Tenue/EPI'},
+  {key:'relations',ico:'\uD83E\uDD1D',lbl:'Relations'},
+  {key:'initiative',ico:'\uD83D\uDCA1',lbl:'Initiative'},
+  {key:'consignes',ico:'\uD83D\uDCD6',lbl:'Consignes'},
+  {key:'progression',ico:'\uD83D\uDCC8',lbl:'Progression'}
+];
+function renderBehav(code){
+  var blk=document.getElementById('behavBlock');
+  var tot=document.getElementById('behavTotal');
+  if(!blk||!tot)return;
+  var evals=(tuteurEvals[code]||[]).slice();
+  if(!evals.length){blk.innerHTML='<div style="color:var(--gris);font-style:italic">Aucune \u00e9valuation tuteur re\u00e7ue</div>';tot.textContent='\u2014/20';return}
+  // Dernière évaluation tuteur (par timestamp)
+  evals.sort(function(a,b){return (a.timestamp||'').localeCompare(b.timestamp||'')});
+  var last=evals[evals.length-1];
+  var comp=last.comportement;
+  if(typeof comp==='string'){try{comp=JSON.parse(comp)}catch(e){comp=null}}
+  if(!comp||typeof comp!=='object'){blk.innerHTML='<div style="color:var(--gris);font-style:italic">\u00c9val tuteur re\u00e7ue mais sans comportement renseign\u00e9</div>';tot.textContent='\u2014/20';return}
+  var sum=0,n=0,h='<div style="display:flex;flex-wrap:wrap;gap:.25rem;margin-bottom:.3rem">';
+  BEHAV_DEF.forEach(function(b){
+    var v=comp[b.key];
+    var num=(typeof v==='number')?v:(v&&typeof v.niveau==='number'?v.niveau:parseInt(v,10));
+    if(isNaN(num))num=null;
+    if(num!==null){sum+=num;n++}
+    var clr=num===null?'#e0e0e0':num>=3?'var(--vert)':num>=2?'#d4edda':num>=1?'#fff3cd':'#fde8e6';
+    var txtc=num===null?'#999':num>=2?'#155724':num>=1?'#856404':'#c0392b';
+    h+='<span title="'+b.lbl+'" style="background:'+clr+';color:'+txtc+';padding:.2rem .35rem;border-radius:5px;font-weight:800;font-size:.68rem">'+b.ico+' '+(num===null?'\u2014':num)+'</span>';
+  });
+  h+='</div>';
+  var note=n>0?Math.round((sum/(n*3))*20*10)/10:0;
+  tot.textContent=note.toFixed(1)+'/20';
+  h+='<div style="font-size:.62rem;color:var(--gris);border-top:1px dashed var(--gris3);padding-top:.25rem;margin-top:.2rem">'+n+'/6 crit\u00e8res \u00b7 '+esc(last.tuteur||'Tuteur')+' \u00b7 '+dfr(last.timestamp||'')+'</div>';
+  h+='<div style="font-size:.6rem;color:var(--gris);font-style:italic;margin-top:.15rem">Indicatif \u2014 n\'entre pas dans le calcul EP2</div>';
+  blk.innerHTML=h;
+}
+
 function renderEntreprise(code){
   var el=document.getElementById('entrepriseInfo');
   var s=students.find(function(x){return x.code===code})||{};
@@ -552,7 +640,7 @@ function renderEvalGrid(){
     var curNiv=state[c.code]||'';
     // Meilleur niveau existant pour ce contexte
     var existing='';
-    if(curMode==='atelier'){var x=v.filter(function(e){return e.competence===c.code&&e.phase!=='tuteur'&&e.phase!=='retour_stage'});if(x.length)existing=best(x)}
+    if(curMode==='atelier'){var x=v.filter(function(e){return e.competence===c.code&&e.phase!=='tuteur'&&e.phase!=='retour_stage'&&e.phase!=='pfmp'});if(x.length)existing=best(x)}
     else if(curMode==='pfmp'){(tuteurEvals[curCode]||[]).forEach(function(ev){var cp={};try{cp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{})}catch(e){}var n=cp[c.code];var nv=typeof n==='object'?n.niveau:n;if(nv&&(!existing||{NE:0,EC:1,M:2,PM:3}[nv]>{NE:0,EC:1,M:2,PM:3}[existing]))existing=nv})}
     else{var x=v.filter(function(e){return e.competence===c.code&&e.phase==='retour_stage'});if(x.length)existing=best(x)}
 
@@ -582,35 +670,65 @@ function setEval(code,niv){
 function setAtelier(code,niv){atelierState[code]=niv;renderEvalGrid();renderTable(curCode);calcNote()}
 function setPfmp(code,niv){pfmpState[code]=niv;renderTable(curCode);calcNote()}
 function setRetour(code,niv){retourState[code]=niv;renderTable(curCode);calcNote()}
-function setRetenu(code,niv){retenuState[code]=niv;calcNote()}
+function setRetenu(code,niv){retenuState[code]=niv;delete retenuAuto[code];calcNote()}
 function retenuChanged(sel,code){setRetenu(code,sel.value);var c=NIV_CLR[sel.value]||'#fff';var t=NIV_TXT[sel.value]||'#666';sel.style.background=c;sel.style.color=t}
 function noteFinaleChanged(v){noteFinaleVal=v?parseFloat(v):null}
 
-// ═══ CALCUL NOTE PROPOSÉE ═══
-// ═══ PROPOSITION INTELLIGENTE DU NIVEAU RETENU ═══
-// Règle académique : on retient le MEILLEUR niveau constaté.
-// Si le retour de stage (jury) est évalué, il prime (évaluation certificative).
-// Si 2 contextes sur 3 donnent le même niveau = forte confiance.
+// ═══ PROPOSITION COTE MAL TAILLÉE — 2 modes (moyenne / progression) ═══
+// 1. Retour de stage (jury) prime toujours (certificatif)
+// 2. Sinon : calcul selon le mode choisi pour l'élève
+//    - 'moyenne'     : moyenne simple de toutes observations, ceil
+//    - 'progression' : moyenne pondérée (récentes ×2, anciennes ×1), ceil
+// Prof reste maître : colonne "Retenu" écrase la proposition.
 function proposeRetenu(code){
   var o={NE:0,EC:1,M:2,PM:3};
-  var a=atelierState[code]||'';
-  var s=pfmpState[code]||'';
-  var r=retourState[code]||'';
-  // Aussi prendre en compte les données serveur
+  var lbl=['NE','EC','M','PM'];
   var v=allVals[curCode]||[];if(!Array.isArray(v))v=[];
-  if(!a){var x=best(v.filter(function(e){return e.competence===code&&e.phase!=='tuteur'&&e.phase!=='retour_stage'}));if(x)a=x}
-  if(!s){(tuteurEvals[curCode]||[]).forEach(function(ev){var cp={};try{cp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{})}catch(e){}var n=cp[code];var nv=typeof n==='object'?n.niveau:n;if(nv&&(o[nv]||0)>(o[s]||0))s=nv})}
+
+  // Priorité absolue : retour de stage (jury)
+  var r=retourState[code]||'';
   if(!r){var x=best(v.filter(function(e){return e.competence===code&&e.phase==='retour_stage'}));if(x)r=x}
-
-  var nivs=[a,s,r].filter(function(n){return n&&n!=='NE'});
-  if(!nivs.length)return '';
-
-  // Priorité 1: si retour stage évalué (certificatif, jury), il prime
   if(r&&r!=='NE')return r;
-  // Priorité 2: si 2/3 identiques = retenir ce niveau
-  if(a&&s&&a===s)return a;
-  // Priorité 3: meilleur niveau
-  return nivs.reduce(function(best,n){return (o[n]||0)>(o[best]||0)?n:best});
+
+  var mode=getMode();
+
+  // ─── MODE PROGRESSION : tri chronologique + poids linéaire 1→2 ───
+  if(mode==='progression'){
+    var obs=[];
+    v.filter(function(e){return e.competence===code&&(e.phase==='formatif'||e.phase==='pfmp')&&e.niveau&&e.niveau!=='NE'&&o[e.niveau]!=null})
+      .forEach(function(e){obs.push({val:o[e.niveau],ts:e.timestamp||''})});
+    (tuteurEvals[curCode]||[]).forEach(function(ev){
+      var cp={};try{cp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{})}catch(e){}
+      var n=cp[code];var nv=typeof n==='object'?n.niveau:n;
+      if(nv&&nv!=='NE'&&o[nv]!=null)obs.push({val:o[nv],ts:ev.timestamp||''});
+    });
+    if(!obs.length)return '';
+    obs.sort(function(a,b){return (a.ts||'').localeCompare(b.ts||'')});
+    var n=obs.length;
+    if(n===1){var i1=Math.ceil(obs[0].val);return lbl[Math.max(1,Math.min(3,i1))]}
+    var s=0,ws=0;
+    obs.forEach(function(ob,i){var w=1+i/(n-1);s+=w*ob.val;ws+=w});
+    var idxP=Math.ceil(s/ws);
+    if(idxP<1)idxP=1;if(idxP>3)idxP=3;
+    return lbl[idxP];
+  }
+
+  // ─── MODE MOYENNE SIMPLE ───
+  var vals=[];
+  function push(n){if(n&&n!=='NE'&&o[n]!=null)vals.push(o[n])}
+  if(atelierState[code])push(atelierState[code]);
+  else v.filter(function(e){return e.competence===code&&e.phase!=='tuteur'&&e.phase!=='retour_stage'&&e.phase!=='pfmp'}).forEach(function(e){push(e.niveau)});
+  if(pfmpState[code])push(pfmpState[code]);
+  else{
+    v.filter(function(e){return e.competence===code&&e.phase==='pfmp'}).forEach(function(e){push(e.niveau)});
+    (tuteurEvals[curCode]||[]).forEach(function(ev){var cp={};try{cp=typeof ev.competences==='string'?JSON.parse(ev.competences):(ev.competences||{})}catch(e){}var n=cp[code];var nv=typeof n==='object'?n.niveau:n;push(nv)});
+  }
+  if(!vals.length)return '';
+  var sum=0;vals.forEach(function(x){sum+=x});
+  var mean=sum/vals.length;
+  var idx=Math.ceil(mean);
+  if(idx<1)idx=1;if(idx>3)idx=3;
+  return lbl[idx];
 }
 
 function calcNote(){
@@ -618,20 +736,25 @@ function calcNote(){
   var BAREME={PM:1.0,M:0.70,EC:0.35,NA:0,NE:0};
   var COEF_OBL=1.2;
   var totalPts=0,totalPoids=0,evaluated=0,alerts=[];
+  var rows=[];
 
   COMPS.forEach(function(c){
     // Auto-proposer le retenu si pas déjà fixé manuellement
     if(!retenuState[c.code]){
       var prop=proposeRetenu(c.code);
-      if(prop)retenuState[c.code]=prop;
+      if(prop){retenuState[c.code]=prop;retenuAuto[c.code]=true;}
     }
     var niv=retenuState[c.code]||'';
     var poids=c.poids;var coef=c.obl?COEF_OBL:1;
-    totalPoids+=poids*coef;
-    if(niv&&niv!=='NE'){totalPts+=poids*coef*(BAREME[niv]||0);evaluated++}
-    else if(niv==='NA'){evaluated++} // NA = évalué mais 0 points
+    var poidsEff=poids*coef;
+    var bar=BAREME[niv]||0;
+    var ptsObt=(niv&&niv!=='NE')?poidsEff*bar:0;
+    totalPoids+=poidsEff;
+    if(niv&&niv!=='NE'){totalPts+=ptsObt;evaluated++}
+    else if(niv==='NA'){evaluated++}
     if(c.obl&&(!niv||niv==='NE'))alerts.push(c.code+' non \u00e9valu\u00e9e');
     if(c.obl&&niv==='EC')alerts.push(c.code+' EC \u2014 comp. obligatoire');
+    rows.push({code:c.code,nom:c.nom,obl:c.obl,niv:niv,poids:poids,coef:coef,poidsEff:poidsEff,bar:bar,ptsObt:ptsObt});
   });
 
   var note=totalPoids>0?(totalPts/totalPoids)*20:0;
@@ -649,6 +772,46 @@ function calcNote(){
   document.getElementById('noteAlerts').innerHTML=ah;
   if(!noteFinaleVal)document.getElementById('noteFinale').placeholder=note;
 
+  // ═══ Tableau détail du calcul ═══
+  var bd=document.getElementById('noteBreakdown');
+  if(bd){
+    var bh='<div style="background:var(--bleu3);padding:.35rem .5rem;border-radius:var(--r2);margin-bottom:.3rem;font-weight:800;color:var(--bleu);font-size:.7rem">Bar&egrave;me : PM=1.00 &middot; M=0.70 &middot; EC=0.35 &middot; NA/NE=0 &nbsp;|&nbsp; Coef obligatoire (&#x2731;) = &times;1.2</div>';
+    bh+='<table style="width:100%;border-collapse:collapse;font-size:.66rem;background:#fff;border-radius:var(--r2);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)">';
+    bh+='<thead style="background:var(--bleu);color:#fff;font-size:.62rem"><tr>'
+      +'<th style="padding:.3rem .25rem;text-align:left">Code</th>'
+      +'<th style="padding:.3rem .25rem;text-align:left">Comp&eacute;tence</th>'
+      +'<th style="padding:.3rem .2rem">Niv.</th>'
+      +'<th style="padding:.3rem .2rem">Poids</th>'
+      +'<th style="padding:.3rem .2rem">Coef</th>'
+      +'<th style="padding:.3rem .2rem">Bar&egrave;me</th>'
+      +'<th style="padding:.3rem .2rem">Pts obt.</th>'
+      +'<th style="padding:.3rem .2rem">Pts max</th>'
+      +'</tr></thead><tbody>';
+    rows.forEach(function(r,i){
+      var bg=i%2===0?'#fff':'#f9fafb';
+      var nivHtml=r.niv?'<span class="niv niv-'+r.niv+'">'+r.niv+'</span>':'<span style="color:var(--rouge)">NE</span>';
+      var malus=(r.obl&&(!r.niv||r.niv==='NE'||r.niv==='EC'))?' style="background:#fde8e6"':' style="background:'+bg+'"';
+      bh+='<tr'+malus+'>'
+        +'<td style="padding:.25rem;font-weight:900;color:var(--bleu2)">'+r.code+(r.obl?' <span style="color:var(--orange)">\u2731</span>':'')+'</td>'
+        +'<td style="padding:.25rem">'+esc(r.nom)+'</td>'
+        +'<td style="padding:.25rem;text-align:center">'+nivHtml+'</td>'
+        +'<td style="padding:.25rem;text-align:center">'+r.poids+'</td>'
+        +'<td style="padding:.25rem;text-align:center">'+(r.obl?'\u00d71.2':'\u00d71')+'</td>'
+        +'<td style="padding:.25rem;text-align:center">'+r.bar.toFixed(2)+'</td>'
+        +'<td style="padding:.25rem;text-align:center;font-weight:800;color:var(--vert)">'+r.ptsObt.toFixed(2)+'</td>'
+        +'<td style="padding:.25rem;text-align:center;color:var(--gris)">'+r.poidsEff.toFixed(2)+'</td>'
+        +'</tr>';
+    });
+    bh+='<tr style="background:var(--bleu);color:#fff;font-weight:900">'
+      +'<td colspan="6" style="padding:.35rem;text-align:right">TOTAL</td>'
+      +'<td style="padding:.35rem;text-align:center">'+totalPts.toFixed(2)+'</td>'
+      +'<td style="padding:.35rem;text-align:center">'+totalPoids.toFixed(2)+'</td>'
+      +'</tr>';
+    bh+='</tbody></table>';
+    bh+='<div style="margin-top:.35rem;padding:.4rem .5rem;background:var(--vert2);border-left:3px solid var(--vert);border-radius:var(--r2);font-size:.72rem;font-weight:800;color:var(--bleu)">Note = '+totalPts.toFixed(2)+' &divide; '+totalPoids.toFixed(2)+' &times; 20 = <span style="color:var(--vert);font-size:.85rem">'+note+'/20</span> <span style="font-weight:400;color:var(--gris);font-size:.65rem">(arrondi au 0.5)</span></div>';
+    bh+='<div style="margin-top:.25rem;font-size:.62rem;color:var(--gris);font-style:italic">Lignes ros&eacute;es = comp. obligatoire non acquise (alerte). Niveau retenu = meilleur niveau observ&eacute;, sauf si jury retour de stage \u00e9valu\u00e9 (qui prime).</div>';
+    bd.innerHTML=bh;
+  }
 }
 
 // ═══ FRANÇAIS ═══
@@ -723,7 +886,7 @@ window.showDash=showDash;window.showDetail=showDetail;window.toggle=toggle;
 window.cellClick=cellClick;
 window.setAtelier=setAtelier;window.setPfmp=setPfmp;window.setRetour=setRetour;
 window.setRetenu=setRetenu;window.retenuChanged=retenuChanged;window.noteFinaleChanged=noteFinaleChanged;
-window.setFr=setFr;window.envoyer=envoyer;
+window.setFr=setFr;window.envoyer=envoyer;window.setMode=setMode;
 
 // ═══ GO ═══
 init();
