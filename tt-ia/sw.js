@@ -1,5 +1,5 @@
-// inerWeb — Service Worker principal v7.10
-const CACHE_NAME = 'inerweb-v7.10';
+// inerWeb — Service Worker principal v7.11 (PV oral français + chips niveaux)
+const CACHE_NAME = 'inerweb-v7.11';
 const ASSETS = [
   './',
   './index.html',
