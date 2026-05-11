@@ -116,10 +116,10 @@ body.show-app #screen-app{display:flex;}
 .main-content{flex:1;overflow-y:auto;padding-bottom:1rem;}
 .tab-pane{display:none;}.tab-pane.active{display:block;}
 .tab-inner{max-width:900px;margin:0 auto;padding:1.25rem 1rem;}
-/* Rapport de stage : 2 colonnes côte à côte sur grand écran (>=1100px) */
-#tab-rapport .tab-inner{max-width:1400px;}
+/* Rapport de stage : layout large + 2 colonnes côte à côte (>=1100px) */
+#tab-rapport .tab-inner{max-width:1600px;}
 .rapport-2col{display:grid;grid-template-columns:1fr;gap:.75rem;margin-bottom:.6rem;}
-@media (min-width:1100px){.rapport-2col{grid-template-columns:1fr 1fr;align-items:start;}}
+@media (min-width:1100px){.rapport-2col{grid-template-columns:5fr 7fr;align-items:start;}}
 .rapport-2col>.card{margin-bottom:0;}
 
 /* [4] Header + nav bas */
@@ -3918,6 +3918,8 @@ function renderRapport(){
           oninput="rapportData['${cur}']['${pfmp}'].obs_pro=this.value">${esc(d.obs_pro||'')}</textarea>
       </div>
     </div>
+    ${renderRapportEP2(d,pfmp,s)}
+    </div>
     <div class="card" style="border-top:3px solid var(--violet)">
       <div class="card-title" style="color:var(--violet)">📖 Évaluation orale — Rapport de stage</div>
       <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.75rem;flex-wrap:wrap">
@@ -3942,8 +3944,6 @@ function renderRapport(){
           oninput="rapportData['${cur}']['${pfmp}'].obs_fr=this.value">${esc(d.obs_fr||'')}</textarea>
       </div>
     </div>
-    </div>
-    ${renderRapportEP2(d,pfmp,s)}
     <button class="btn btn-teal" onclick="sauverRapport()" style="margin-bottom:1rem">💾 Enregistrer l'évaluation rapport</button>`;
 }
 
@@ -3953,6 +3953,24 @@ const NIV_EP2_LBL={NE:'Non évaluable',NA:'Non acquis',EC:'En cours',M:'Maîtris
 const NIV_EP2_COL={NE:'#888',NA:'#c0392b',EC:'#e67e22',M:'#27ae60',PM:'#1b3a63'};
 const NIV_EP2_BG ={NE:'#f0f0f0',NA:'#fde8e6',EC:'#fff3ee',M:'#d4f4e2',PM:'#e8f0f8'};
 
+// Récupère l'évaluation tuteur la plus récente pour une compétence donnée
+function getTuteurEval(eleveCode,compCode,pfmp){
+  const vals=validations[eleveCode]||[];
+  // Le tuteur saisit avec phase='tuteur' et contexte='pfmp1' ou 'pfmp2'
+  const matches=vals.filter(v=>v.epreuve==='EP2'&&v.competence===compCode&&(v.phase==='tuteur'||v.source==='tuteur')&&(v.contexte===pfmp||!v.contexte));
+  if(!matches.length)return null;
+  matches.sort((a,b)=>String(b.timestamp||'').localeCompare(String(a.timestamp||'')));
+  return matches[0];
+}
+// Récupère l'évaluation certificative existante (déjà sauvée par le prof)
+function getProfCertif(eleveCode,compCode,pfmp){
+  const vals=validations[eleveCode]||[];
+  const matches=vals.filter(v=>v.epreuve==='EP2'&&v.competence===compCode&&(v.source==='prof_stage_certif'||v.phase==='certificatif')&&(v.contexte===pfmp||!v.contexte));
+  if(!matches.length)return null;
+  matches.sort((a,b)=>String(b.timestamp||'').localeCompare(String(a.timestamp||'')));
+  return matches[0];
+}
+
 function renderRapportEP2(d,pfmp,s){
   if(!d.ep2)d.ep2={};
   // Filtrer les compétences EP2 valables pour ce pfmp (depuis COMP_EP2 + CRIT_EP2)
@@ -3961,47 +3979,76 @@ function renderRapportEP2(d,pfmp,s){
   if(!comps.length)return '';
 
   const compsHtml=comps.map(c=>{
-    const ev=d.ep2[c.code]||{niveau:'NE',taches:{},obs:''};
-    const niv=ev.niveau||'NE';
+    // Évaluation locale (en cours de saisie)
+    let ev=d.ep2[c.code]||{niveau:'',taches:{},obs:''};
+    // Pré-remplir depuis la certif déjà au Sheet si pas encore en cours
+    if(!ev.niveau||ev.niveau==='NE'){
+      const certif=getProfCertif(cur,c.code,pfmp);
+      if(certif&&certif.niveau){ev.niveau=certif.niveau;d.ep2[c.code]=ev;}
+    }
+    const niv=ev.niveau||'';
     const taches=(typeof CRIT_EP2!=='undefined'&&CRIT_EP2[c.code]&&CRIT_EP2[c.code][pfmp])||[];
+
+    // Évaluation tuteur (lecture seule, en référence)
+    const tuteur=getTuteurEval(cur,c.code,pfmp);
+    const nivTuteur=tuteur?tuteur.niveau:null;
 
     const tachesHtml=taches.map((t,i)=>{
       const v=ev.taches?.[i];
       const stateClass=v===1?'background:#d4f4e2;border-color:#27ae60;':v===0?'background:#fde8e6;border-color:#c0392b;':'background:#f7f7f7;border-color:#ddd;';
       return `<div onclick="setEp2Tache('${c.code}',${i})"
-        style="display:flex;align-items:center;gap:.5rem;padding:.35rem .55rem;border:2px solid transparent;border-radius:var(--r2);${stateClass};cursor:pointer;margin-bottom:.2rem;font-size:.78rem;font-weight:600">
-        <span style="font-size:1.05rem;">${v===1?'✅':v===0?'❌':'⬜'}</span>
+        style="display:flex;align-items:center;gap:.5rem;padding:.32rem .5rem;border:2px solid transparent;border-radius:var(--r2);${stateClass};cursor:pointer;margin-bottom:.18rem;font-size:.74rem;font-weight:600">
+        <span style="font-size:1rem;">${v===1?'✅':v===0?'❌':'⬜'}</span>
         <span style="flex:1;line-height:1.25">${esc(t)}</span>
       </div>`;
     }).join('');
 
-    const nivBtns=NIV_EP2.map(n=>`
-      <button type="button" onclick="setEp2Lv('${c.code}','${n}')"
-        style="flex:1;padding:.4rem .2rem;border:2px solid ${niv===n?NIV_EP2_COL[n]:'transparent'};border-radius:var(--r2);background:${niv===n?NIV_EP2_COL[n]:NIV_EP2_BG[n]};color:${niv===n?'#fff':NIV_EP2_COL[n]};font-weight:900;font-size:.75rem;cursor:pointer;transition:var(--t)"
-        title="${NIV_EP2_LBL[n]}">${n}</button>
-    `).join('');
+    // Bandeau tuteur — niveau attribué par le tuteur (lecture seule)
+    const tuteurBlock=nivTuteur?`
+      <div style="background:#fff8e1;border:1px dashed #d4a017;border-radius:var(--r2);padding:.35rem .55rem;margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem;font-size:.72rem">
+        <span style="font-weight:800;color:#a07e00">👷 Tuteur</span>
+        <span style="font-weight:900;color:${NIV_EP2_COL[nivTuteur]||'#666'};background:${NIV_EP2_BG[nivTuteur]||'#fff'};padding:.05rem .4rem;border-radius:8px">${nivTuteur}</span>
+        ${tuteur.evaluateur?`<span style="color:var(--gris)">— ${esc(tuteur.evaluateur)}</span>`:''}
+        ${tuteur.observation?`<span style="color:var(--gris);font-style:italic;flex:1;overflow:hidden;text-overflow:ellipsis">"${esc(tuteur.observation).substring(0,80)}"</span>`:''}
+      </div>`:'';
 
-    return `<div style="background:#fff;border-radius:var(--r2);padding:.65rem .75rem;margin-bottom:.5rem;border-left:3px solid ${NIV_EP2_COL[niv]||'#ccc'}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem;margin-bottom:.45rem">
-        <div style="flex:1">
-          <div style="font-size:.82rem;font-weight:800;color:var(--bleu)">${c.code} — ${esc(c.nom)} ${c.obl?'<span style="font-size:.65rem;color:#c0392b;font-weight:700">●obligatoire</span>':''}</div>
-          <div style="font-size:.7rem;color:var(--gris);line-height:1.3">${esc(c.full||'')}</div>
+    const nivBtns=NIV_EP2.map(n=>{
+      const sel=niv===n;
+      const diff=nivTuteur&&nivTuteur!==niv&&sel;
+      return `<button type="button" onclick="setEp2Lv('${c.code}','${n}')"
+        style="flex:1;padding:.35rem .15rem;border:2px solid ${sel?NIV_EP2_COL[n]:'transparent'};border-radius:var(--r2);background:${sel?NIV_EP2_COL[n]:NIV_EP2_BG[n]};color:${sel?'#fff':NIV_EP2_COL[n]};font-weight:900;font-size:.72rem;cursor:pointer;transition:var(--t);position:relative"
+        title="${NIV_EP2_LBL[n]}">${n}${diff?'<span style="position:absolute;top:-3px;right:-3px;font-size:.55rem;background:#fff;color:#c0392b;border-radius:50%;width:11px;height:11px;line-height:11px;text-align:center;border:1px solid #c0392b">↻</span>':''}</button>`;
+    }).join('');
+
+    return `<div style="background:#fff;border-radius:var(--r2);padding:.55rem .65rem;margin-bottom:.45rem;border-left:3px solid ${niv?NIV_EP2_COL[niv]:'#ccc'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.4rem;margin-bottom:.35rem">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.78rem;font-weight:800;color:var(--bleu)">${c.code} — ${esc(c.nom)} ${c.obl?'<span style="font-size:.6rem;color:#c0392b;font-weight:700">●obl</span>':''}</div>
+          <div style="font-size:.66rem;color:var(--gris);line-height:1.3">${esc(c.full||'')}</div>
         </div>
-        <div style="font-size:.95rem;font-weight:900;color:${NIV_EP2_COL[niv]};background:${NIV_EP2_BG[niv]};padding:.15rem .55rem;border-radius:var(--r2)">${niv}</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.15rem;flex-shrink:0">
+          <div style="font-size:.6rem;color:var(--gris);font-weight:700;text-transform:uppercase;letter-spacing:.3px">Ma décision</div>
+          <div style="font-size:.85rem;font-weight:900;color:${niv?NIV_EP2_COL[niv]:'#aaa'};background:${niv?NIV_EP2_BG[niv]:'#f5f5f5'};padding:.1rem .5rem;border-radius:var(--r2);min-width:2rem;text-align:center">${niv||'—'}</div>
+        </div>
       </div>
-      ${taches.length?`<div style="margin-bottom:.45rem">${tachesHtml}</div>`:''}
-      <div style="display:flex;gap:.25rem">${nivBtns}</div>
-      <div style="margin-top:.4rem">
-        <input type="text" placeholder="Observation libre…" value="${esc(ev.obs||'')}"
+      ${tuteurBlock}
+      ${taches.length?`<div style="margin-bottom:.4rem">${tachesHtml}</div>`:''}
+      <div style="display:flex;gap:.2rem">${nivBtns}</div>
+      <div style="margin-top:.35rem">
+        <input type="text" placeholder="Observation prof (certificative)…" value="${esc(ev.obs||'')}"
           oninput="setEp2Obs('${c.code}',this.value)"
-          style="width:100%;padding:.3rem .5rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.72rem">
+          style="width:100%;padding:.28rem .5rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.7rem">
       </div>
     </div>`;
   }).join('');
 
+  // Compte le nombre de compétences évaluées par le tuteur sur ce pfmp
+  const nbTuteur=comps.filter(c=>getTuteurEval(cur,c.code,pfmp)).length;
+  const tuteurInfo=nbTuteur?`<span style="font-size:.7rem;background:#fff8e1;color:#a07e00;padding:.1rem .45rem;border-radius:10px;font-weight:700;margin-left:.5rem">👷 ${nbTuteur} éval tuteur</span>`:'<span style="font-size:.7rem;color:var(--gris);margin-left:.5rem">(aucune éval tuteur reçue)</span>';
+
   return `<div class="card" style="border-top:3px solid var(--orange)">
-    <div class="card-title" style="color:var(--orange)">🛠️ Compétences EP2 — observées pendant le stage (${pfmp.toUpperCase()})</div>
-    <div style="font-size:.72rem;color:var(--gris);margin-bottom:.6rem">Cochez les tâches réalisées sur chantier puis attribuez un niveau global pour chaque compétence. Les évaluations remontent dans la base CCF EP2.</div>
+    <div class="card-title" style="color:var(--orange)">🛠️ Compétences EP2 — Décision certificative ${tuteurInfo}</div>
+    <div style="font-size:.7rem;color:var(--gris);margin-bottom:.55rem">L'avis du tuteur s'affiche en jaune. Vous attribuez votre niveau définitif (devient certificatif). Le badge <span style="color:#c0392b;font-weight:700">↻</span> signale une décision différente du tuteur.</div>
     ${compsHtml}
   </div>`;
 }
@@ -4048,18 +4095,26 @@ function _ep2Push(compCode,critere,niveau,pfmp){
   // Empiler dans la file pending standard (retry auto + sendBeacon)
   const pendingKey='inerweb-prof-pending-validations';
   let pending=[];try{pending=JSON.parse(localStorage.getItem(pendingKey)||'[]');}catch(_){}
-  pending.push({eleve:cur,data:{
+  const ts=new Date().toISOString();
+  const evaluateur=(cfg&&cfg.nomProf)||'F. Henninot';
+  const data={
     epreuve:'EP2',
     competence:compCode,
     critere:critere||'',
     niveau:String(niveau),
     contexte:pfmp,
-    phase:pfmp,
-    source:'rapport_stage_ep2',
-    evaluateur:'F. Henninot (rapport stage)',
-    timestamp:new Date().toISOString()
-  },ts:Date.now()+Math.random()});
+    phase:'certificatif', // ← l'éval du prof retour de stage est certificative
+    source:'prof_stage_certif',
+    evaluateur:evaluateur+' (rapport stage)',
+    date_jury:new Date().toISOString().slice(0,10),
+    observation:'',
+    timestamp:ts
+  };
+  pending.push({eleve:cur,data:data,ts:Date.now()+Math.random()});
   localStorage.setItem(pendingKey,JSON.stringify(pending));
+  // Mettre aussi à jour validations[cur] localement pour que getProfCertif voit immédiatement le changement
+  if(!validations[cur])validations[cur]=[];
+  validations[cur].push(data);
   if(typeof _updateProfPendingUI==='function')_updateProfPendingUI();
   if(typeof _retryProfPending==='function'){setTimeout(()=>_retryProfPending(),100);}
 }
