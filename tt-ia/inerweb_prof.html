@@ -3817,8 +3817,9 @@ function renderRapport(){
     </div>`;
   }).join('');
 
-  /* Grille français — notation par points /20 */
+  /* Grille français — chips de niveaux convertis automatiquement en points /20 */
   if(!d.fr_pts)d.fr_pts={};
+  if(!d.fr_niv)d.fr_niv={};
   let totalFr=0,maxFr=CRIT_RAPPORT_FR.total;
   const catColors={COM:'#2d5a8c',ARG:'#8e44ad',LING:'#16a085'};
   const catBg={COM:'#e8f0f8',ARG:'#f3e8f9',LING:'#e8f8f4'};
@@ -3826,26 +3827,29 @@ function renderRapport(){
   const catBlocks=CRIT_RAPPORT_FR.categories.map(cat=>{
     let catTotal=0;
     const critsHtml=cat.criteres.map(cr=>{
+      const niv=d.fr_niv[cr.id]??-1;
       const val=d.fr_pts[cr.id]??'';
       const numVal=val===''?0:Number(val);
       catTotal+=numVal;
       totalFr+=numVal;
-      const ptsOpts=[];
-      for(let i=0;i<=cr.pts;i++)ptsOpts.push(`<option value="${i}" ${val===i||val===''+i?'selected':''}>${i}</option>`);
-      return `<div style="background:#fff;border-radius:var(--r2);padding:.6rem .7rem;margin-bottom:.35rem;border-left:3px solid ${catColors[cat.id]}">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
+      // 5 chips de niveau, conversion auto en points selon le barème du critère
+      const chips=NIVEAUX_R.map((n,i)=>`
+        <div onclick="setRapportFrNiv('${cr.id}',${i},${cr.pts})"
+          style="padding:.35rem .4rem;border-radius:var(--r2);background:${COULEURS_R[i]};cursor:pointer;border:2px solid ${niv===i?TCOULEURS_R[i]:'transparent'};transition:var(--t);text-align:center">
+          <div style="font-size:.58rem;font-weight:900;color:${TCOULEURS_R[i]}">${i}</div>
+          <div style="font-size:.65rem;font-weight:700;line-height:1.15;color:${TCOULEURS_R[i]}">${n}</div>
+        </div>`).join('');
+      return `<div style="background:#fff;border-radius:var(--r2);padding:.55rem .7rem;margin-bottom:.4rem;border-left:3px solid ${catColors[cat.id]}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem;margin-bottom:.4rem">
           <div style="flex:1">
             <div style="font-size:.8rem;font-weight:700;color:${catColors[cat.id]};margin-bottom:.1rem">${cr.id} — ${cr.lbl}</div>
             ${cr.sub?`<div style="font-size:.7rem;color:var(--gris);line-height:1.3">${cr.sub}</div>`:''}
           </div>
-          <div style="display:flex;align-items:center;gap:.3rem;flex-shrink:0">
-            <select onchange="setRapportPts('${cr.id}',this.value)" style="padding:.3rem .5rem;border:2px solid ${catColors[cat.id]};border-radius:var(--r2);font-weight:800;font-size:.9rem;color:${catColors[cat.id]};min-width:3rem;text-align:center">
-              <option value="" ${val===''?'selected':''}>—</option>
-              ${ptsOpts.join('')}
-            </select>
-            <span style="font-size:.75rem;font-weight:700;color:var(--gris)">/ ${cr.pts}</span>
+          <div style="font-size:.95rem;font-weight:900;color:${catColors[cat.id]};white-space:nowrap">
+            ${val===''?'—':val} <span style="font-size:.7rem;color:var(--gris);font-weight:700">/ ${cr.pts}</span>
           </div>
         </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.2rem">${chips}</div>
       </div>`;
     }).join('');
     return `<div style="background:${catBg[cat.id]};border-radius:var(--r2);padding:.7rem;margin-bottom:.6rem;border:1px solid ${catColors[cat.id]}22">
@@ -3895,7 +3899,125 @@ function renderRapport(){
           oninput="rapportData['${cur}']['${pfmp}'].obs_fr=this.value">${esc(d.obs_fr||'')}</textarea>
       </div>
     </div>
+    ${renderRapportEP2(d,pfmp,s)}
     <button class="btn btn-teal" onclick="sauverRapport()" style="margin-bottom:1rem">💾 Enregistrer l'évaluation rapport</button>`;
+}
+
+/* ═══ Bloc Compétences EP2 (style tuteur — tâches + niveaux NE/NA/EC/M/PM) ═══ */
+const NIV_EP2=['NE','NA','EC','M','PM'];
+const NIV_EP2_LBL={NE:'Non évaluable',NA:'Non acquis',EC:'En cours',M:'Maîtrise',PM:'Pleine maîtrise'};
+const NIV_EP2_COL={NE:'#888',NA:'#c0392b',EC:'#e67e22',M:'#27ae60',PM:'#1b3a63'};
+const NIV_EP2_BG ={NE:'#f0f0f0',NA:'#fde8e6',EC:'#fff3ee',M:'#d4f4e2',PM:'#e8f0f8'};
+
+function renderRapportEP2(d,pfmp,s){
+  if(!d.ep2)d.ep2={};
+  // Filtrer les compétences EP2 valables pour ce pfmp (depuis COMP_EP2 + CRIT_EP2)
+  const lieux=[pfmp]; // pfmp1 ou pfmp2
+  const comps=(typeof COMP_EP2!=='undefined'?COMP_EP2:[]).filter(c=>!c.lieux||c.lieux.some(l=>lieux.includes(l)));
+  if(!comps.length)return '';
+
+  const compsHtml=comps.map(c=>{
+    const ev=d.ep2[c.code]||{niveau:'NE',taches:{},obs:''};
+    const niv=ev.niveau||'NE';
+    const taches=(typeof CRIT_EP2!=='undefined'&&CRIT_EP2[c.code]&&CRIT_EP2[c.code][pfmp])||[];
+
+    const tachesHtml=taches.map((t,i)=>{
+      const v=ev.taches?.[i];
+      const stateClass=v===1?'background:#d4f4e2;border-color:#27ae60;':v===0?'background:#fde8e6;border-color:#c0392b;':'background:#f7f7f7;border-color:#ddd;';
+      return `<div onclick="setEp2Tache('${c.code}',${i})"
+        style="display:flex;align-items:center;gap:.5rem;padding:.35rem .55rem;border:2px solid transparent;border-radius:var(--r2);${stateClass};cursor:pointer;margin-bottom:.2rem;font-size:.78rem;font-weight:600">
+        <span style="font-size:1.05rem;">${v===1?'✅':v===0?'❌':'⬜'}</span>
+        <span style="flex:1;line-height:1.25">${esc(t)}</span>
+      </div>`;
+    }).join('');
+
+    const nivBtns=NIV_EP2.map(n=>`
+      <button type="button" onclick="setEp2Lv('${c.code}','${n}')"
+        style="flex:1;padding:.4rem .2rem;border:2px solid ${niv===n?NIV_EP2_COL[n]:'transparent'};border-radius:var(--r2);background:${niv===n?NIV_EP2_COL[n]:NIV_EP2_BG[n]};color:${niv===n?'#fff':NIV_EP2_COL[n]};font-weight:900;font-size:.75rem;cursor:pointer;transition:var(--t)"
+        title="${NIV_EP2_LBL[n]}">${n}</button>
+    `).join('');
+
+    return `<div style="background:#fff;border-radius:var(--r2);padding:.65rem .75rem;margin-bottom:.5rem;border-left:3px solid ${NIV_EP2_COL[niv]||'#ccc'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem;margin-bottom:.45rem">
+        <div style="flex:1">
+          <div style="font-size:.82rem;font-weight:800;color:var(--bleu)">${c.code} — ${esc(c.nom)} ${c.obl?'<span style="font-size:.65rem;color:#c0392b;font-weight:700">●obligatoire</span>':''}</div>
+          <div style="font-size:.7rem;color:var(--gris);line-height:1.3">${esc(c.full||'')}</div>
+        </div>
+        <div style="font-size:.95rem;font-weight:900;color:${NIV_EP2_COL[niv]};background:${NIV_EP2_BG[niv]};padding:.15rem .55rem;border-radius:var(--r2)">${niv}</div>
+      </div>
+      ${taches.length?`<div style="margin-bottom:.45rem">${tachesHtml}</div>`:''}
+      <div style="display:flex;gap:.25rem">${nivBtns}</div>
+      <div style="margin-top:.4rem">
+        <input type="text" placeholder="Observation libre…" value="${esc(ev.obs||'')}"
+          oninput="setEp2Obs('${c.code}',this.value)"
+          style="width:100%;padding:.3rem .5rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.72rem">
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="card" style="border-top:3px solid var(--orange)">
+    <div class="card-title" style="color:var(--orange)">🛠️ Compétences EP2 — observées pendant le stage (${pfmp.toUpperCase()})</div>
+    <div style="font-size:.72rem;color:var(--gris);margin-bottom:.6rem">Cochez les tâches réalisées sur chantier puis attribuez un niveau global pour chaque compétence. Les évaluations remontent dans la base CCF EP2.</div>
+    ${compsHtml}
+  </div>`;
+}
+
+function setEp2Lv(compCode,niv){
+  const pfmp=document.getElementById('selRapportPfmp')?.value||'pfmp1';
+  if(!rapportData[cur])rapportData[cur]={};
+  if(!rapportData[cur][pfmp])rapportData[cur][pfmp]={pro:{},fr:{},obs_pro:'',obs_fr:'',jury:''};
+  if(!rapportData[cur][pfmp].ep2)rapportData[cur][pfmp].ep2={};
+  if(!rapportData[cur][pfmp].ep2[compCode])rapportData[cur][pfmp].ep2[compCode]={niveau:'NE',taches:{},obs:''};
+  // Toggle : re-cliquer même niveau → NE
+  const cur_niv=rapportData[cur][pfmp].ep2[compCode].niveau;
+  rapportData[cur][pfmp].ep2[compCode].niveau=(cur_niv===niv?'NE':niv);
+  renderRapport();
+  // Envoi immédiat dans la file pending (sera synchronisé auto)
+  _ep2Push(compCode,'',rapportData[cur][pfmp].ep2[compCode].niveau,pfmp);
+}
+function setEp2Tache(compCode,idx){
+  const pfmp=document.getElementById('selRapportPfmp')?.value||'pfmp1';
+  if(!rapportData[cur])rapportData[cur]={};
+  if(!rapportData[cur][pfmp])rapportData[cur][pfmp]={pro:{},fr:{},obs_pro:'',obs_fr:'',jury:''};
+  if(!rapportData[cur][pfmp].ep2)rapportData[cur][pfmp].ep2={};
+  if(!rapportData[cur][pfmp].ep2[compCode])rapportData[cur][pfmp].ep2[compCode]={niveau:'NE',taches:{},obs:''};
+  const cur_v=rapportData[cur][pfmp].ep2[compCode].taches[idx];
+  // Cycle : indéfini → 1 (oui) → 0 (non) → indéfini
+  const next=cur_v==null?1:cur_v===1?0:undefined;
+  if(next===undefined)delete rapportData[cur][pfmp].ep2[compCode].taches[idx];
+  else rapportData[cur][pfmp].ep2[compCode].taches[idx]=next;
+  renderRapport();
+  // Envoi critère individuel
+  const taches=(typeof CRIT_EP2!=='undefined'&&CRIT_EP2[compCode]&&CRIT_EP2[compCode][pfmp])||[];
+  _ep2Push(compCode,taches[idx]||('tache_'+idx),next===1?'PM':next===0?'NA':'NE',pfmp);
+}
+function setEp2Obs(compCode,txt){
+  const pfmp=document.getElementById('selRapportPfmp')?.value||'pfmp1';
+  if(!rapportData[cur])rapportData[cur]={};
+  if(!rapportData[cur][pfmp])rapportData[cur][pfmp]={pro:{},fr:{},obs_pro:'',obs_fr:'',jury:''};
+  if(!rapportData[cur][pfmp].ep2)rapportData[cur][pfmp].ep2={};
+  if(!rapportData[cur][pfmp].ep2[compCode])rapportData[cur][pfmp].ep2[compCode]={niveau:'NE',taches:{},obs:''};
+  rapportData[cur][pfmp].ep2[compCode].obs=txt;
+}
+
+function _ep2Push(compCode,critere,niveau,pfmp){
+  // Empiler dans la file pending standard (retry auto + sendBeacon)
+  const pendingKey='inerweb-prof-pending-validations';
+  let pending=[];try{pending=JSON.parse(localStorage.getItem(pendingKey)||'[]');}catch(_){}
+  pending.push({eleve:cur,data:{
+    epreuve:'EP2',
+    competence:compCode,
+    critere:critere||'',
+    niveau:String(niveau),
+    contexte:pfmp,
+    phase:pfmp,
+    source:'rapport_stage_ep2',
+    evaluateur:'F. Henninot (rapport stage)',
+    timestamp:new Date().toISOString()
+  },ts:Date.now()+Math.random()});
+  localStorage.setItem(pendingKey,JSON.stringify(pending));
+  if(typeof _updateProfPendingUI==='function')_updateProfPendingUI();
+  if(typeof _retryProfPending==='function'){setTimeout(()=>_retryProfPending(),100);}
 }
 
 function setRapportNiv(key,secteur,niv){
@@ -3914,15 +4036,127 @@ function setRapportPts(critId,val){
   rapportData[cur][pfmp].fr_pts[critId]=val===''?'':Number(val);
   renderRapport();
 }
-
-function sauverRapport(){
-  if(!cur)return;
+// Niveau qualitatif (5 chips) → conversion auto en points selon le barème
+function setRapportFrNiv(critId,niv,critMax){
   const pfmp=document.getElementById('selRapportPfmp')?.value||'pfmp1';
-  // Sauvegarder dans notes locales
+  if(!rapportData[cur])rapportData[cur]={};
+  if(!rapportData[cur][pfmp])rapportData[cur][pfmp]={pro:{},fr:{},obs_pro:'',obs_fr:'',jury:''};
+  if(!rapportData[cur][pfmp].fr_pts)rapportData[cur][pfmp].fr_pts={};
+  if(!rapportData[cur][pfmp].fr_niv)rapportData[cur][pfmp].fr_niv={};
+  const cur_niv=rapportData[cur][pfmp].fr_niv[critId];
+  // Re-cliquer sur le même niveau désélectionne
+  if(cur_niv===niv){
+    rapportData[cur][pfmp].fr_niv[critId]=-1;
+    rapportData[cur][pfmp].fr_pts[critId]='';
+  }else{
+    // 0=Non rendu, 1=Insuf, 2=Correct, 3=Bien, 4=Très bien → 0%, 25%, 50%, 75%, 100%
+    const pcts=[0,0.25,0.50,0.75,1.00];
+    const pts=Math.round(critMax*pcts[niv]*4)/4; // arrondi à 0.25 près
+    rapportData[cur][pfmp].fr_niv[critId]=niv;
+    rapportData[cur][pfmp].fr_pts[critId]=pts;
+  }
+  renderRapport();
+}
+
+async function sauverRapport(){
+  if(!cur){toast('Sélectionnez un élève','warn');return;}
+  const pfmp=document.getElementById('selRapportPfmp')?.value||'pfmp1';
+  const d=rapportData[cur]?.[pfmp]||{pro:{},fr:{},fr_pts:{},fr_niv:{},obs_pro:'',obs_fr:'',jury:''};
+  const s=students.find(x=>x.code===cur)||{};
+  const ts=new Date().toISOString();
+  const dateJury=new Date().toISOString().slice(0,10);
+
+  // 1. Sauvegarde locale immédiate (preuve de saisie)
   if(!notes[cur])notes[cur]={};
-  notes[cur]['rapport_'+pfmp]=rapportData[cur]?.[pfmp];
-  saveLocal();
-  toast('Évaluation rapport sauvegardée ✓','ok');
+  notes[cur]['rapport_'+pfmp]=d;
+  try{saveLocal();}catch(_){}
+
+  // 2. Calculer le total français
+  let totalFr=0;
+  CRIT_RAPPORT_FR.categories.forEach(cat=>{
+    cat.criteres.forEach(cr=>{
+      const v=d.fr_pts?.[cr.id];
+      if(v!==''&&v!=null)totalFr+=Number(v);
+    });
+  });
+
+  // 3. Empiler les envois dans la file pending standard de la page prof
+  //    → la mécanique anti-perte (_retryProfPending + sendBeacon + 15s loop) prend le relais
+  const pendingKey='inerweb-prof-pending-validations';
+  let pending=[];try{pending=JSON.parse(localStorage.getItem(pendingKey)||'[]');}catch(_){}
+  const pushItem=(data)=>{
+    pending.push({eleve:cur,data,ts:Date.now()+Math.random()});
+  };
+
+  // 3a. Évaluation prof de pro — niveau global + chaque critère
+  CRIT_RAPPORT_PRO.forEach(cr=>{
+    const niv=d.pro?.[cr.key];
+    if(niv!=null&&niv>=0){
+      pushItem({
+        epreuve:'RAPPORT_PRO',
+        competence:cr.key,
+        critere:cr.lbl,
+        niveau:String(niv),
+        niveau_qualitatif:NIVEAUX_R[niv]||'',
+        observation:d.obs_pro||'',
+        contexte:'rapport_stage',
+        phase:pfmp,
+        evaluateur:'Prof de pro',
+        date_jury:dateJury,
+        timestamp:ts,
+        source:'rapport_stage_pro'
+      });
+    }
+  });
+
+  // 3b. Évaluation française — note globale + chaque critère
+  pushItem({
+    epreuve:'RAPPORT_FR',
+    competence:'__total_rapport_fr__',
+    critere:'',
+    niveau:String(totalFr),
+    observation:d.obs_fr||'',
+    contexte:'rapport_stage',
+    phase:pfmp,
+    evaluateur:'Prof de français',
+    jury_num:d.jury||'',
+    date_jury:dateJury,
+    timestamp:ts,
+    source:'rapport_stage_fr',
+    _payload:{type:'rapport_stage_fr',pfmp,scores:d.fr_pts,niveaux:d.fr_niv,total:totalFr}
+  });
+  CRIT_RAPPORT_FR.categories.forEach(cat=>{
+    cat.criteres.forEach(cr=>{
+      const pts=d.fr_pts?.[cr.id];
+      const niv=d.fr_niv?.[cr.id];
+      if(pts!==''&&pts!=null){
+        pushItem({
+          epreuve:'RAPPORT_FR',
+          competence:cr.id,
+          critere:cr.lbl,
+          niveau:String(pts),
+          niveau_qualitatif:(niv!=null&&niv>=0)?NIVEAUX_R[niv]:'',
+          observation:'',
+          contexte:'rapport_stage',
+          phase:pfmp,
+          evaluateur:'Prof de français',
+          jury_num:d.jury||'',
+          date_jury:dateJury,
+          timestamp:ts,
+          source:'rapport_stage_fr'
+        });
+      }
+    });
+  });
+
+  localStorage.setItem(pendingKey,JSON.stringify(pending));
+  if(typeof _updateProfPendingUI==='function')_updateProfPendingUI();
+
+  // 4. Tenter l'envoi immédiat — sinon la file sera vidée automatiquement (15s + online + focus)
+  toast('💾 Sauvegarde en cours… ('+pending.length+' enregistrements)','ok');
+  if(typeof _retryProfPending==='function'){
+    try{await _retryProfPending();}catch(_){}
+  }
 }
 
 /* ═══ [H-ter] DOCUMENTS PARTAGÉS — DRIVE CLASSE ═══ */
