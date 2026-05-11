@@ -53,11 +53,20 @@ input,select,textarea,button{font-family:inherit;}
 .crit-label{flex:1;font-size:.78rem;line-height:1.4;}
 .crit-id{font-weight:900;color:var(--bleu2);font-size:.75rem;min-width:24px;}
 
-/* Slider + valeur */
-.crit-input{display:flex;align-items:center;gap:.3rem;min-width:100px;}
-.crit-slider{width:60px;accent-color:var(--bleu2);}
-.crit-val{font-weight:900;font-size:.95rem;min-width:20px;text-align:center;}
-.crit-max{font-size:.7rem;color:var(--gris);}
+/* Chips de niveau (remplace les sliders) */
+.crit{flex-wrap:wrap;}
+.crit-niveaux{display:flex;gap:.25rem;flex-wrap:wrap;margin-top:.3rem;width:100%;}
+.niv-chip{flex:1;min-width:0;padding:.4rem .2rem;border:2px solid var(--gris3);border-radius:var(--r2);background:#fff;font-size:.72rem;font-weight:700;cursor:pointer;text-align:center;transition:all .12s;color:var(--gris);user-select:none;}
+.niv-chip:hover{border-color:var(--bleu2);color:var(--bleu2);}
+.niv-chip.sel{background:var(--bleu2);border-color:var(--bleu2);color:#fff;box-shadow:0 2px 6px rgba(27,58,99,.3);}
+.niv-chip.sel.niv-0{background:var(--rouge);border-color:var(--rouge);}
+.niv-chip.sel.niv-1{background:var(--orange);border-color:var(--orange);}
+.niv-chip.sel.niv-2{background:var(--jaune);border-color:var(--jaune);color:#fff;}
+.niv-chip.sel.niv-3{background:#3a8a3a;border-color:#3a8a3a;}
+.niv-chip.sel.niv-4{background:var(--vert);border-color:var(--vert);}
+.crit-input{display:flex;align-items:center;gap:.25rem;justify-content:flex-end;min-width:70px;}
+.crit-val{font-weight:900;font-size:1rem;min-width:24px;text-align:center;color:var(--bleu);}
+.crit-max{font-size:.72rem;color:var(--gris);}
 
 /* Observation */
 .crit-obs{width:100%;border:1px solid var(--gris3);border-radius:var(--r2);padding:.3rem .4rem;font-size:.72rem;resize:none;min-height:28px;margin-top:.2rem;font-family:inherit;display:none;}
@@ -86,6 +95,23 @@ input,select,textarea,button{font-family:inherit;}
 </head>
 <body>
 
+<!-- ═══ ÉCRAN VERROU ═══ -->
+<div id="lockScreen" style="display:flex;align-items:center;justify-content:center;min-height:100dvh;background:linear-gradient(135deg,#8e44ad,#1b3a63);padding:1rem;">
+  <div style="text-align:center;max-width:360px;width:100%;">
+    <div style="font-size:2.5rem;margin-bottom:.5rem;">&#x1F4DA;</div>
+    <h1 style="color:#fff;font-size:1.1rem;font-weight:900;margin-bottom:.2rem;">Oral Fran&ccedil;ais — Jury CCF</h1>
+    <p style="color:rgba(255,255,255,.7);font-size:.78rem;margin-bottom:1.2rem;">Acc&egrave;s r&eacute;serv&eacute; aux examinateurs</p>
+    <div style="background:rgba(255,255,255,.1);border-radius:14px;padding:1.2rem;backdrop-filter:blur(8px);">
+      <label style="color:rgba(255,255,255,.9);font-size:.82rem;display:block;margin-bottom:.5rem;">&#x1F510; Code d'acc&egrave;s examinateur</label>
+      <input type="password" id="accessCode" placeholder="Code fourni par l'enseignant" style="width:100%;padding:.65rem;font-size:1rem;text-align:center;border:2px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(0,0,0,.3);color:#fff;outline:none;font-family:monospace;letter-spacing:2px;" onkeypress="if(event.key==='Enter')checkAccess()">
+      <button onclick="checkAccess()" style="display:block;width:100%;padding:.6rem;border:none;border-radius:8px;font-size:.88rem;font-weight:800;cursor:pointer;margin-top:.6rem;color:#fff;background:linear-gradient(135deg,#8e44ad,#6c3483);">&#x1F513; Acc&eacute;der</button>
+      <div id="accessError" style="color:#ff6b6b;font-size:.75rem;margin-top:.4rem;min-height:1rem;"></div>
+    </div>
+    <p style="color:rgba(255,255,255,.4);font-size:.65rem;margin-top:1rem;">inerWeb &Eacute;du &mdash; par F. Henninot</p>
+  </div>
+</div>
+
+<div id="appContent" style="display:none;">
 <div class="hdr">
   <div><h1>&#x1F4DA; Oral Fran&ccedil;ais — Jury CCF</h1><div class="hdr-sub">Grille d'&eacute;valuation retour de stage</div></div>
   <span class="badge" id="syncBadge">Chargement...</span>
@@ -93,13 +119,29 @@ input,select,textarea,button{font-family:inherit;}
 
 <div class="wrap">
 
-  <!-- Sélection élève + jury -->
+  <!-- Sélection élève -->
   <div class="eleve-bar">
     <select id="selEleve" onchange="selectEleve(this.value)">
       <option value="">-- Choisir un &eacute;l&egrave;ve --</option>
     </select>
-    <input id="juryNum" class="jury-input" placeholder="Jury N&deg;" value="1">
-    <input id="juryNom" placeholder="Examinateur" style="flex:1;min-width:100px;padding:.4rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.82rem;">
+  </div>
+
+  <!-- Composition du jury (jusqu'à 3 examinateurs) -->
+  <div class="card" id="juryCard">
+    <div style="font-size:.85rem;font-weight:800;color:var(--bleu);margin-bottom:.4rem;">&#x1F465; Composition du jury</div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:.35rem .5rem;align-items:center;">
+      <label for="juryAtelier" style="font-size:.78rem;font-weight:700;color:var(--bleu2);">Prof. Atelier&nbsp;:</label>
+      <input id="juryAtelier" placeholder="Nom du professeur d'atelier" style="padding:.4rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.82rem;">
+
+      <label for="juryFrancais" style="font-size:.78rem;font-weight:700;color:var(--bleu2);">Prof. Fran&ccedil;ais&nbsp;:</label>
+      <input id="juryFrancais" placeholder="Nom du professeur de fran&ccedil;ais" style="padding:.4rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.82rem;">
+
+      <label for="jury3" style="font-size:.78rem;font-weight:700;color:var(--gris);">3<sup>e</sup> jury&nbsp;:</label>
+      <input id="jury3" placeholder="(optionnel — ex. tuteur, inspecteur)" style="padding:.4rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.82rem;">
+
+      <label for="dateJury" style="font-size:.78rem;font-weight:700;color:var(--bleu2);">Date&nbsp;:</label>
+      <input id="dateJury" type="date" style="padding:.4rem;border:2px solid var(--gris3);border-radius:var(--r2);font-size:.82rem;width:160px;">
+    </div>
   </div>
 
   <!-- Total live -->
@@ -117,16 +159,65 @@ input,select,textarea,button{font-family:inherit;}
     <textarea id="obsGeneral" style="width:100%;border:1px solid var(--gris3);border-radius:var(--r2);padding:.4rem;font-size:.8rem;min-height:60px;resize:vertical;font-family:inherit;" placeholder="Observations libres du jury..."></textarea>
   </div>
 
+  <!-- Indicateur de sauvegarde -->
+  <div id="pendingBar" class="card" style="display:none;background:var(--jaune2);border-left:4px solid var(--jaune);font-size:.78rem;">
+    <strong style="color:var(--jaune);">&#x26A0;&#xFE0F; <span id="pendingCount">0</span> &eacute;valuation(s) en attente de synchronisation</strong>
+    <div style="opacity:.8;margin-top:.2rem;">Ces notes sont sauvegard&eacute;es localement et seront renvoy&eacute;es au prochain envoi r&eacute;ussi.</div>
+    <button class="btn btn-pdf" style="margin-top:.4rem;font-size:.75rem;padding:.35rem .7rem;" onclick="flushPending(true)">&#x1F501; Re-synchroniser maintenant</button>
+  </div>
+
   <!-- Actions -->
   <div class="actions-bar">
-    <button class="btn btn-send" onclick="envoyer()">&#x2705; Enregistrer &amp; envoyer</button>
-    <button class="btn btn-pdf" onclick="exportPDF()">&#x1F4C4; Export PDF</button>
+    <button class="btn btn-send" onclick="envoyer()">&#x2705; Enregistrer &amp; envoyer (PV grav&eacute;)</button>
+    <button class="btn btn-pdf" onclick="exportPDF()">&#x1F4DC; Proc&egrave;s-verbal PDF</button>
     <a href="inerweb_prof.html" class="btn btn-ghost">&#x2190; Retour prof</a>
   </div>
 </div>
 
+</div><!-- fin appContent -->
+
 <div class="toast" id="toast"></div>
 
+<script>
+// ═══ PROTECTION PAR CODE D'ACCÈS ═══
+// Code par défaut : "jury2026" — modifiable ci-dessous
+var ACCESS_CODES=['jury2026','ccf2026','oral2026'];
+var LS_ACCESS='iw_oral_fr_access';
+
+function hashCode(s){var h=0;for(var i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h=h&h;}return'H'+Math.abs(h).toString(36);}
+
+function checkAccess(){
+  var code=document.getElementById('accessCode').value.trim().toLowerCase();
+  if(!code){document.getElementById('accessError').textContent='Entrez le code d\'acc\u00e8s';return;}
+  var ok=ACCESS_CODES.some(function(c){return code===c;});
+  if(ok){
+    localStorage.setItem(LS_ACCESS,hashCode(code));
+    unlock();
+  }else{
+    document.getElementById('accessError').textContent='Code incorrect';
+    document.getElementById('accessCode').value='';
+    document.getElementById('accessCode').focus();
+  }
+}
+
+function unlock(){
+  document.getElementById('lockScreen').style.display='none';
+  document.getElementById('appContent').style.display='';
+  init();
+}
+
+// Vérifier si déjà authentifié
+(function(){
+  var stored=localStorage.getItem(LS_ACCESS);
+  if(stored&&ACCESS_CODES.some(function(c){return hashCode(c)===stored;})){
+    unlock();
+  }else{
+    document.getElementById('accessCode').focus();
+  }
+})();
+
+window.checkAccess=checkAccess;
+</script>
 <script src="js/core/inerweb.config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
@@ -186,7 +277,9 @@ async function apiPost(action,body){
 // ═══ INIT ═══
 async function init(){
   initCfg();
-  if(!API_URL){toast('API non configur\u00e9e','err');return;}
+  // Pr\u00e9-remplir la date du jour si vide
+  try{var dInput=document.getElementById('dateJury');if(dInput&&!dInput.value){dInput.value=new Date().toISOString().slice(0,10);}}catch(_){}
+  if(!API_URL){toast('API non configur\u00e9e','err');refreshPendingBar();return;}
   document.getElementById('syncBadge').textContent='Sync...';
   try{
     var u=new URL(API_URL);u.searchParams.set('action','getDashboard');u.searchParams.set('key',API_KEY);
@@ -202,12 +295,82 @@ async function init(){
     document.getElementById('syncBadge').textContent='\u2705 '+students.length+' \u00e9l\u00e8ves';
   }catch(e){toast('Erreur: '+e.message,'err');}
   renderGrille();
+  refreshPendingBar();
+  // Renvoi automatique des évaluations en attente (silencieux)
+  flushPending(false);
 }
+
+// ═══ PENDING — re-synchronisation automatique ═══
+var LS_PENDING='oral_fr_pending';
+
+function getPending(){
+  try{return JSON.parse(localStorage.getItem(LS_PENDING)||'[]');}catch(_){return[];}
+}
+function setPending(arr){
+  try{localStorage.setItem(LS_PENDING,JSON.stringify(arr));}catch(_){}
+  refreshPendingBar();
+}
+function refreshPendingBar(){
+  var n=getPending().length;
+  var bar=document.getElementById('pendingBar');
+  var cnt=document.getElementById('pendingCount');
+  if(!bar)return;
+  if(n>0){bar.style.display='';if(cnt)cnt.textContent=n;}
+  else{bar.style.display='none';}
+}
+
+async function flushPending(manuel){
+  var pending=getPending();
+  if(!pending.length){if(manuel)toast('Aucune évaluation en attente','ok');return;}
+  if(!API_URL){if(manuel)toast('API non configurée','err');return;}
+  var ok=0,fail=0;
+  var restants=[];
+  for(var i=0;i<pending.length;i++){
+    var item=pending[i];
+    try{
+      var res=await apiPost('saveValidation',item.payloadServer);
+      var success=res&&(res.success===true||res.ok===true||res.status==='success'||res.result==='ok');
+      if(success){
+        if(Array.isArray(item.payloadCriteres)){
+          for(var j=0;j<item.payloadCriteres.length;j++){
+            try{await apiPost('saveValidation',item.payloadCriteres[j]);}catch(_){}
+          }
+        }
+        ok++;
+      }else{
+        restants.push(item);fail++;
+      }
+    }catch(_){restants.push(item);fail++;}
+  }
+  setPending(restants);
+  if(manuel||ok>0){
+    if(ok>0&&fail===0)toast('✅ '+ok+' évaluation(s) re-synchronisée(s)','ok');
+    else if(ok>0&&fail>0)toast('⚠ '+ok+' envoyée(s), '+fail+' encore en attente','warn');
+    else if(manuel)toast('⚠ Échec : '+fail+' encore en attente','err');
+  }
+}
+window.flushPending=flushPending;
 
 // ═══ SELECT ÉLÈVE ═══
 function selectEleve(code){
-  curCode=code;scores={};obsMap={};
+  curCode=code;scores={};obsMap={};levels={};
   renderGrille();updateTotal();
+}
+
+// ═══ NIVEAUX (chips) ═══
+// 5 niveaux convertis en % du max de chaque critère
+var NIVEAUX=[
+  {key:'absent', label:'Non rendu', pct:0,    cls:'niv-0'},
+  {key:'insuf',  label:'Insuffisant',pct:0.25, cls:'niv-1'},
+  {key:'correct',label:'Correct',   pct:0.50, cls:'niv-2'},
+  {key:'bien',   label:'Bien',      pct:0.75, cls:'niv-3'},
+  {key:'tresb',  label:'Très bien', pct:1.00, cls:'niv-4'}
+];
+var levels={}; // {critId: niveauKey}
+
+function calcVal(max,pct){
+  // Arrondi à 0.25 près pour rester propre quel que soit le max
+  return Math.round(max*pct*4)/4;
 }
 
 // ═══ RENDER GRILLE ═══
@@ -220,18 +383,25 @@ function renderGrille(){
 
     cat.criteres.forEach(function(cr){
       var val=scores[cr.id]||0;
+      var curKey=levels[cr.id]||'';
       html+='<div class="crit" id="crit_'+cr.id+'">';
       html+='<span class="crit-id">'+cr.id+'</span>';
-      html+='<div style="flex:1;">';
+      html+='<div style="flex:1;min-width:0;">';
       html+='<div class="crit-label">'+esc(cr.label)+'</div>';
       html+='<textarea class="crit-obs" id="obs_'+cr.id+'" placeholder="Observation..." oninput="setObs(\''+cr.id+'\',this.value)">'+esc(obsMap[cr.id]||'')+'</textarea>';
       html+='</div>';
       html+='<div class="crit-input">';
-      html+='<input type="range" class="crit-slider" min="0" max="'+cr.max+'" step="0.5" value="'+val+'" oninput="setScore(\''+cr.id+'\',parseFloat(this.value))">';
       html+='<span class="crit-val" id="val_'+cr.id+'">'+val+'</span>';
       html+='<span class="crit-max">/'+cr.max+'</span>';
       html+='</div>';
       html+='<span class="obs-toggle" onclick="toggleObs(\''+cr.id+'\')">obs</span>';
+      // Chips de niveau
+      html+='<div class="crit-niveaux">';
+      NIVEAUX.forEach(function(n){
+        var sel=(curKey===n.key)?(' sel '+n.cls):'';
+        html+='<button type="button" class="niv-chip'+sel+'" data-crit="'+cr.id+'" data-niv="'+n.key+'" data-max="'+cr.max+'" onclick="setLevel(\''+cr.id+'\',\''+n.key+'\','+cr.max+')">'+esc(n.label)+'</button>';
+      });
+      html+='</div>';
       html+='</div>';
     });
 
@@ -240,10 +410,28 @@ function renderGrille(){
   document.getElementById('grille').innerHTML=html;
 }
 
-// ═══ SET SCORE ═══
+// ═══ SET LEVEL (chips) ═══
+function setLevel(critId,niveauKey,critMax){
+  var niv=NIVEAUX.find(function(n){return n.key===niveauKey;});
+  if(!niv)return;
+  levels[critId]=niveauKey;
+  var val=calcVal(critMax,niv.pct);
+  scores[critId]=val;
+  // MAJ visuel : chips
+  var chips=document.querySelectorAll('button.niv-chip[data-crit="'+critId+'"]');
+  for(var i=0;i<chips.length;i++){
+    var c=chips[i];
+    c.className='niv-chip';
+    if(c.getAttribute('data-niv')===niveauKey){c.classList.add('sel');c.classList.add(niv.cls);}
+  }
+  var v=document.getElementById('val_'+critId);if(v)v.textContent=val;
+  updateTotal();
+}
+
+// ═══ SET SCORE (compat ancienne API) ═══
 function setScore(critId,val){
   scores[critId]=val;
-  document.getElementById('val_'+critId).textContent=val;
+  var v=document.getElementById('val_'+critId);if(v)v.textContent=val;
   updateTotal();
 }
 
@@ -286,9 +474,18 @@ function updateTotal(){
 // ═══ ENVOYER ═══
 async function envoyer(){
   if(!curCode){toast('S\u00e9lectionnez un \u00e9l\u00e8ve','warn');return;}
-  var juryNum=document.getElementById('juryNum').value.trim();
-  var juryNom=document.getElementById('juryNom').value.trim();
+  var juryAtelier=((document.getElementById('juryAtelier')||{}).value||'').trim();
+  var juryFrancais=((document.getElementById('juryFrancais')||{}).value||'').trim();
+  var jury3=((document.getElementById('jury3')||{}).value||'').trim();
+  var dateJury=((document.getElementById('dateJury')||{}).value||new Date().toISOString().slice(0,10));
   var obsGen=document.getElementById('obsGeneral').value.trim();
+  if(!juryAtelier&&!juryFrancais&&!jury3){toast('Renseignez au moins un membre du jury','warn');return;}
+  // Composition du jury (compact pour le Sheet)
+  var juryParts=[];
+  if(juryAtelier)juryParts.push('Atelier: '+juryAtelier);
+  if(juryFrancais)juryParts.push('Fran\u00e7ais: '+juryFrancais);
+  if(jury3)juryParts.push('3e: '+jury3);
+  var juryLigne=juryParts.join(' | ');
 
   // Calculer les totaux
   var totals={};var grandTotal=0;
@@ -297,12 +494,14 @@ async function envoyer(){
     totals[cat.id]=t;grandTotal+=t;
   });
 
-  // Construire le payload complet
+  // Construire le payload complet (procès-verbal)
   var payload={
     type:'oral_francais_jury',
-    juryNum:juryNum,
-    examinateur:juryNom,
+    pv:true,
+    jury:{atelier:juryAtelier,francais:juryFrancais,troisieme:jury3},
+    dateJury:dateJury,
     scores:JSON.parse(JSON.stringify(scores)),
+    niveaux:JSON.parse(JSON.stringify(levels)),
     observations:JSON.parse(JSON.stringify(obsMap)),
     totaux:totals,
     total:grandTotal,
@@ -310,57 +509,84 @@ async function envoyer(){
     timestamp:new Date().toISOString()
   };
 
-  try{
-    // Sauvegarder via saveValidation
-    await apiPost('saveValidation',{eleve:curCode,data:{
-      epreuve:'ORAL_FR',
-      competence:'__oral_francais__',
-      critere:'',
-      niveau:String(grandTotal),
-      observation:obsGen,
-      contexte:'retour_stage',
-      phase:'retour_stage',
-      evaluateur:juryNom||'Prof Fran\u00e7ais',
-      timestamp:payload.timestamp,
-      source:'oral_francais',
-      _payload:payload
-    }});
+  // Pr\u00e9parer payloads serveur (r\u00e9utilisables par flushPending si \u00e9chec)
+  var payloadServer={eleve:curCode,data:{
+    epreuve:'ORAL_FR',
+    competence:'__oral_francais__',
+    critere:'',
+    niveau:String(grandTotal),
+    observation:obsGen,
+    contexte:'retour_stage',
+    phase:'retour_stage',
+    evaluateur:juryLigne||'Jury non nomm\u00e9',
+    jury_atelier:juryAtelier,
+    jury_francais:juryFrancais,
+    jury_3:jury3,
+    date_jury:dateJury,
+    timestamp:payload.timestamp,
+    source:'oral_francais',
+    _payload:payload
+  }};
+  var payloadCriteres=[];
 
-    // Aussi sauvegarder chaque critère individuellement pour traçabilité
-    var critList=[];
-    GRILLE.categories.forEach(function(cat){cat.criteres.forEach(function(cr){critList.push(cr);});});
-    for(var i=0;i<critList.length;i++){
-      var cr=critList[i];
-      if(scores[cr.id]){
-        await apiPost('saveValidation',{eleve:curCode,data:{
+  // Critères individuels — empilés dans payloadCriteres
+    GRILLE.categories.forEach(function(cat){
+    cat.criteres.forEach(function(cr){
+      if(scores[cr.id]||levels[cr.id]){
+        var nivKey=levels[cr.id]||'';
+        var nivObj=NIVEAUX.find(function(n){return n.key===nivKey;});
+        var nivLabel=nivObj?nivObj.label:'';
+        payloadCriteres.push({eleve:curCode,data:{
           epreuve:'ORAL_FR',
           competence:cr.id,
           critere:cr.label,
-          niveau:String(scores[cr.id]),
+          niveau:String(scores[cr.id]||0),
+          niveau_qualitatif:nivLabel,
+          niveau_cle:nivKey,
           observation:obsMap[cr.id]||'',
           contexte:'retour_stage',
           phase:'retour_stage',
-          evaluateur:juryNom||'Prof Fran\u00e7ais',
+          evaluateur:juryLigne||'Jury non nomm\u00e9',
+          date_jury:dateJury,
           timestamp:payload.timestamp,
           source:'oral_francais'
         }});
       }
+    });
+  });
+
+  // Archive locale (preuve de saisie \u2014 toujours, avant tentative serveur)
+  var lsKey='oral_fr_'+curCode;
+  var saved=[];try{saved=JSON.parse(localStorage.getItem(lsKey)||'[]');}catch(e){}
+  saved.push(payload);
+  try{localStorage.setItem(lsKey,JSON.stringify(saved));}catch(_){}
+
+  // Tentative d'envoi serveur \u2014 accus\u00e9 v\u00e9rifi\u00e9 strictement
+  var envoiOK=false;
+  try{
+    var res=await apiPost('saveValidation',payloadServer);
+    envoiOK=!!(res&&(res.success===true||res.ok===true||res.status==='success'||res.result==='ok'));
+    if(envoiOK){
+      for(var i=0;i<payloadCriteres.length;i++){
+        try{await apiPost('saveValidation',payloadCriteres[i]);}catch(_){}
+      }
     }
+  }catch(_){envoiOK=false;}
 
-    // Sauvegarder aussi en localStorage pour backup
-    var lsKey='oral_fr_'+curCode;
-    var saved=[];try{saved=JSON.parse(localStorage.getItem(lsKey)||'[]');}catch(e){}
-    saved.push(payload);
-    localStorage.setItem(lsKey,JSON.stringify(saved));
-
-    toast('\u2705 Note '+grandTotal+'/20 enregistr\u00e9e et synchronis\u00e9e','ok');
-  }catch(e){
-    // Sauvegarde locale de secours
-    var lsKey2='oral_fr_pending';
-    var pending=[];try{pending=JSON.parse(localStorage.getItem(lsKey2)||'[]');}catch(e2){}
-    pending.push({eleve:curCode,payload:payload,ts:Date.now()});
-    localStorage.setItem(lsKey2,JSON.stringify(pending));
-    toast('\u26a0 Envoi \u00e9chou\u00e9 \u2014 sauvegard\u00e9 localement (sera renvoy\u00e9)','warn');
+  if(envoiOK){
+    toast('\u2705 Note '+grandTotal+'/20 grav\u00e9e dans le Sheet (PV synchronis\u00e9)','ok');
+    flushPending(false);
+  }else{
+    var pending=getPending();
+    pending.push({
+      eleve:curCode,
+      payloadServer:payloadServer,
+      payloadCriteres:payloadCriteres,
+      payload:payload,
+      ts:Date.now()
+    });
+    setPending(pending);
+    toast('\u26a0 Note '+grandTotal+'/20 sauvegard\u00e9e localement \u2014 renvoi auto \u00e0 la prochaine connexion','warn');
   }
 }
 
@@ -372,13 +598,45 @@ function exportPDF(){
   var doc=new jsPDF({unit:'mm',format:'a4'});
   var y=15;var lm=15;var pw=180;
 
-  // En-tête
-  doc.setFontSize(14);doc.setFont(undefined,'bold');
-  doc.text('Oral Fran\u00e7ais \u2014 Grille CCF Jury',lm,y);y+=7;
-  doc.setFontSize(10);doc.setFont(undefined,'normal');
-  doc.text('\u00c9l\u00e8ve : '+(s.nom||'')+' '+(s.prenom||'')+' \u2014 '+(s.classe||''),lm,y);y+=5;
-  doc.text('Jury N\u00b0'+document.getElementById('juryNum').value+' \u2014 Examinateur : '+document.getElementById('juryNom').value,lm,y);y+=5;
-  doc.text('Date : '+new Date().toLocaleDateString('fr-FR'),lm,y);y+=8;
+  // Lecture du jury (3 examinateurs possibles)
+  var juryAt=((document.getElementById('juryAtelier')||{}).value||'').trim();
+  var juryFr=((document.getElementById('juryFrancais')||{}).value||'').trim();
+  var jury3v=((document.getElementById('jury3')||{}).value||'').trim();
+  var dJury=((document.getElementById('dateJury')||{}).value||'');
+  var dJuryFR=dJury?new Date(dJury+'T00:00:00').toLocaleDateString('fr-FR'):new Date().toLocaleDateString('fr-FR');
+
+  // En-tête établissement
+  doc.setFontSize(9);doc.setFont(undefined,'normal');
+  doc.text('LP Privé Jacques Raynaud — Campus ÉQUATIO, Marseille',lm,y);y+=4;
+  doc.setFontSize(8);doc.setTextColor(120,120,120);
+  doc.text('Filière Froid / CVC / TNE',lm,y);y+=6;
+  doc.setTextColor(0,0,0);
+
+  // Titre PV
+  doc.setFontSize(15);doc.setFont(undefined,'bold');
+  doc.text('PROC\u00c8S-VERBAL D\'\u00c9VALUATION',lm+pw/2,y,{align:'center'});y+=5;
+  doc.setFontSize(11);
+  doc.text('Oral Fran\u00e7ais \u2014 Retour de stage (CCF)',lm+pw/2,y,{align:'center'});y+=8;
+
+  // Bloc \u00e9l\u00e8ve
+  doc.setFontSize(10);doc.setFont(undefined,'bold');
+  doc.text('\u00c9l\u00e8ve :',lm,y);
+  doc.setFont(undefined,'normal');
+  doc.text((s.nom||'')+' '+(s.prenom||'')+'  \u2014  Classe : '+(s.classe||'')+'  \u2014  Code : '+(s.code||curCode),lm+20,y);y+=5;
+
+  doc.setFont(undefined,'bold');
+  doc.text('Date :',lm,y);
+  doc.setFont(undefined,'normal');
+  doc.text(dJuryFR,lm+20,y);y+=6;
+
+  // Bloc jury
+  doc.setFont(undefined,'bold');doc.text('Composition du jury :',lm,y);y+=4;
+  doc.setFont(undefined,'normal');doc.setFontSize(9);
+  if(juryAt){doc.text('\u2022 Professeur d\'atelier : '+juryAt,lm+4,y);y+=4;}
+  if(juryFr){doc.text('\u2022 Professeur de fran\u00e7ais : '+juryFr,lm+4,y);y+=4;}
+  if(jury3v){doc.text('\u2022 3e jury : '+jury3v,lm+4,y);y+=4;}
+  if(!juryAt&&!juryFr&&!jury3v){doc.setTextColor(180,0,0);doc.text('\u2022 (Aucun nom de jury renseign\u00e9)',lm+4,y);doc.setTextColor(0,0,0);y+=4;}
+  y+=4;
 
   // Grille
   GRILLE.categories.forEach(function(cat){
@@ -391,11 +649,20 @@ function exportPDF(){
 
     cat.criteres.forEach(function(cr){
       var val=scores[cr.id]||0;catTotal+=val;
+      var nivKey=levels[cr.id]||'';
+      var nivObj=NIVEAUX.find(function(n){return n.key===nivKey;});
+      var nivLabel=nivObj?nivObj.label:'';
       doc.setFontSize(8);doc.setFont(undefined,'bold');
       doc.text(cr.id,lm+2,y);
       doc.setFont(undefined,'normal');
-      var lines=doc.splitTextToSize(cr.label,pw-45);
+      var lines=doc.splitTextToSize(cr.label,pw-55);
       doc.text(lines,lm+12,y);
+      // Niveau qualitatif en italique
+      if(nivLabel){
+        doc.setFont(undefined,'italic');doc.setTextColor(80,80,80);
+        doc.text(nivLabel,lm+pw-40,y);
+        doc.setTextColor(0,0,0);doc.setFont(undefined,'normal');
+      }
       doc.setFont(undefined,'bold');
       doc.text(val+'/'+cr.max,lm+pw-15,y);
       y+=lines.length*3.5+2;
@@ -428,21 +695,44 @@ function exportPDF(){
     var obsLines=doc.splitTextToSize(obs,pw);doc.text(obsLines,lm,y);y+=obsLines.length*3.5;
   }
 
-  // Signature
-  y+=10;
-  doc.setFontSize(8);doc.setFont(undefined,'normal');
-  doc.text('Signature examinateur :',lm,y);
-  doc.line(lm+40,y,lm+100,y);
-  doc.text('Date :',lm+110,y);
-  doc.line(lm+122,y,lm+170,y);
+  // Mention légale + saut éventuel
+  if(y>240){doc.addPage();y=15;}
+  y+=4;
+  doc.setFontSize(7);doc.setFont(undefined,'italic');doc.setTextColor(100,100,100);
+  doc.text('Ce procès-verbal est gravé dans le système d\'archivage inerWeb au moment de sa validation. Il fait foi.',lm,y);y+=8;
+  doc.setTextColor(0,0,0);
 
-  doc.save('Oral_FR_'+(s.nom||'eleve')+'_'+(s.prenom||'')+'.pdf');
+  // Signatures du jury (jusqu'à 3)
+  doc.setFontSize(9);doc.setFont(undefined,'bold');
+  doc.text('Signatures du jury :',lm,y);y+=8;
+  doc.setFont(undefined,'normal');doc.setFontSize(8);
+
+  function sigLine(label,nom){
+    doc.text(label+(nom?' — '+nom:''),lm,y);
+    doc.line(lm+90,y,lm+pw,y);
+    y+=10;
+  }
+  if(juryAt) sigLine('Professeur d\'atelier',juryAt);
+  if(juryFr) sigLine('Professeur de français',juryFr);
+  if(jury3v) sigLine('3e jury',jury3v);
+  if(!juryAt&&!juryFr&&!jury3v){
+    sigLine('Examinateur 1','');
+    sigLine('Examinateur 2','');
+  }
+
+  // Date + lieu en bas
+  y+=2;
+  doc.text('Fait à Marseille, le '+dJuryFR,lm,y);
+
+  var nomFichier='PV_Oral_FR_'+(s.classe||'').replace(/\s+/g,'')+'_'+(s.nom||'eleve').replace(/\s+/g,'')+'_'+(s.prenom||'').replace(/\s+/g,'')+'_'+(dJury||'').replace(/-/g,'')+'.pdf';
+  doc.save(nomFichier);
   toast('PDF export\u00e9','ok');
 }
 
 // ═══ EXPOSE ═══
 window.selectEleve=selectEleve;
 window.setScore=setScore;
+window.setLevel=setLevel;
 window.setObs=setObs;
 window.toggleObs=toggleObs;
 window.envoyer=envoyer;
