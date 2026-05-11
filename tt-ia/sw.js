@@ -1,5 +1,5 @@
-// inerWeb — Service Worker principal v7.12 (PV oral + network-first pages eval)
-const CACHE_NAME = 'inerweb-v7.12';
+// inerWeb — Service Worker principal v7.13 (rapport stage + EP2 dans prof)
+const CACHE_NAME = 'inerweb-v7.13';
 const ASSETS = [
   './',
   './index.html',
@@ -43,7 +43,7 @@ self.addEventListener('fetch', (event) => {
 
   // Pages d'evaluation : toujours network-first (pas de cache figé)
   // -> evite que des mises a jour ne soient bloquees par le SW
-  const NETWORK_FIRST = ['/inerweb_oral_francais', '/inerweb_ccf_ep2', '/inerweb_admin', '/reset.html', '/sw.js'];
+  const NETWORK_FIRST = ['/inerweb_oral_francais', '/inerweb_ccf_ep2', '/inerweb_admin', '/inerweb_prof', '/inerweb_tuteur', '/inerweb_eleve', '/reset.html', '/sw.js'];
   if (NETWORK_FIRST.some(p => url.pathname.includes(p))) {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' })
