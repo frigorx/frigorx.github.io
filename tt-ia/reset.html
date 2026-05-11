@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>inerWeb — Reset du cache</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#1b3a63,#0d1f3c);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;}
+.box{max-width:520px;width:100%;background:rgba(255,255,255,.08);border-radius:16px;padding:2rem;backdrop-filter:blur(8px);}
+h1{font-size:1.3rem;margin-bottom:.5rem;}
+.flocon{font-size:3rem;margin-bottom:.5rem;text-align:center;}
+.step{padding:.8rem 1rem;margin:.5rem 0;border-radius:8px;background:rgba(0,0,0,.25);font-size:.95rem;display:flex;align-items:center;gap:.7rem;}
+.step .ic{font-size:1.3rem;min-width:1.5rem;}
+.step.done{background:rgba(46,204,113,.25);}
+.step.fail{background:rgba(231,76,60,.25);}
+.step.go{background:rgba(255,107,53,.25);}
+#bigbtn{display:block;width:100%;margin-top:1.5rem;padding:1rem;background:linear-gradient(135deg,#ff6b35,#e85d26);color:#fff;border:none;border-radius:10px;font-size:1.1rem;font-weight:800;cursor:pointer;}
+#bigbtn:disabled{opacity:.5;cursor:not-allowed;}
+.tip{margin-top:1rem;font-size:.8rem;opacity:.7;text-align:center;}
+a{color:#ff6b35;text-decoration:none;font-weight:700;}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="flocon">&#x2744;&#xFE0F;</div>
+  <h1>inerWeb &mdash; Purge complète du cache</h1>
+  <p style="opacity:.7;margin-bottom:1rem;font-size:.85rem;">Cette page d&eacute;sinscrit le Service Worker et vide tous les caches du navigateur pour <strong>frigorx.github.io/tt-ia/</strong>. Vous verrez ensuite la derni&egrave;re version de la page.</p>
+
+  <div id="log"></div>
+
+  <button id="bigbtn" onclick="purge()">&#x1F9F9; Tout purger maintenant</button>
+
+  <p class="tip">Une fois la purge termin&eacute;e, vous serez redirig&eacute; automatiquement vers la page Oral Fran&ccedil;ais. Si rien ne se passe apr&egrave;s 5&nbsp;s, <a href="inerweb_oral_francais.html?v=20260511">cliquez ici</a>.</p>
+</div>
+
+<script>
+function step(txt, klass){
+  var d=document.createElement('div');
+  d.className='step '+(klass||'');
+  d.innerHTML='<span class="ic">'+(klass==='done'?'✅':klass==='fail'?'❌':klass==='go'?'➡️':'⏳')+'</span>'+txt;
+  document.getElementById('log').appendChild(d);
+  return d;
+}
+
+async function purge(){
+  var btn=document.getElementById('bigbtn');
+  btn.disabled=true;btn.textContent='Purge en cours...';
+
+  // 1. Désinscrire tous les Service Workers
+  var s1=step('Désinscription des Service Workers...');
+  try{
+    if('serviceWorker' in navigator){
+      var regs=await navigator.serviceWorker.getRegistrations();
+      var n=0;
+      for(var i=0;i<regs.length;i++){await regs[i].unregister();n++;}
+      s1.className='step done';s1.innerHTML='<span class="ic">✅</span>'+n+' Service Worker(s) désinscrit(s)';
+    }else{
+      s1.className='step done';s1.innerHTML='<span class="ic">✅</span>Aucun Service Worker supporté par ce navigateur';
+    }
+  }catch(e){s1.className='step fail';s1.innerHTML='<span class="ic">❌</span>Erreur SW : '+e.message;}
+
+  // 2. Vider tous les caches CacheStorage
+  var s2=step('Suppression des caches CacheStorage...');
+  try{
+    if('caches' in window){
+      var keys=await caches.keys();
+      var n=0;
+      for(var j=0;j<keys.length;j++){await caches.delete(keys[j]);n++;}
+      s2.className='step done';s2.innerHTML='<span class="ic">✅</span>'+n+' cache(s) supprimé(s)';
+    }else{
+      s2.className='step done';s2.innerHTML='<span class="ic">✅</span>CacheStorage non disponible (rien à faire)';
+    }
+  }catch(e){s2.className='step fail';s2.innerHTML='<span class="ic">❌</span>Erreur cache : '+e.message;}
+
+  // 3. Vider localStorage de la page Oral FR (mais conserver le pending pour resync)
+  var s3=step('Nettoyage localStorage (sauf pending de notes)...');
+  try{
+    var saved={};
+    saved['oral_fr_pending']=localStorage.getItem('oral_fr_pending');
+    saved['inerweb-tt-fe-cfg']=localStorage.getItem('inerweb-tt-fe-cfg');
+    // Pas de clear() global - on ne touche qu'aux éléments cachés de session
+    s3.className='step done';s3.innerHTML='<span class="ic">✅</span>localStorage conservé (config + pending intacts)';
+  }catch(e){s3.className='step fail';s3.innerHTML='<span class="ic">❌</span>Erreur localStorage : '+e.message;}
+
+  // 4. Redirection avec param anti-cache
+  var s4=step('Redirection vers Oral Français (nouvelle version)...','go');
+  setTimeout(function(){
+    var dest='inerweb_oral_francais.html?v='+Date.now();
+    location.replace(dest);
+  },1500);
+}
+
+// Auto-lancement si param ?auto
+if(location.search.indexOf('auto')>-1){purge();}
+</script>
+</body>
+</html>

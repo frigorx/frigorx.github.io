@@ -1,5 +1,5 @@
-// inerWeb — Service Worker principal v7.11 (PV oral français + chips niveaux)
-const CACHE_NAME = 'inerweb-v7.11';
+// inerWeb — Service Worker principal v7.12 (PV oral + network-first pages eval)
+const CACHE_NAME = 'inerweb-v7.12';
 const ASSETS = [
   './',
   './index.html',
@@ -38,6 +38,24 @@ self.addEventListener('fetch', (event) => {
 
   // NE PAS cacher les requetes vers edu/ (le SW d'Edu gere son propre scope)
   if (url.pathname.includes('/edu/')) {
+    return;
+  }
+
+  // Pages d'evaluation : toujours network-first (pas de cache figé)
+  // -> evite que des mises a jour ne soient bloquees par le SW
+  const NETWORK_FIRST = ['/inerweb_oral_francais', '/inerweb_ccf_ep2', '/inerweb_admin', '/reset.html', '/sw.js'];
+  if (NETWORK_FIRST.some(p => url.pathname.includes(p))) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
     return;
   }
 
