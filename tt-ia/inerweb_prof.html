@@ -116,6 +116,11 @@ body.show-app #screen-app{display:flex;}
 .main-content{flex:1;overflow-y:auto;padding-bottom:1rem;}
 .tab-pane{display:none;}.tab-pane.active{display:block;}
 .tab-inner{max-width:900px;margin:0 auto;padding:1.25rem 1rem;}
+/* Rapport de stage : 2 colonnes côte à côte sur grand écran (>=1100px) */
+#tab-rapport .tab-inner{max-width:1400px;}
+.rapport-2col{display:grid;grid-template-columns:1fr;gap:.75rem;margin-bottom:.6rem;}
+@media (min-width:1100px){.rapport-2col{grid-template-columns:1fr 1fr;align-items:start;}}
+.rapport-2col>.card{margin-bottom:0;}
 
 /* [4] Header + nav bas */
 .app-header{background:var(--bleu);color:#fff;padding:.6rem 1rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;gap:.5rem;box-shadow:0 2px 8px rgba(0,0,0,.2);}
@@ -1908,6 +1913,43 @@ async function syncAll(){
         if(Array.isArray(jd)&&jd.length>0){if(!pfmpData[sc])pfmpData[sc]={journal:[]};pfmpData[sc].journal=jd;}
       }catch(ej){}
     }
+    // ═══ Récupérer TOUTES les évaluations EP2/EP3/E31/E32 depuis le Sheet (v7.13.3) ═══
+    // CRITIQUE : sans ça, le prof ne voit pas ses évaluations sur un autre poste
+    try{
+      var evUrl=new URL(_url);evUrl.searchParams.set('action','getEvaluations');evUrl.searchParams.set('key',_key);
+      var evR=await fetch(evUrl.toString(),{method:'GET',redirect:'follow'});
+      var evD=await evR.json();
+      var evList=Array.isArray(evD)?evD:(evD&&evD.evaluations?evD.evaluations:[]);
+      if(evList&&evList.length){
+        var nbCharged=0,nbSkip=0;
+        evList.forEach(function(ev){
+          var code=ev.eleveId||ev.eleveCode||ev.eleve;
+          if(!code)return;
+          if(!validations[code])validations[code]=[];
+          var rec={
+            epreuve:ev.epreuve||ev.epreuveCode||'',
+            competence:ev.competence||ev.competenceCode||'',
+            critere:ev.critere||'',
+            niveau:ev.niveau!=null?String(ev.niveau):'',
+            phase:ev.phase||'formatif',
+            source:ev.source||'',
+            contexte:ev.contexte||'',
+            evaluateur:ev.evaluateur||ev.enseignant||'',
+            timestamp:ev.timestamp||'',
+            observation:ev.observation||''
+          };
+          // Déduplication par clé composite
+          var key=rec.epreuve+'|'+rec.competence+'|'+rec.critere+'|'+rec.contexte+'|'+rec.phase+'|'+rec.evaluateur+'|'+rec.timestamp;
+          var dup=validations[code].some(function(x){
+            return (x.epreuve||'')+'|'+(x.competence||'')+'|'+(x.critere||'')+'|'+(x.contexte||'')+'|'+(x.phase||'')+'|'+(x.evaluateur||'')+'|'+(x.timestamp||'')===key;
+          });
+          if(!dup){validations[code].push(rec);nbCharged++;}
+          else{nbSkip++;}
+        });
+        if(nbCharged>0)console.log('[syncAll] '+nbCharged+' évaluation(s) chargée(s) depuis le Sheet ('+nbSkip+' déjà en local)');
+      }
+    }catch(eev){console.warn('[syncAll] getEvaluations:',eev.message||eev);}
+
     // ═══ Récupérer les évaluations tuteur depuis le serveur ═══
     try{
       var etUrl=new URL(_url);etUrl.searchParams.set('action','getEvalTuteur');etUrl.searchParams.set('key',_key);
@@ -3865,6 +3907,7 @@ function renderRapport(){
   const noteColor=pctFr>=80?'#1a7d3e':pctFr>=50?'#a06e00':'#c0390f';
 
   c.innerHTML=`
+    <div class="rapport-2col">
     <div class="card" style="border-top:3px solid var(--bleu2)">
       <div class="card-title">🔧 Évaluation prof de pro — ${esc(s.nom)} ${esc(s.prenom||'')}</div>
       ${makeGridPro(CRIT_RAPPORT_PRO,'pro')}
@@ -3898,6 +3941,7 @@ function renderRapport(){
           placeholder="Expression, argumentation, qualité de la langue..."
           oninput="rapportData['${cur}']['${pfmp}'].obs_fr=this.value">${esc(d.obs_fr||'')}</textarea>
       </div>
+    </div>
     </div>
     ${renderRapportEP2(d,pfmp,s)}
     <button class="btn btn-teal" onclick="sauverRapport()" style="margin-bottom:1rem">💾 Enregistrer l'évaluation rapport</button>`;
