@@ -1,5 +1,5 @@
-// inerWeb — Service Worker principal v7.16 (fix elevecode minuscule + taches visibles)
-const CACHE_NAME = 'inerweb-v7.16';
+// inerWeb — Service Worker principal v7.17 (eval francais 3 colonnes + obs plus haute)
+const CACHE_NAME = 'inerweb-v7.17';
 const ASSETS = [
   './',
   './index.html',
