@@ -121,6 +121,35 @@ body.show-app #screen-app{display:flex;}
 .rapport-2col{display:grid;grid-template-columns:1fr;gap:.75rem;margin-bottom:.6rem;}
 @media (min-width:1100px){.rapport-2col{grid-template-columns:5fr 7fr;align-items:start;}}
 .rapport-2col>.card{margin-bottom:0;}
+/* Bloc Compétences EP2 — mode compact 1 ligne par compétence */
+.ep2-row{background:#fff;border-radius:var(--r2);margin-bottom:.22rem;border-left:3px solid #ddd;}
+.ep2-row-main{display:grid;grid-template-columns:46px 1fr 90px auto 38px;gap:.35rem;align-items:center;padding:.25rem .4rem;}
+.ep2-code{font-size:.74rem;font-weight:900;color:var(--bleu);white-space:nowrap}
+.ep2-obl{color:#c0392b;font-size:.7rem}
+.ep2-extra{color:#a07e00;font-size:.65rem;font-weight:700;background:#fff8e1;padding:0 .25rem;border-radius:6px}
+.ep2-nom{font-size:.74rem;font-weight:700;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep2-tut{display:flex;justify-content:center}
+.ep2-tut-cell{font-size:.7rem;font-weight:900;padding:.18rem .4rem;border-radius:var(--r2);cursor:pointer;white-space:nowrap;border:2px solid #d4a017;background:#fff8e1;color:#a07e00;line-height:1.2;transition:transform .12s}
+.ep2-tut-cell:hover{transform:scale(1.05)}
+.ep2-tut-empty{font-size:.7rem;color:#bbb;padding:.18rem .4rem}
+.ep2-niv-btns{display:flex;gap:.15rem}
+.ep2-niv-btn{padding:.22rem .3rem;border:2px solid transparent;border-radius:var(--r2);font-weight:900;font-size:.7rem;cursor:pointer;min-width:1.9rem;line-height:1.1;position:relative;transition:transform .1s}
+.ep2-niv-btn:hover{transform:scale(1.08)}
+.ep2-diff{position:absolute;top:-4px;right:-4px;font-size:.5rem;background:#fff;color:#c0392b;border-radius:50%;width:11px;height:11px;line-height:11px;text-align:center;border:1px solid #c0392b}
+.ep2-actions{display:flex;justify-content:center}
+.ep2-detail-btn{font-size:.65rem;padding:.18rem .35rem;border:1px solid var(--gris3);border-radius:var(--r2);background:#fafafa;cursor:pointer;white-space:nowrap}
+.ep2-detail-btn:hover{background:#f0f0f0}
+.ep2-detail{padding:.35rem .55rem .45rem;border-top:1px dashed #eee;background:#fcfcfc;border-radius:0 0 var(--r2) var(--r2)}
+.ep2-taches{margin-bottom:.35rem}
+.ep2-tache{display:flex;align-items:center;gap:.45rem;padding:.22rem .45rem;border-radius:var(--r2);margin-bottom:.12rem;font-size:.7rem;font-weight:600;cursor:pointer;border:2px solid transparent}
+.ep2-tache.taok{background:#d4f4e2;border-color:#27ae60}
+.ep2-tache.taerr{background:#fde8e6;border-color:#c0392b}
+.ep2-tache.tana{background:#f7f7f7;border-color:#ddd}
+.ep2-obs-input{width:100%;padding:.25rem .45rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.7rem}
+@media (max-width:900px){
+  .ep2-row-main{grid-template-columns:38px 1fr 70px auto 32px;gap:.25rem}
+  .ep2-niv-btn{padding:.18rem .2rem;font-size:.65rem;min-width:1.5rem}
+}
 
 /* [4] Header + nav bas */
 .app-header{background:var(--bleu);color:#fff;padding:.6rem 1rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;gap:.5rem;box-shadow:0 2px 8px rgba(0,0,0,.2);}
@@ -3973,71 +4002,71 @@ function getProfCertif(eleveCode,compCode,pfmp){
 
 function renderRapportEP2(d,pfmp,s){
   if(!d.ep2)d.ep2={};
-  // Filtrer les compétences EP2 valables pour ce pfmp (depuis COMP_EP2 + CRIT_EP2)
-  const lieux=[pfmp]; // pfmp1 ou pfmp2
-  const comps=(typeof COMP_EP2!=='undefined'?COMP_EP2:[]).filter(c=>!c.lieux||c.lieux.some(l=>lieux.includes(l)));
+  // Compétences EP2 du référentiel filtrées pour ce pfmp
+  const lieux=[pfmp];
+  let comps=(typeof COMP_EP2!=='undefined'?COMP_EP2:[]).filter(c=>!c.lieux||c.lieux.some(l=>lieux.includes(l)));
+  // Ajouter aussi les compétences que le tuteur a évaluées mais qui ne sont pas dans la liste standard
+  const knownCodes=new Set(comps.map(c=>c.code));
+  const tuteurExtra=(validations[cur]||[]).filter(v=>v.epreuve==='EP2'&&(v.phase==='tuteur'||v.source==='tuteur')&&v.competence&&!knownCodes.has(v.competence));
+  const extraCodes=[...new Set(tuteurExtra.map(v=>v.competence))];
+  extraCodes.forEach(code=>{comps.push({code:code,nom:code,full:'Compétence évaluée par le tuteur (hors référentiel '+pfmp+')',obl:false,extra:true});});
   if(!comps.length)return '';
 
   const compsHtml=comps.map(c=>{
     // Évaluation locale (en cours de saisie)
     let ev=d.ep2[c.code]||{niveau:'',taches:{},obs:''};
-    // Pré-remplir depuis la certif déjà au Sheet si pas encore en cours
     if(!ev.niveau||ev.niveau==='NE'){
       const certif=getProfCertif(cur,c.code,pfmp);
       if(certif&&certif.niveau){ev.niveau=certif.niveau;d.ep2[c.code]=ev;}
     }
     const niv=ev.niveau||'';
     const taches=(typeof CRIT_EP2!=='undefined'&&CRIT_EP2[c.code]&&CRIT_EP2[c.code][pfmp])||[];
+    const nbTachesValid=Object.values(ev.taches||{}).filter(v=>v===1).length;
 
-    // Évaluation tuteur (lecture seule, en référence)
+    // Évaluation tuteur
     const tuteur=getTuteurEval(cur,c.code,pfmp);
     const nivTuteur=tuteur?tuteur.niveau:null;
 
-    const tachesHtml=taches.map((t,i)=>{
-      const v=ev.taches?.[i];
-      const stateClass=v===1?'background:#d4f4e2;border-color:#27ae60;':v===0?'background:#fde8e6;border-color:#c0392b;':'background:#f7f7f7;border-color:#ddd;';
-      return `<div onclick="setEp2Tache('${c.code}',${i})"
-        style="display:flex;align-items:center;gap:.5rem;padding:.32rem .5rem;border:2px solid transparent;border-radius:var(--r2);${stateClass};cursor:pointer;margin-bottom:.18rem;font-size:.74rem;font-weight:600">
-        <span style="font-size:1rem;">${v===1?'✅':v===0?'❌':'⬜'}</span>
-        <span style="flex:1;line-height:1.25">${esc(t)}</span>
-      </div>`;
-    }).join('');
-
-    // Bandeau tuteur — niveau attribué par le tuteur (lecture seule)
-    const tuteurBlock=nivTuteur?`
-      <div style="background:#fff8e1;border:1px dashed #d4a017;border-radius:var(--r2);padding:.35rem .55rem;margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem;font-size:.72rem">
-        <span style="font-weight:800;color:#a07e00">👷 Tuteur</span>
-        <span style="font-weight:900;color:${NIV_EP2_COL[nivTuteur]||'#666'};background:${NIV_EP2_BG[nivTuteur]||'#fff'};padding:.05rem .4rem;border-radius:8px">${nivTuteur}</span>
-        ${tuteur.evaluateur?`<span style="color:var(--gris)">— ${esc(tuteur.evaluateur)}</span>`:''}
-        ${tuteur.observation?`<span style="color:var(--gris);font-style:italic;flex:1;overflow:hidden;text-overflow:ellipsis">"${esc(tuteur.observation).substring(0,80)}"</span>`:''}
-      </div>`:'';
-
+    // Mes 5 boutons compacts
     const nivBtns=NIV_EP2.map(n=>{
       const sel=niv===n;
       const diff=nivTuteur&&nivTuteur!==niv&&sel;
       return `<button type="button" onclick="setEp2Lv('${c.code}','${n}')"
-        style="flex:1;padding:.35rem .15rem;border:2px solid ${sel?NIV_EP2_COL[n]:'transparent'};border-radius:var(--r2);background:${sel?NIV_EP2_COL[n]:NIV_EP2_BG[n]};color:${sel?'#fff':NIV_EP2_COL[n]};font-weight:900;font-size:.72rem;cursor:pointer;transition:var(--t);position:relative"
-        title="${NIV_EP2_LBL[n]}">${n}${diff?'<span style="position:absolute;top:-3px;right:-3px;font-size:.55rem;background:#fff;color:#c0392b;border-radius:50%;width:11px;height:11px;line-height:11px;text-align:center;border:1px solid #c0392b">↻</span>':''}</button>`;
+        class="ep2-niv-btn${sel?' sel':''}"
+        style="background:${sel?NIV_EP2_COL[n]:NIV_EP2_BG[n]};color:${sel?'#fff':NIV_EP2_COL[n]};border-color:${sel?NIV_EP2_COL[n]:'transparent'}"
+        title="${NIV_EP2_LBL[n]}">${n}${diff?'<span class="ep2-diff">↻</span>':''}</button>`;
     }).join('');
 
-    return `<div style="background:#fff;border-radius:var(--r2);padding:.55rem .65rem;margin-bottom:.45rem;border-left:3px solid ${niv?NIV_EP2_COL[niv]:'#ccc'}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.4rem;margin-bottom:.35rem">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:.78rem;font-weight:800;color:var(--bleu)">${c.code} — ${esc(c.nom)} ${c.obl?'<span style="font-size:.6rem;color:#c0392b;font-weight:700">●obl</span>':''}</div>
-          <div style="font-size:.66rem;color:var(--gris);line-height:1.3">${esc(c.full||'')}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.15rem;flex-shrink:0">
-          <div style="font-size:.6rem;color:var(--gris);font-weight:700;text-transform:uppercase;letter-spacing:.3px">Ma décision</div>
-          <div style="font-size:.85rem;font-weight:900;color:${niv?NIV_EP2_COL[niv]:'#aaa'};background:${niv?NIV_EP2_BG[niv]:'#f5f5f5'};padding:.1rem .5rem;border-radius:var(--r2);min-width:2rem;text-align:center">${niv||'—'}</div>
+    // Cellule tuteur — bien visible
+    const tuteurCell=nivTuteur?`
+      <button type="button" class="ep2-tut-cell" onclick="copierTuteur('${c.code}','${nivTuteur}')"
+        title="${tuteur.evaluateur?esc(tuteur.evaluateur):'Tuteur'}${tuteur.observation?' — '+esc(tuteur.observation).substring(0,100):''} (clic = copier)"
+        style="background:${NIV_EP2_BG[nivTuteur]||'#fff8e1'};color:${NIV_EP2_COL[nivTuteur]||'#a07e00'};border:2px solid ${NIV_EP2_COL[nivTuteur]||'#d4a017'}">
+        👷 ${nivTuteur}${tuteur.observation?' 💬':''}
+      </button>`:`<span class="ep2-tut-empty">—</span>`;
+
+    return `<div class="ep2-row" data-comp="${c.code}">
+      <div class="ep2-row-main">
+        <div class="ep2-code" title="${esc(c.full||'')}">${c.code}${c.obl?' <span class="ep2-obl">●</span>':''}${c.extra?' <span class="ep2-extra">+</span>':''}</div>
+        <div class="ep2-nom" title="${esc(c.full||'')}">${esc(c.nom)}</div>
+        <div class="ep2-tut">${tuteurCell}</div>
+        <div class="ep2-niv-btns">${nivBtns}</div>
+        <div class="ep2-actions">
+          <button type="button" class="ep2-detail-btn" onclick="toggleEp2Detail('${c.code}')" title="Tâches + observation">
+            ${taches.length?'📋 '+nbTachesValid+'/'+taches.length:'💬'}
+          </button>
         </div>
       </div>
-      ${tuteurBlock}
-      ${taches.length?`<div style="margin-bottom:.4rem">${tachesHtml}</div>`:''}
-      <div style="display:flex;gap:.2rem">${nivBtns}</div>
-      <div style="margin-top:.35rem">
-        <input type="text" placeholder="Observation prof (certificative)…" value="${esc(ev.obs||'')}"
-          oninput="setEp2Obs('${c.code}',this.value)"
-          style="width:100%;padding:.28rem .5rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.7rem">
+      <div class="ep2-detail" id="ep2-detail-${c.code}" style="display:none">
+        ${taches.length?`<div class="ep2-taches">${taches.map((t,i)=>{
+          const v=ev.taches?.[i];
+          const cls=v===1?'taok':v===0?'taerr':'tana';
+          return `<div onclick="setEp2Tache('${c.code}',${i})" class="ep2-tache ${cls}">
+            <span>${v===1?'✅':v===0?'❌':'⬜'}</span><span>${esc(t)}</span>
+          </div>`;
+        }).join('')}</div>`:''}
+        <input type="text" placeholder="Observation certificative…" value="${esc(ev.obs||'')}"
+          oninput="setEp2Obs('${c.code}',this.value)" class="ep2-obs-input">
       </div>
     </div>`;
   }).join('');
@@ -4053,17 +4082,17 @@ function renderRapportEP2(d,pfmp,s){
   </div>`;
 }
 
-function setEp2Lv(compCode,niv){
+function setEp2Lv(compCode,niv,force){
   const pfmp=document.getElementById('selRapportPfmp')?.value||'pfmp1';
   if(!rapportData[cur])rapportData[cur]={};
   if(!rapportData[cur][pfmp])rapportData[cur][pfmp]={pro:{},fr:{},obs_pro:'',obs_fr:'',jury:''};
   if(!rapportData[cur][pfmp].ep2)rapportData[cur][pfmp].ep2={};
   if(!rapportData[cur][pfmp].ep2[compCode])rapportData[cur][pfmp].ep2[compCode]={niveau:'NE',taches:{},obs:''};
-  // Toggle : re-cliquer même niveau → NE
+  // Toggle (clic répété → NE) sauf si force=true
   const cur_niv=rapportData[cur][pfmp].ep2[compCode].niveau;
-  rapportData[cur][pfmp].ep2[compCode].niveau=(cur_niv===niv?'NE':niv);
+  rapportData[cur][pfmp].ep2[compCode].niveau=(!force&&cur_niv===niv?'NE':niv);
   renderRapport();
-  // Envoi immédiat dans la file pending (sera synchronisé auto)
+  // Envoi immédiat dans la file pending (synchronisé auto)
   _ep2Push(compCode,'',rapportData[cur][pfmp].ep2[compCode].niveau,pfmp);
 }
 function setEp2Tache(compCode,idx){
@@ -4090,6 +4119,20 @@ function setEp2Obs(compCode,txt){
   if(!rapportData[cur][pfmp].ep2[compCode])rapportData[cur][pfmp].ep2[compCode]={niveau:'NE',taches:{},obs:''};
   rapportData[cur][pfmp].ep2[compCode].obs=txt;
 }
+
+function toggleEp2Detail(compCode){
+  const el=document.getElementById('ep2-detail-'+compCode);
+  if(!el)return;
+  el.style.display=el.style.display==='none'?'block':'none';
+}
+window.toggleEp2Detail=toggleEp2Detail;
+
+function copierTuteur(compCode,niv){
+  // Reprendre l'avis du tuteur comme décision certificative (force=true, pas de toggle)
+  setEp2Lv(compCode,niv,true);
+  toast('Avis tuteur repris : '+compCode+' → '+niv,'ok');
+}
+window.copierTuteur=copierTuteur;
 
 function _ep2Push(compCode,critere,niveau,pfmp){
   // Empiler dans la file pending standard (retry auto + sendBeacon)

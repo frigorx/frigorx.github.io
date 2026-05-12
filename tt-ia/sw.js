@@ -1,5 +1,5 @@
-// inerWeb — Service Worker principal v7.14 (rapport stage : pro+EP2 cote a cote + tuteur visible)
-const CACHE_NAME = 'inerweb-v7.14';
+// inerWeb — Service Worker principal v7.15 (EP2 mode compact 1 ecran + clic tuteur = copier)
+const CACHE_NAME = 'inerweb-v7.15';
 const ASSETS = [
   './',
   './index.html',
