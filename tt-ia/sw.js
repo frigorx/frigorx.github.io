@@ -1,5 +1,5 @@
-// inerWeb — Service Worker principal v7.15 (EP2 mode compact 1 ecran + clic tuteur = copier)
-const CACHE_NAME = 'inerweb-v7.15';
+// inerWeb — Service Worker principal v7.16 (fix elevecode minuscule + taches visibles)
+const CACHE_NAME = 'inerweb-v7.16';
 const ASSETS = [
   './',
   './index.html',

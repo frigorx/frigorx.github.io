@@ -121,9 +121,9 @@ body.show-app #screen-app{display:flex;}
 .rapport-2col{display:grid;grid-template-columns:1fr;gap:.75rem;margin-bottom:.6rem;}
 @media (min-width:1100px){.rapport-2col{grid-template-columns:5fr 7fr;align-items:start;}}
 .rapport-2col>.card{margin-bottom:0;}
-/* Bloc Compétences EP2 — mode compact 1 ligne par compétence */
-.ep2-row{background:#fff;border-radius:var(--r2);margin-bottom:.22rem;border-left:3px solid #ddd;}
-.ep2-row-main{display:grid;grid-template-columns:46px 1fr 90px auto 38px;gap:.35rem;align-items:center;padding:.25rem .4rem;}
+/* Bloc Compétences EP2 — compact + tâches toujours visibles */
+.ep2-row{background:#fff;border-radius:var(--r2);margin-bottom:.4rem;border-left:3px solid #ddd;padding:.3rem .35rem .35rem}
+.ep2-row-main{display:grid;grid-template-columns:46px 1fr 90px auto;gap:.35rem;align-items:center;margin-bottom:.25rem}
 .ep2-code{font-size:.74rem;font-weight:900;color:var(--bleu);white-space:nowrap}
 .ep2-obl{color:#c0392b;font-size:.7rem}
 .ep2-extra{color:#a07e00;font-size:.65rem;font-weight:700;background:#fff8e1;padding:0 .25rem;border-radius:6px}
@@ -136,19 +136,19 @@ body.show-app #screen-app{display:flex;}
 .ep2-niv-btn{padding:.22rem .3rem;border:2px solid transparent;border-radius:var(--r2);font-weight:900;font-size:.7rem;cursor:pointer;min-width:1.9rem;line-height:1.1;position:relative;transition:transform .1s}
 .ep2-niv-btn:hover{transform:scale(1.08)}
 .ep2-diff{position:absolute;top:-4px;right:-4px;font-size:.5rem;background:#fff;color:#c0392b;border-radius:50%;width:11px;height:11px;line-height:11px;text-align:center;border:1px solid #c0392b}
-.ep2-actions{display:flex;justify-content:center}
-.ep2-detail-btn{font-size:.65rem;padding:.18rem .35rem;border:1px solid var(--gris3);border-radius:var(--r2);background:#fafafa;cursor:pointer;white-space:nowrap}
-.ep2-detail-btn:hover{background:#f0f0f0}
-.ep2-detail{padding:.35rem .55rem .45rem;border-top:1px dashed #eee;background:#fcfcfc;border-radius:0 0 var(--r2) var(--r2)}
-.ep2-taches{margin-bottom:.35rem}
-.ep2-tache{display:flex;align-items:center;gap:.45rem;padding:.22rem .45rem;border-radius:var(--r2);margin-bottom:.12rem;font-size:.7rem;font-weight:600;cursor:pointer;border:2px solid transparent}
+.ep2-taches{display:flex;flex-wrap:wrap;gap:.2rem;margin:.2rem 0 .3rem;padding-left:46px}
+.ep2-tache{display:inline-flex;align-items:center;gap:.3rem;padding:.15rem .4rem;border-radius:var(--r2);font-size:.66rem;font-weight:600;cursor:pointer;border:2px solid transparent;position:relative}
 .ep2-tache.taok{background:#d4f4e2;border-color:#27ae60}
 .ep2-tache.taerr{background:#fde8e6;border-color:#c0392b}
 .ep2-tache.tana{background:#f7f7f7;border-color:#ddd}
-.ep2-obs-input{width:100%;padding:.25rem .45rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.7rem}
+.ep2-tache-ic{font-size:.85rem}
+.ep2-tache-txt{line-height:1.2}
+.ep2-tache-tut{font-size:.7rem;margin-left:.15rem}
+.ep2-obs-input{width:100%;padding:.22rem .45rem;border:1px solid var(--gris3);border-radius:var(--r2);font-size:.68rem}
 @media (max-width:900px){
-  .ep2-row-main{grid-template-columns:38px 1fr 70px auto 32px;gap:.25rem}
+  .ep2-row-main{grid-template-columns:38px 1fr 70px auto;gap:.25rem}
   .ep2-niv-btn{padding:.18rem .2rem;font-size:.65rem;min-width:1.5rem}
+  .ep2-taches{padding-left:0}
 }
 
 /* [4] Header + nav bas */
@@ -1983,11 +1983,14 @@ async function syncAll(){
     try{
       var etUrl=new URL(_url);etUrl.searchParams.set('action','getEvalTuteur');etUrl.searchParams.set('key',_key);
       var etr=await fetch(etUrl.toString(),{method:'GET',redirect:'follow'});
-      var etd=await etr.json();
+      var etdRaw=await etr.json();
+      // Le Sheet renvoie soit un tableau direct, soit { evaluations: [...] }
+      var etd=Array.isArray(etdRaw)?etdRaw:(etdRaw&&etdRaw.evaluations?etdRaw.evaluations:[]);
       if(Array.isArray(etd)&&etd.length>0){
         var nbET=0;
         etd.forEach(function(ev){
-          var code=ev.eleveCode||ev.eleve;
+          // ATTENTION : le Sheet renvoie 'elevecode' tout en minuscules sur certaines feuilles
+          var code=ev.eleveCode||ev.elevecode||ev.eleve||ev.eleveId;
           if(!code)return;
           if(!validations[code])validations[code]=[];
           // Parser les champs JSON (competences et comportement sont stockés en string JSON)
@@ -3985,11 +3988,29 @@ const NIV_EP2_BG ={NE:'#f0f0f0',NA:'#fde8e6',EC:'#fff3ee',M:'#d4f4e2',PM:'#e8f0f
 // Récupère l'évaluation tuteur la plus récente pour une compétence donnée
 function getTuteurEval(eleveCode,compCode,pfmp){
   const vals=validations[eleveCode]||[];
-  // Le tuteur saisit avec phase='tuteur' et contexte='pfmp1' ou 'pfmp2'
-  const matches=vals.filter(v=>v.epreuve==='EP2'&&v.competence===compCode&&(v.phase==='tuteur'||v.source==='tuteur')&&(v.contexte===pfmp||!v.contexte));
+  // Contextes acceptés : exact, vide, 'pfmp' générique, ou pfmp inversé (au cas où)
+  const ctxOk=(c)=>{
+    if(!c)return true;
+    if(c===pfmp)return true;
+    if(c==='pfmp')return true;
+    return false;
+  };
+  const matches=vals.filter(v=>v.epreuve==='EP2'&&v.competence===compCode&&(v.phase==='tuteur'||v.source==='tuteur')&&ctxOk(v.contexte));
   if(!matches.length)return null;
   matches.sort((a,b)=>String(b.timestamp||'').localeCompare(String(a.timestamp||'')));
   return matches[0];
+}
+// Récupère les tâches cochées par le tuteur pour une compétence (depuis le _tuteurPayload)
+function getTuteurTaches(eleveCode,compCode,pfmp){
+  const vals=validations[eleveCode]||[];
+  // Le bloc __obs_tuteur__ stocke les tâches complètes dans _tuteurPayload.comportement
+  const ctxOk=(c)=>!c||c===pfmp||c==='pfmp';
+  const obsRow=vals.filter(v=>v.epreuve==='EP2'&&v.competence==='__obs_tuteur__'&&ctxOk(v.contexte)).sort((a,b)=>String(b.timestamp||'').localeCompare(String(a.timestamp||'')))[0];
+  if(!obsRow||!obsRow._tuteurPayload)return null;
+  const compData=obsRow._tuteurPayload.competences&&obsRow._tuteurPayload.competences[compCode];
+  if(!compData)return null;
+  // Si l'objet contient un champ taches : {taches:{0:true,1:false}}
+  return (typeof compData==='object'&&compData.taches)?compData.taches:null;
 }
 // Récupère l'évaluation certificative existante (déjà sauvée par le prof)
 function getProfCertif(eleveCode,compCode,pfmp){
@@ -4045,29 +4066,31 @@ function renderRapportEP2(d,pfmp,s){
         👷 ${nivTuteur}${tuteur.observation?' 💬':''}
       </button>`:`<span class="ep2-tut-empty">—</span>`;
 
+    // Tâches du tuteur (si dispo)
+    const tachesTuteur=getTuteurTaches(cur,c.code,pfmp);
+    // Rendu des tâches : pour chacune, voir ce que le tuteur a coché + ma case
+    const tachesHtml=taches.map((t,i)=>{
+      const v=ev.taches?.[i];
+      const cls=v===1?'taok':v===0?'taerr':'tana';
+      const tutOk=tachesTuteur&&tachesTuteur[i];
+      const tutMarker=tutOk?`<span class="ep2-tache-tut" title="Coché par le tuteur">👷</span>`:'';
+      return `<div onclick="setEp2Tache('${c.code}',${i})" class="ep2-tache ${cls}">
+        <span class="ep2-tache-ic">${v===1?'✅':v===0?'❌':'⬜'}</span>
+        <span class="ep2-tache-txt">${esc(t)}</span>
+        ${tutMarker}
+      </div>`;
+    }).join('');
+
     return `<div class="ep2-row" data-comp="${c.code}">
       <div class="ep2-row-main">
         <div class="ep2-code" title="${esc(c.full||'')}">${c.code}${c.obl?' <span class="ep2-obl">●</span>':''}${c.extra?' <span class="ep2-extra">+</span>':''}</div>
         <div class="ep2-nom" title="${esc(c.full||'')}">${esc(c.nom)}</div>
         <div class="ep2-tut">${tuteurCell}</div>
         <div class="ep2-niv-btns">${nivBtns}</div>
-        <div class="ep2-actions">
-          <button type="button" class="ep2-detail-btn" onclick="toggleEp2Detail('${c.code}')" title="Tâches + observation">
-            ${taches.length?'📋 '+nbTachesValid+'/'+taches.length:'💬'}
-          </button>
-        </div>
       </div>
-      <div class="ep2-detail" id="ep2-detail-${c.code}" style="display:none">
-        ${taches.length?`<div class="ep2-taches">${taches.map((t,i)=>{
-          const v=ev.taches?.[i];
-          const cls=v===1?'taok':v===0?'taerr':'tana';
-          return `<div onclick="setEp2Tache('${c.code}',${i})" class="ep2-tache ${cls}">
-            <span>${v===1?'✅':v===0?'❌':'⬜'}</span><span>${esc(t)}</span>
-          </div>`;
-        }).join('')}</div>`:''}
-        <input type="text" placeholder="Observation certificative…" value="${esc(ev.obs||'')}"
-          oninput="setEp2Obs('${c.code}',this.value)" class="ep2-obs-input">
-      </div>
+      ${taches.length?`<div class="ep2-taches">${tachesHtml}</div>`:''}
+      <input type="text" placeholder="Observation certificative…" value="${esc(ev.obs||'')}"
+        oninput="setEp2Obs('${c.code}',this.value)" class="ep2-obs-input">
     </div>`;
   }).join('');
 
