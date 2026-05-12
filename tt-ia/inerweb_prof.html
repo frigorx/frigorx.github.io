@@ -121,6 +121,21 @@ body.show-app #screen-app{display:flex;}
 .rapport-2col{display:grid;grid-template-columns:1fr;gap:.75rem;margin-bottom:.6rem;}
 @media (min-width:1100px){.rapport-2col{grid-template-columns:5fr 7fr;align-items:start;}}
 .rapport-2col>.card{margin-bottom:0;}
+/* Bloc composition du jury */
+.jury-grid{display:grid;grid-template-columns:1fr;gap:.55rem}
+@media(min-width:900px){.jury-grid{grid-template-columns:1fr 1fr 1fr}}
+.jury-card{border-radius:var(--r2);padding:.5rem .65rem;border-left:3px solid #d4a017;background:#fff8e1}
+.jury-card.jury-pro{border-left-color:#2d5a8c;background:#e8f0f8}
+.jury-card.jury-fr{border-left-color:#8e44ad;background:#f3e8f9}
+.jury-card.jury-3{border-left-color:#d4a017;background:#fff8e1}
+.jury-card label{font-size:.82rem;font-weight:800;display:block;margin-bottom:.3rem;color:#222}
+.jury-card input{width:100%;padding:.42rem .55rem;border:2px solid #ccc;border-radius:var(--r2);font-size:.88rem;margin-bottom:.3rem;background:#fff}
+.jury-card input:last-child{margin-bottom:0}
+.jury-card input:focus{border-color:#1b3a63;outline:none}
+#juryCompFolded span{display:inline-block;margin-right:1rem;padding:.2rem .55rem;border-radius:var(--r2);font-weight:700}
+#juryCompFolded .pro{background:#e8f0f8;color:#2d5a8c}
+#juryCompFolded .fr{background:#f3e8f9;color:#8e44ad}
+#juryCompFolded .j3{background:#fff8e1;color:#a07e00}
 /* Partie français : 3 colonnes COM | ARG | LING sur grand écran */
 .rapport-fr-grid{display:grid;grid-template-columns:1fr;gap:.55rem;margin-bottom:.6rem;}
 @media (min-width:900px){.rapport-fr-grid{grid-template-columns:5fr 5fr 3fr;align-items:start;}}
@@ -1103,6 +1118,44 @@ body.demo-mode::after{content:'MODE DÉMO';position:fixed;top:56px;left:50%;tran
 
     <!-- RAPPORT DE STAGE -->
     <div class="tab-pane" id="tab-rapport"><div class="tab-inner">
+
+      <!-- Composition du jury — saisie en amont (persistée localement) -->
+      <div class="card" id="juryComposition" style="border-top:3px solid var(--orange);margin-bottom:.75rem">
+        <div class="card-title" style="color:var(--orange);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
+          <span>👥 Composition du jury <span style="font-size:.7rem;color:var(--gris);font-weight:600">— à renseigner avant les évaluations</span></span>
+          <button class="btn btn-ghost btn-xs" onclick="toggleJuryComp()" id="btnToggleJury" style="font-size:.7rem">▼ Plier</button>
+        </div>
+        <div id="juryCompBody">
+          <div class="jury-grid">
+            <div class="jury-card jury-pro">
+              <label>🔧 Prof. de pro (technique) <span style="color:#c0392b">*</span></label>
+              <input id="juryNom_pro" placeholder="Nom Prénom" oninput="setJuryComp('pro','nom',this.value);refreshJuryHeader()">
+              <input id="juryFn_pro" placeholder="Fonction (ex: Prof. atelier froid)" oninput="setJuryComp('pro','fn',this.value)">
+            </div>
+            <div class="jury-card jury-fr">
+              <label>📖 Prof. de français <span style="color:#c0392b">*</span></label>
+              <input id="juryNom_fr" placeholder="Nom Prénom" oninput="setJuryComp('fr','nom',this.value);refreshJuryHeader()">
+              <input id="juryFn_fr" placeholder="Fonction (ex: Prof. lettres-histoire)" oninput="setJuryComp('fr','fn',this.value)">
+            </div>
+            <div class="jury-card jury-3">
+              <label>👤 3<sup>e</sup> jury (optionnel)</label>
+              <input id="juryNom_3" placeholder="Nom Prénom" oninput="setJuryComp('3','nom',this.value);refreshJuryHeader()">
+              <input id="juryFn_3" placeholder="Fonction (ex: Inspecteur, Tuteur)" oninput="setJuryComp('3','fn',this.value)">
+            </div>
+          </div>
+          <div style="display:flex;gap:.4rem;margin-top:.6rem;flex-wrap:wrap;align-items:center">
+            <button class="btn btn-orange btn-sm" onclick="validerJury()">✅ Valider et continuer</button>
+            <button class="btn btn-ghost btn-sm" onclick="effacerJury()">🗑️ Effacer</button>
+            <span id="juryStatus" style="font-size:.75rem;color:var(--gris)"></span>
+          </div>
+        </div>
+        <div id="juryCompFolded" style="display:none;font-size:.82rem;line-height:1.5">
+          <span id="juryHdrPro"></span>
+          <span id="juryHdrFr"></span>
+          <span id="juryHdr3"></span>
+        </div>
+      </div>
+
       <div class="eval-hdr" style="margin-bottom:.75rem;">
         <div class="eval-sel-wrap">
           <select id="selRapport" onchange="selectStudent(this.value,'rapport')" aria-label="Sélection élève rapport"></select>
@@ -3995,6 +4048,86 @@ const NIV_EP2_LBL={NE:'Non évaluable',NA:'Non acquis',EC:'En cours',M:'Maîtris
 const NIV_EP2_COL={NE:'#888',NA:'#c0392b',EC:'#e67e22',M:'#27ae60',PM:'#1b3a63'};
 const NIV_EP2_BG ={NE:'#f0f0f0',NA:'#fde8e6',EC:'#fff3ee',M:'#d4f4e2',PM:'#e8f0f8'};
 
+/* ═══ Composition du jury — saisie en amont, persistée localement ═══ */
+const LS_JURY='inerweb-rapport-jury-session';
+function getJuryComp(){try{return JSON.parse(localStorage.getItem(LS_JURY)||'{}');}catch(_){return{};}}
+function setJuryComp(role,field,value){
+  const j=getJuryComp();
+  if(!j[role])j[role]={nom:'',fn:''};
+  j[role][field]=value;
+  localStorage.setItem(LS_JURY,JSON.stringify(j));
+}
+function getJuryEvaluateur(role){
+  const j=getJuryComp();
+  const r=j[role];
+  if(!r||!r.nom)return (cfg&&cfg.nomProf)||'Évaluateur';
+  return r.fn?(r.nom+' ('+r.fn+')'):r.nom;
+}
+function fillJuryFromLS(){
+  const j=getJuryComp();
+  ['pro','fr','3'].forEach(r=>{
+    const elN=document.getElementById('juryNom_'+r);
+    const elF=document.getElementById('juryFn_'+r);
+    if(elN&&j[r])elN.value=j[r].nom||'';
+    if(elF&&j[r])elF.value=j[r].fn||'';
+  });
+  refreshJuryHeader();
+}
+function refreshJuryHeader(){
+  const j=getJuryComp();
+  const pro=j.pro&&j.pro.nom?j.pro.nom:'';
+  const fr=j.fr&&j.fr.nom?j.fr.nom:'';
+  const j3=j['3']&&j['3'].nom?j['3'].nom:'';
+  const ok=pro&&fr;
+  const status=document.getElementById('juryStatus');
+  if(status){
+    if(ok)status.innerHTML='<span style="color:#27ae60;font-weight:700">✓ Jury renseigné</span>';
+    else status.innerHTML='<span style="color:#c0392b">⚠ Au moins Prof pro + Prof fr requis</span>';
+  }
+  // Header replié
+  const ph=document.getElementById('juryHdrPro');
+  const fh=document.getElementById('juryHdrFr');
+  const th=document.getElementById('juryHdr3');
+  if(ph)ph.innerHTML=pro?`<span class="pro">🔧 ${esc(pro)}</span>`:'';
+  if(fh)fh.innerHTML=fr?`<span class="fr">📖 ${esc(fr)}</span>`:'';
+  if(th)th.innerHTML=j3?`<span class="j3">👤 ${esc(j3)}</span>`:'';
+}
+function toggleJuryComp(){
+  const body=document.getElementById('juryCompBody');
+  const folded=document.getElementById('juryCompFolded');
+  const btn=document.getElementById('btnToggleJury');
+  if(!body)return;
+  const isOpen=body.style.display!=='none';
+  if(isOpen){body.style.display='none';folded.style.display='block';if(btn)btn.textContent='▶ Modifier';}
+  else{body.style.display='block';folded.style.display='none';if(btn)btn.textContent='▼ Plier';}
+}
+function validerJury(){
+  const j=getJuryComp();
+  if(!(j.pro&&j.pro.nom)||!(j.fr&&j.fr.nom)){
+    toast('⚠ Renseignez au moins Prof pro et Prof français','warn');return;
+  }
+  refreshJuryHeader();
+  toggleJuryComp();
+  toast('✅ Jury enregistré : '+j.pro.nom+' + '+j.fr.nom,'ok');
+}
+function effacerJury(){
+  if(!confirm('Effacer la composition du jury ?'))return;
+  localStorage.removeItem(LS_JURY);
+  ['pro','fr','3'].forEach(r=>{
+    const elN=document.getElementById('juryNom_'+r);
+    const elF=document.getElementById('juryFn_'+r);
+    if(elN)elN.value='';if(elF)elF.value='';
+  });
+  refreshJuryHeader();
+}
+window.setJuryComp=setJuryComp;
+window.refreshJuryHeader=refreshJuryHeader;
+window.toggleJuryComp=toggleJuryComp;
+window.validerJury=validerJury;
+window.effacerJury=effacerJury;
+// Auto-remplir au chargement
+document.addEventListener('DOMContentLoaded',function(){setTimeout(fillJuryFromLS,300);});
+
 // Récupère l'évaluation tuteur la plus récente pour une compétence donnée
 function getTuteurEval(eleveCode,compCode,pfmp){
   const vals=validations[eleveCode]||[];
@@ -4172,7 +4305,8 @@ function _ep2Push(compCode,critere,niveau,pfmp){
   const pendingKey='inerweb-prof-pending-validations';
   let pending=[];try{pending=JSON.parse(localStorage.getItem(pendingKey)||'[]');}catch(_){}
   const ts=new Date().toISOString();
-  const evaluateur=(cfg&&cfg.nomProf)||'F. Henninot';
+  // L'évaluateur EP2 = jury technique (prof de pro) — si pas saisi, fallback sur cfg.nomProf
+  const evaluateur=getJuryEvaluateur('pro');
   const data={
     epreuve:'EP2',
     competence:compCode,
@@ -4181,7 +4315,7 @@ function _ep2Push(compCode,critere,niveau,pfmp){
     contexte:pfmp,
     phase:'certificatif', // ← l'éval du prof retour de stage est certificative
     source:'prof_stage_certif',
-    evaluateur:evaluateur+' (rapport stage)',
+    evaluateur:evaluateur,
     date_jury:new Date().toISOString().slice(0,10),
     observation:'',
     timestamp:ts
@@ -4263,6 +4397,9 @@ async function sauverRapport(){
     pending.push({eleve:cur,data,ts:Date.now()+Math.random()});
   };
 
+  const evalPro=getJuryEvaluateur('pro');
+  const evalFr=getJuryEvaluateur('fr');
+
   // 3a. Évaluation prof de pro — niveau global + chaque critère
   CRIT_RAPPORT_PRO.forEach(cr=>{
     const niv=d.pro?.[cr.key];
@@ -4276,7 +4413,7 @@ async function sauverRapport(){
         observation:d.obs_pro||'',
         contexte:'rapport_stage',
         phase:pfmp,
-        evaluateur:'Prof de pro',
+        evaluateur:evalPro,
         date_jury:dateJury,
         timestamp:ts,
         source:'rapport_stage_pro'
@@ -4293,12 +4430,12 @@ async function sauverRapport(){
     observation:d.obs_fr||'',
     contexte:'rapport_stage',
     phase:pfmp,
-    evaluateur:'Prof de français',
+    evaluateur:evalFr,
     jury_num:d.jury||'',
     date_jury:dateJury,
     timestamp:ts,
     source:'rapport_stage_fr',
-    _payload:{type:'rapport_stage_fr',pfmp,scores:d.fr_pts,niveaux:d.fr_niv,total:totalFr}
+    _payload:{type:'rapport_stage_fr',pfmp,scores:d.fr_pts,niveaux:d.fr_niv,total:totalFr,jury:getJuryComp()}
   });
   CRIT_RAPPORT_FR.categories.forEach(cat=>{
     cat.criteres.forEach(cr=>{
@@ -4314,7 +4451,7 @@ async function sauverRapport(){
           observation:'',
           contexte:'rapport_stage',
           phase:pfmp,
-          evaluateur:'Prof de français',
+          evaluateur:evalFr,
           jury_num:d.jury||'',
           date_jury:dateJury,
           timestamp:ts,

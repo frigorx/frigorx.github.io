@@ -1,5 +1,5 @@
-// inerWeb — Service Worker principal v7.17 (eval francais 3 colonnes + obs plus haute)
-const CACHE_NAME = 'inerweb-v7.17';
+// inerWeb — Service Worker principal v7.18 (bloc composition jury en amont)
+const CACHE_NAME = 'inerweb-v7.18';
 const ASSETS = [
   './',
   './index.html',
