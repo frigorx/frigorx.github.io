@@ -4,6 +4,9 @@
 <meta charset="UTF-8"><script>
 // Auto-connect via #cfg= (raccourci bureau/telephone)
 (function(){var h=location.hash;if(h.indexOf('#cfg=')===0){try{var d=JSON.parse(atob(decodeURIComponent(h.substring(5))));if(d.apiUrl&&d.apiKey){localStorage.setItem('inerweb-tt-fe-cfg',JSON.stringify(d));history.replaceState(null,'',location.pathname+location.search);}}catch(e){}}})();
+// RESET VAULT LOCAL one-shot (2026-05-21) — efface les associations code↔nom polluées par les essais TNE.
+// L'app rechargera les noms depuis la Sheet (30 IFCA en clair). Le flag iw_purge_version empêche la ré-exécution.
+(function(){try{var EXPECTED='20260521';var current=localStorage.getItem('iw_purge_version')||'';if(current===EXPECTED)return;var k=[],i;for(i=0;i<localStorage.length;i++){var key=localStorage.key(i);if(key&&(key.indexOf('iw_identity')===0||key.indexOf('iw_pin')===0||key.indexOf('iw_vault')===0))k.push(key);}k.forEach(function(x){localStorage.removeItem(x);});localStorage.setItem('iw_purge_version',EXPECTED);console.log('[iw-purge] '+k.length+' clés effacées : '+k.join(', '));}catch(e){}})();
 // Purge cache service worker
 (function(){try{if(sessionStorage.getItem('iw_purged'))return;}catch(e){return;}if('serviceWorker' in navigator){caches.keys().then(function(k){k.forEach(function(c){caches.delete(c)})});navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(sw){sw.unregister()})});}try{sessionStorage.setItem('iw_purged','1');}catch(e){}setTimeout(function(){location.reload(true)},500);})();
 </script>
